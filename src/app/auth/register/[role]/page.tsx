@@ -1,8 +1,9 @@
-import logo from "../../public/mess-manager.png";
+import RegisterForm from "@/components/Auth/RegisterForm";
 import Image from "next/image";
-import LandingPageButton from "@/components/Buttons/LandingPageButton";
+import Link from "next/link";
+import logo from "../../../../../public/mess-manager.png";
 
-export default function RoleSelection() {
+export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-6">
       {/* Mobile/Tablet Only Container */}
@@ -13,18 +14,35 @@ export default function RoleSelection() {
             <Image src={logo} alt="Mess Manager Logo" height={40} width={40} />
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Welcome to Mess Manager
+            Create Account
           </h1>
           <p className="text-muted-foreground text-sm">
-            Choose your role to get started
+            Join Mess Manager and start tracking expenses
           </p>
         </div>
+        <RegisterForm />
 
-        <LandingPageButton />
+        {/* Login Link */}
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          Already have an account?{" "}
+          <Link
+            href="/auth/login"
+            className="text-primary font-semibold hover:underline"
+          >
+            Sign In
+          </Link>
+        </p>
 
-        {/* Info Text */}
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          You can change your role anytime in settings
+        {/* Terms */}
+        <p className="text-center text-xs text-muted-foreground mt-4 px-4">
+          By creating an account, you agree to our{" "}
+          <a href="/terms" className="text-primary hover:underline">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="/privacy" className="text-primary hover:underline">
+            Privacy Policy
+          </a>
         </p>
       </div>
 
@@ -49,8 +67,8 @@ export default function RoleSelection() {
           Mobile Experience Only
         </h2>
         <p className="text-muted-foreground">
-          This role selection is designed for mobile and tablet devices. Please
-          access this page from a smaller screen or resize your browser window.
+          This registration page is optimized for mobile and tablet devices.
+          Please access it from a smaller screen or resize your browser window.
         </p>
       </div>
     </div>
