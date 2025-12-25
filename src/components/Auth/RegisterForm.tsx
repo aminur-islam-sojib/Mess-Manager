@@ -1,8 +1,11 @@
 "use client";
-import { Chrome, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import { createUser } from "@/actions/server/Users";
+import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import React, { useState } from "react";
+import { toast } from "sonner";
+import GoogleLoginButton from "./GoogleLoginButton";
 
-export default function RegisterForm() {
+export default function RegisterForm({ role }: { role: string }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -10,6 +13,7 @@ export default function RegisterForm() {
     email: "",
     password: "",
     confirmPassword: "",
+    role: role,
   });
   const [errors, setErrors] = useState({
     fullName: "",
@@ -82,19 +86,19 @@ export default function RegisterForm() {
     return isValid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      console.log("Form submitted:", formData);
       // Handle registration logic here
+      const result = await createUser(formData);
+
+      if (result) {
+        return toast.success(`${result.message}`);
+      }
       // router.push('/role-selection');
     }
   };
 
-  const handleGoogleLogin = () => {
-    console.log("Google login clicked");
-    // Handle Google OAuth logic here
-  };
   return (
     <div>
       {/* Registration Form */}
@@ -266,14 +270,7 @@ export default function RegisterForm() {
       </div>
 
       {/* Google Login Button */}
-      <button
-        type="button"
-        onClick={handleGoogleLogin}
-        className="w-full py-3.5 px-6 rounded-xl font-medium text-base bg-card text-foreground border-2 border-input hover:bg-accent hover:border-primary/50 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3 shadow-sm"
-      >
-        <Chrome className="w-5 h-5" />
-        Sign up with Google
-      </button>
+      <GoogleLoginButton />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
-import { Chrome, Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import React, { useState } from "react";
+import GoogleLoginButton from "./GoogleLoginButton";
 
 export default function LoginFormPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -68,10 +69,6 @@ export default function LoginFormPage() {
     }
   };
 
-  const handleGoogleLogin = () => {
-    console.log("Google login clicked");
-    // Handle Google OAuth logic here
-  };
   return (
     <div>
       {/* Registration Form */}
@@ -168,14 +165,7 @@ export default function LoginFormPage() {
       </div>
 
       {/* Google Login Button */}
-      <button
-        type="button"
-        onClick={handleGoogleLogin}
-        className="w-full py-3.5 px-6 rounded-xl font-medium text-base bg-card text-foreground border-2 border-input hover:bg-accent hover:border-primary/50 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3 shadow-sm"
-      >
-        <Chrome className="w-5 h-5" />
-        Sign up with Google
-      </button>
+      <GoogleLoginButton />
     </div>
   );
 }
