@@ -21,6 +21,23 @@ export const getUsers = async () => {
 };
 
 /* ----------------------------------------
+   GET USERS BY ID
+---------------------------------------- */
+export const getUser = async (email: string) => {
+  try {
+    // here code changes
+    const collection = await dbConnect(collections.USERS);
+    const users = await collection.findOne({ email });
+    return users;
+  } catch (error) {
+    console.error("❌ Error fetching users:", error);
+
+    // here code changes
+    throw new Error("Failed to fetch users");
+  }
+};
+
+/* ----------------------------------------
    CREATE USER
 ---------------------------------------- */
 export const createUser = async (payload: InputUser) => {
@@ -33,6 +50,7 @@ export const createUser = async (payload: InputUser) => {
     email,
     password: hashedPassword,
     role,
+    createdAt: new Date(),
   };
 
   try {

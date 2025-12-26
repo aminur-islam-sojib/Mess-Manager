@@ -1,9 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import React, { useState } from "react";
 import GoogleLoginButton from "./GoogleLoginButton";
+import { toast } from "sonner";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function LoginFormPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -60,12 +65,27 @@ export default function LoginFormPage() {
     return isValid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      console.log("Form submitted:", formData);
       // Handle registration logic here
       // router.push('/role-selection');
+      try {
+        const result = await signIn("credentials", {
+          email: formData.email,
+          password: formData.password,
+          redirect: false,
+        });
+        console.log(result);
+        if (result?.status == 200) {
+          toast.success("Login Successful!");
+          router.push("/dashboard");
+        } else if (result?.status == 401) {
+          toast.info("Please Registration first!");
+        }
+      } catch (error: any) {
+        toast.error(`${error.message}`);
+      }
     }
   };
 

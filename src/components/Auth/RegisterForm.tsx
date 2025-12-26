@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { createUser } from "@/actions/server/Users";
 import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import GoogleLoginButton from "./GoogleLoginButton";
+import { useRouter } from "next/navigation";
 
 export default function RegisterForm({ role }: { role: string }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -21,7 +23,8 @@ export default function RegisterForm({ role }: { role: string }) {
     password: "",
     confirmPassword: "",
   });
-
+  const [loading, setLoading] = useState<boolean>(false);
+  const router = useRouter();
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -89,12 +92,17 @@ export default function RegisterForm({ role }: { role: string }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      // Handle registration logic here
-      const result = await createUser(formData);
-
-      if (result) {
-        return toast.success(`${result.message}`);
+      try {
+        setLoading(true);
+        const result = await createUser(formData);
+        toast.success(`${result.message} Please Login!`);
+        router.push("/auth/login");
+      } catch (error: any) {
+        toast.error(`${error.message}`);
+      } finally {
+        setLoading(false);
       }
+
       // router.push('/role-selection');
     }
   };
@@ -256,7 +264,7 @@ export default function RegisterForm({ role }: { role: string }) {
           type="submit"
           className="w-full py-3.5 px-6 rounded-xl font-semibold text-base bg-primary text-primary-foreground hover:opacity-90 shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 mt-6"
         >
-          Create Account
+          {loading ? "Account Creating..." : " Create Account"}
         </button>
       </form>
 
