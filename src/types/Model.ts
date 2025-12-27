@@ -20,3 +20,11 @@ export type FormDataType = {
   confirmPassword: string;
   role: "user" | "manager";
 };
+
+export type SessionUser = {
+  email?: string | null | undefined;
+  id?: string | null | undefined;
+  name?: string | null | undefined;
+  role?: "user" | "manager" | "admin";
+  image?: string | null | undefined;
+};

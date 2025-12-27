@@ -1,8 +1,9 @@
-import BottomNav from "@/components/Navbar/BottomNav";
+import ManagerBottomNav from "@/components/Shared/ManagerBottomNav";
 import UserSidebar from "../../components/Navbar/UserSidebar";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/options";
 import ManagerSidebar from "@/components/Navbar/ManagerSidebar";
+import UserBottomNav from "@/components/Shared/UserBottomBar";
 
 export default async function DashboardLayout({
   children,
@@ -11,7 +12,7 @@ export default async function DashboardLayout({
 }) {
   const session = await getServerSession(authOptions);
   const role = session?.user.role;
-  console.log(session);
+
   return (
     <div className="min-h-screen bg-background lg:flex">
       <div className="flex-1">
@@ -20,7 +21,7 @@ export default async function DashboardLayout({
         {children}
 
         {/* Bottom Navigation - Mobile Only */}
-        <BottomNav />
+        {role && role === "user" && <UserBottomNav role={session.user.role} />}
       </div>
     </div>
   );
