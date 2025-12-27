@@ -5,18 +5,24 @@ import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import GoogleLoginButton from "./GoogleLoginButton";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormDataType } from "@/types/Model";
+import { signIn } from "next-auth/react";
 
-export default function RegisterForm({ role }: { role: string }) {
+export default function RegisterForm() {
+  const sp = useSearchParams();
+  const role = sp.get("role");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormDataType>({
+    provider: "credentials",
     fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
-    role: role,
+    role: role as "user" | "manager",
   });
+
   const [errors, setErrors] = useState({
     fullName: "",
     email: "",
@@ -91,19 +97,36 @@ export default function RegisterForm({ role }: { role: string }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      try {
-        setLoading(true);
-        const result = await createUser(formData);
-        toast.success(`${result.message} Please Login!`);
+    if (!validateForm()) return;
+
+    try {
+      setLoading(true);
+
+      // 1️⃣ Create user
+      await createUser(formData);
+
+      // 2️⃣ Auto login using credentials
+      const loginResult = await signIn("credentials", {
+        email: formData.email,
+        password: formData.password,
+        redirect: false, // important
+      });
+
+      if (!loginResult?.ok) {
+        toast.error(
+          "Account created, but login failed. Please login manually."
+        );
         router.push("/auth/login");
-      } catch (error: any) {
-        toast.error(`${error.message}`);
-      } finally {
-        setLoading(false);
+        return;
       }
 
-      // router.push('/role-selection');
+      // 3️⃣ Success
+      toast.success("Account created & logged in 🎉");
+      router.replace("/dashboard"); // server decides role
+    } catch (error: any) {
+      toast.error(error.message || "Something went wrong");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -278,7 +301,7 @@ export default function RegisterForm({ role }: { role: string }) {
       </div>
 
       {/* Google Login Button */}
-      <GoogleLoginButton />
+      {<GoogleLoginButton />}
     </div>
   );
 }

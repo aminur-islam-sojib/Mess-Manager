@@ -12,7 +12,8 @@ export default function LandingPageButton() {
 
   const handleContinue = () => {
     if (selectedRole) {
-      router.push(`/auth/register/${selectedRole}`);
+      console.log("selected Role", selectedRole);
+      router.push(`/auth/register?role=${selectedRole}`);
     }
   };
 

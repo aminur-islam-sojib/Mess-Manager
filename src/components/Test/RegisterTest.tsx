@@ -1,11 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import RegisterForm from "@/components/Auth/RegisterForm";
 import Image from "next/image";
 import Link from "next/link";
 import logo from "../../../../../public/mess-manager.png";
 
-export default async function RegisterPage({ params }: { params: any }) {
-  const { role } = await params;
+export default async function RegisterPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-6">
       {/* Mobile/Tablet Only Container */}
@@ -22,7 +20,7 @@ export default async function RegisterPage({ params }: { params: any }) {
             Join Mess Manager and start tracking expenses
           </p>
         </div>
-        {role && <RegisterForm role={role} />}
+        <RegisterForm />
 
         {/* Login Link */}
         <p className="text-center text-sm text-muted-foreground mt-6">

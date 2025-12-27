@@ -36,23 +36,20 @@ export default function LoginFormPage() {
 
   const validateForm = () => {
     const newErrors = {
-      fullName: "",
       email: "",
       password: "",
-      confirmPassword: "",
     };
+
     let isValid = true;
 
-    // Email validation
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
       isValid = false;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email";
+      newErrors.email = "Enter a valid email address";
       isValid = false;
     }
 
-    // Password validation
     if (!formData.password) {
       newErrors.password = "Password is required";
       isValid = false;
@@ -76,12 +73,12 @@ export default function LoginFormPage() {
           password: formData.password,
           redirect: false,
         });
-        console.log(result);
+
         if (result?.status == 200) {
           toast.success("Login Successful!");
-          router.push("/dashboard");
+          router.push(`/dashboard`);
         } else if (result?.status == 401) {
-          toast.info("Please Registration first!");
+          toast.error(`${result?.error}`);
         }
       } catch (error: any) {
         toast.error(`${error.message}`);
@@ -171,7 +168,7 @@ export default function LoginFormPage() {
           type="submit"
           className="w-full py-3.5 px-6 rounded-xl font-semibold text-base bg-primary text-primary-foreground hover:opacity-90 shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 mt-6"
         >
-          Create Account
+          Log In
         </button>
       </form>
 
@@ -185,7 +182,7 @@ export default function LoginFormPage() {
       </div>
 
       {/* Google Login Button */}
-      <GoogleLoginButton />
+      {<GoogleLoginButton />}
     </div>
   );
 }

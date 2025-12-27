@@ -1,6 +1,6 @@
 "use server";
 import { collections, dbConnect } from "@/lib/dbConnect";
-import { InputUser, User } from "@/types/Model";
+import { InputUser } from "@/types/Model";
 import bcrypt from "bcryptjs";
 
 /* ----------------------------------------
@@ -45,7 +45,7 @@ export const createUser = async (payload: InputUser) => {
 
   const hashedPassword = await bcrypt.hash(confirmPassword, 10);
 
-  const user: User = {
+  const user = {
     name: fullName,
     email,
     password: hashedPassword,

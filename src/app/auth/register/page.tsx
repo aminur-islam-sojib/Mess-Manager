@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import logo from "../../../../public/mess-manager.png";
-import LoginFormPage from "@/components/Auth/LoginForm";
+import RegisterForm from "@/components/Auth/RegisterForm";
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-6">
       {/* Mobile/Tablet Only Container */}
@@ -13,22 +13,23 @@ export default function RegisterPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
             <Image src={logo} alt="Mess Manager Logo" height={40} width={40} />
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Log In</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            Create Account
+          </h1>
           <p className="text-muted-foreground text-sm">
             Join Mess Manager and start tracking expenses
           </p>
         </div>
-
-        <LoginFormPage />
+        <RegisterForm />
 
         {/* Login Link */}
         <p className="text-center text-sm text-muted-foreground mt-6">
-          You are new?{" "}
+          Already have an account?{" "}
           <Link
-            href="/auth/register?role=user"
+            href="/auth/login"
             className="text-primary font-semibold hover:underline"
           >
-            Sign Up
+            Sign In
           </Link>
         </p>
 

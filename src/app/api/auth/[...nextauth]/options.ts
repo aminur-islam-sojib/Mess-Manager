@@ -1,29 +1,42 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { collections, dbConnect } from "@/lib/dbConnect";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
+import { createOAuthUser, findUserByEmail } from "@/lib/user.service";
+import { JWT } from "next-auth/jwt";
+import { Account, Session, User } from "next-auth";
 
 export const authOptions = {
+  session: {
+    strategy: "jwt" as const,
+  },
+
   providers: [
+    // ---------------- CREDENTIALS ----------------
     CredentialsProvider({
       name: "Credentials",
-
       credentials: {
-        email: {},
-        password: {},
+        email: { type: "email" },
+        password: { type: "password" },
       },
 
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          // here code changes
+          throw new Error("Email and password are required");
         }
 
-        const user = await dbConnect(collections.USERS).findOne({
-          email: credentials.email,
-        });
+        const user = await findUserByEmail(credentials.email);
 
         if (!user) {
-          return null;
+          // here code changes
+          throw new Error("No account found with this email");
+        }
+
+        if (!user.password) {
+          // here code changes
+          throw new Error(
+            "This account was created using Google. Please sign in with Google"
+          );
         }
 
         const isValid = await bcrypt.compare(
@@ -32,38 +45,71 @@ export const authOptions = {
         );
 
         if (!isValid) {
-          return null;
+          // here code changes
+          throw new Error("Incorrect password");
         }
 
-        // ✅ MUST return id
         return {
           id: user._id.toString(),
-          name: user.name,
           email: user.email,
-          role: user.role, // user | manager
+          name: user.name,
+          role: user.role,
         };
       },
     }),
+
+    // ---------------- GOOGLE ----------------
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
   ],
 
-  session: {
-    strategy: "jwt" as const,
-  },
-
   callbacks: {
-    async jwt({ token, user }: { token: any; user: any }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
+    // 🔑 Always sync JWT with DB
+    async jwt({ token }: { token: JWT }) {
+      if (!token.email) return token;
+
+      const dbUser = await findUserByEmail(token.email);
+
+      if (dbUser) {
+        token.id = dbUser._id.toString();
+        token.role = dbUser.role;
+        token.name = dbUser.name;
+        token.picture = dbUser.image;
       }
+
       return token;
     },
 
-    async session({ session, token }: { session: any; token: any }) {
-      session.user.id = token.id;
-      session.user.role = token.role;
-      console.log(session);
+    // 🧾 Session is derived from JWT only
+    async session({ session, token }: { session: Session; token: JWT }) {
+      if (session.user) {
+        session.user.id = token.id;
+        session.user.role = token.role;
+      }
       return session;
+    },
+
+    // 🛂 OAuth first-login handler
+    async signIn({ account, user }: { account: Account; user: User }) {
+      if (account?.provider !== "google") return true;
+
+      if (!user.email) return false;
+
+      const existingUser = await findUserByEmail(user.email);
+
+      if (!existingUser) {
+        await createOAuthUser({
+          name: user.name as string,
+          email: user.email,
+          image: user.image as string,
+          role: "user",
+          provider: "google",
+        });
+      }
+
+      return true;
     },
   },
 
