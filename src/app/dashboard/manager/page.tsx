@@ -81,7 +81,7 @@ export default async function ManagerDashboard() {
   if (!isMessExist.success) {
     return <CreateMessButton />;
   }
-
+  console.log(messData);
   return (
     <div className="min-h-screen bg-background lg:flex">
       <div className="flex-1 ">

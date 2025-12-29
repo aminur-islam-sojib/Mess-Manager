@@ -20,7 +20,6 @@ export default function NavigationMenu({
 
   const navItems = NAV_CONFIG[role];
   const canAccessMess = isMessExist?.success;
-  console.log(" is success", canAccessMess);
 
   return (
     <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
