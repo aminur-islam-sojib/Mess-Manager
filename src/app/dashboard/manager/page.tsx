@@ -1,5 +1,6 @@
-"use client";
-
+import { getSingleMess } from "@/actions/server/Mess";
+import { authOptions } from "@/app/api/auth/[...nextauth]/options";
+import CreateMessButton from "@/components/Shared/CreateMessButton";
 import {
   Users,
   Receipt,
@@ -12,6 +13,8 @@ import {
   UserPlus,
   Bell,
 } from "lucide-react";
+import { getServerSession } from "next-auth";
+import { notFound, redirect } from "next/navigation";
 
 // Mock data for dashboard
 const mockData = {
@@ -53,7 +56,32 @@ const mockData = {
   ],
 };
 
-export default function ManagerDashboard() {
+export default async function ManagerDashboard() {
+  const session = await getServerSession(authOptions);
+
+  // ❌ Not logged in → kick out
+  if (!session || !session.user) {
+    redirect("/auth/login");
+  }
+
+  const role = session.user.role;
+
+  // ❌ Unknown role → show 404 (safety)
+  if (role !== "user" && role !== "manager") {
+    notFound();
+  }
+
+  const messData = await getSingleMess(session.user.id);
+  const isMessExist =
+    messData === false
+      ? { success: false, message: "No ID provided" }
+      : messData;
+
+  // If no mess exists
+  if (!isMessExist.success) {
+    return <CreateMessButton />;
+  }
+
   return (
     <div className="min-h-screen bg-background lg:flex">
       <div className="flex-1 lg:ml-72">

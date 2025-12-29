@@ -1,56 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  Home,
-  Users,
-  Receipt,
-  Settings,
-  Menu,
-  X,
-  Bell,
-  Utensils,
-  BarChart3,
-  FileText,
-} from "lucide-react";
+import { useState } from "react";
+import { Home, Menu, X, Bell } from "lucide-react";
 import LogOutButton from "../Buttons/LogOutButton";
-import { SessionUser } from "@/types/Model";
 import UserProfile from "../Shared/UserProfile";
-
-/* ----------------------------------------
-   MANAGER NAV CONFIG (ROUTE-BASED)
----------------------------------------- */
-const managerNav = [
-  { label: "Overview", href: "/dashboard/manager", icon: Home },
-  { label: "Members", href: "/dashboard/manager/members", icon: Users },
-  { label: "Meals", href: "/dashboard/manager/meals", icon: Utensils },
-  {
-    label: "Expenses",
-    href: "/dashboard/manager/expenses",
-    icon: Receipt,
-  },
-  {
-    label: "Reports",
-    href: "/dashboard/manager/reports",
-    icon: BarChart3,
-  },
-  {
-    label: "Bills",
-    href: "/dashboard/manager/bills",
-    icon: FileText,
-  },
-  { label: "Settings", href: "/dashboard/manager/settings", icon: Settings },
-];
+import { SidebarProps } from "@/types/MessTypes";
+import NavigationMenu from "../Shared/NavigationMenu";
 
 const pendingAlerts = 3;
 
-export default function ManagerSidebar({ user }: { user: SessionUser }) {
-  const pathname = usePathname();
+export default function ManagerSidebar({ user, isMessExist }: SidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isActive = (href: string) => pathname === href;
+  console.log(isMessExist);
 
   return (
     <>
@@ -71,27 +33,9 @@ export default function ManagerSidebar({ user }: { user: SessionUser }) {
         <UserProfile user={user} />
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {managerNav.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                  active
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent"
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        {user.role && (
+          <NavigationMenu role={user.role} isMessExist={isMessExist} />
+        )}
 
         {/* Logout */}
         <LogOutButton />
@@ -156,28 +100,9 @@ export default function ManagerSidebar({ user }: { user: SessionUser }) {
             <UserProfile user={user} />
 
             {/* Nav */}
-            <nav className="p-4 space-y-2">
-              {managerNav.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.href);
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                      active
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent"
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
+            {user.role && (
+              <NavigationMenu role={user.role} isMessExist={isMessExist} />
+            )}
 
             {/* Log Out */}
             <LogOutButton />

@@ -1,46 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  Home,
-  Receipt,
-  Settings,
-  Menu,
-  X,
-  Bell,
-  Utensils,
-  CreditCard,
-  FileText,
-} from "lucide-react";
-import { SessionUser } from "@/types/Model";
+import { Home, Menu, X, Bell } from "lucide-react";
 import LogOutButton from "../Buttons/LogOutButton";
 import UserProfile from "../Shared/UserProfile";
-
-/* ----------------------------------------
-   NAV CONFIG (ROUTE-BASED)
----------------------------------------- */
-const userNav = [
-  { label: "Overview", href: "/dashboard/user", icon: Home },
-  { label: "My Meals", href: "/dashboard/user/meals", icon: Utensils },
-  {
-    label: "Transactions",
-    href: "/dashboard/user/transactions",
-    icon: Receipt,
-  },
-  { label: "Payments", href: "/dashboard/user/payments", icon: CreditCard },
-  { label: "Bills", href: "/dashboard/user/bills", icon: FileText },
-  { label: "Settings", href: "/dashboard/user/settings", icon: Settings },
-];
+import NavigationMenu from "../Shared/NavigationMenu";
+import { SidebarProps } from "@/types/MessTypes";
 
 const pendingPayments = 1;
 
-export default function UserSidebar({ user }: { user: SessionUser }) {
-  const pathname = usePathname();
+export default function UserSidebar({ user, isMessExist }: SidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const isActive = (href: string) => pathname === href;
 
   return (
     <>
@@ -61,33 +31,9 @@ export default function UserSidebar({ user }: { user: SessionUser }) {
         <UserProfile user={user} />
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {userNav.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                  active
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent"
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-
-                {item.label === "Payments" && pendingPayments > 0 && (
-                  <span className="ml-auto w-6 h-6 bg-destructive text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center">
-                    {pendingPayments}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+        {user.role && (
+          <NavigationMenu role={user.role} isMessExist={isMessExist} />
+        )}
 
         {/* Logout */}
         <LogOutButton />
@@ -147,30 +93,13 @@ export default function UserSidebar({ user }: { user: SessionUser }) {
                 <X className="w-5 h-5 text-sidebar-foreground" />
               </button>
             </div>
+            {/* Navigation */}
+            {user.role && (
+              <NavigationMenu role={user.role} isMessExist={isMessExist} />
+            )}
 
-            {/* Nav */}
-            <nav className="p-4 space-y-2">
-              {userNav.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.href);
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                      active
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent"
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
+            {/* LogOut Button */}
+            <LogOutButton />
           </div>
         </div>
       )}

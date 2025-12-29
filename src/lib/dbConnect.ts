@@ -2,6 +2,7 @@ import { MongoClient, ServerApiVersion } from "mongodb";
 
 export const collections = {
   USERS: "users",
+  MESS: "mess",
 };
 
 const uri = process.env.MONGO_URI;

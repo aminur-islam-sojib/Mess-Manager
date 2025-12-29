@@ -1,12 +1,12 @@
-import { Home, Users, Receipt, Settings } from "lucide-react";
+import { Home, Users, Receipt, Settings, type LucideIcon } from "lucide-react";
 
 export type Role = "manager" | "user" | "admin";
 
 export type NavItem = {
   label: string;
   href: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  icon: any;
+  icon: LucideIcon;
+  requiresMess?: boolean;
 };
 
 export const NAV_CONFIG: Record<Role, NavItem[]> = {
@@ -20,55 +20,61 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       label: "Members",
       href: "/dashboard/manager/members",
       icon: Users,
+      requiresMess: true,
     },
     {
       label: "Expenses",
       href: "/dashboard/manager/expenses",
       icon: Receipt,
+      requiresMess: true,
     },
     {
       label: "Settings",
       href: "/dashboard/manager/settings",
       icon: Settings,
+      requiresMess: true,
     },
   ],
 
   user: [
     {
       label: "Home",
-      href: "/dashboard",
+      href: "/dashboard/user",
       icon: Home,
     },
     {
       label: "Expenses",
-      href: "/dashboard/expenses",
+      href: "/dashboard/user/expenses",
       icon: Receipt,
+      requiresMess: true,
     },
     {
       label: "Settings",
-      href: "/dashboard/settings",
+      href: "/dashboard/user/settings",
       icon: Settings,
+      requiresMess: true,
     },
     {
       label: "Members",
-      href: "/dashboard/manager/members",
+      href: "/dashboard/user/manager/members",
       icon: Users,
+      requiresMess: true,
     },
   ],
   admin: [
     {
       label: "Home",
-      href: "/dashboard",
+      href: "/dashboard/admin",
       icon: Home,
     },
     {
       label: "Expenses",
-      href: "/dashboard/expenses",
+      href: "/dashboard/admin/expenses",
       icon: Receipt,
     },
     {
       label: "Settings",
-      href: "/dashboard/settings",
+      href: "/dashboard/admin/settings",
       icon: Settings,
     },
   ],
