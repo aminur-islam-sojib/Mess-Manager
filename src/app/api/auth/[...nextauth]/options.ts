@@ -68,16 +68,19 @@ export const authOptions = {
   callbacks: {
     // 🔑 Always sync JWT with DB
     async jwt({ token }: { token: JWT }) {
-      if (!token.email) return token;
+      if (!token.email) return null;
 
       const dbUser = await findUserByEmail(token.email);
 
-      if (dbUser) {
-        token.id = dbUser._id.toString();
-        token.role = dbUser.role;
-        token.name = dbUser.name;
-        token.picture = dbUser.image;
+      // here code changes — HARD INVALIDATION
+      if (!dbUser) {
+        return null; // 🔥 force logout
       }
+
+      token.id = dbUser._id.toString();
+      token.role = dbUser.role;
+      token.name = dbUser.name;
+      token.image = dbUser.image;
 
       return token;
     },
