@@ -1,6 +1,14 @@
 import { collections, dbConnect } from "@/lib/dbConnect";
-import { MessPayloadType } from "@/types/MessTypes";
-import { ObjectId } from "mongodb";
+import { MessPayloadType, SerializableMess } from "@/types/MessTypes";
+import { ObjectId, Document } from "mongodb";
+
+type RawMessDoc = Document & {
+  _id: ObjectId;
+  managerId: ObjectId;
+  members?: ObjectId[];
+  createdAt?: Date;
+  updatedAt?: Date;
+};
 
 // Create Mess Function
 export const createMess = async (payload: MessPayloadType) => {
@@ -25,10 +33,20 @@ export const createMess = async (payload: MessPayloadType) => {
     });
 
     if (isMessExist) {
+      const doc = isMessExist as RawMessDoc;
+      const serial: SerializableMess = {
+        ...doc,
+        _id: doc._id?.toString(),
+        managerId: doc.managerId?.toString(),
+        members: (doc.members || []).map((m) => m?.toString()),
+        createdAt: doc.createdAt?.toISOString(),
+        updatedAt: doc.updatedAt?.toISOString(),
+      } as SerializableMess;
+
       return {
         success: false,
         message: "Mess already exists for this manager",
-        mess: isMessExist,
+        mess: serial,
       };
     }
 
@@ -66,9 +84,19 @@ export const getSingleMess = async (managerId: string) => {
       };
     }
 
+    const doc = mess as RawMessDoc;
+    const serial: SerializableMess = {
+      ...doc,
+      _id: doc._id?.toString(),
+      managerId: doc.managerId?.toString(),
+      members: (doc.members || []).map((m) => m?.toString()),
+      createdAt: doc.createdAt?.toISOString(),
+      updatedAt: doc.updatedAt?.toISOString(),
+    } as SerializableMess;
+
     return {
       success: true,
-      mess,
+      mess: serial,
     };
   } catch (error) {
     console.error("❌ Error fetching mess:", error);

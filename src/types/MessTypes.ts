@@ -4,14 +4,26 @@ import { SessionUser } from "./Model";
 export type MessPayloadType = {
   managerId: string;
   messName: string;
-  id: string;
+  id?: string;
   managerEmail: string;
+};
+
+export type SerializableMess = {
+  _id: string;
+  messName: string;
+  managerId: string;
+  managerEmail: string;
+  members: string[];
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  [key: string]: unknown;
 };
 
 export type MessResponseType = {
   success?: boolean;
   message?: string;
-  mess?: Record<string, unknown>;
+  mess?: SerializableMess;
   messId?: string;
 };
 

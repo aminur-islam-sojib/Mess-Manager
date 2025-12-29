@@ -81,7 +81,7 @@ export default function DashboardNotFound() {
         </div>
       </aside>
 
-      <div className="flex-1 lg:ml-72">
+      <div className="flex-1">
         <header className="sticky top-0 z-40 bg-card border-b border-border lg:hidden">
           <div className="flex items-center justify-between px-4 py-3">
             <button
