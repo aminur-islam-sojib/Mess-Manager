@@ -1,3 +1,4 @@
+import React, { Suspense } from "react";
 import RegisterForm from "@/components/Auth/RegisterForm";
 
 export default function RegisterPage() {
@@ -31,7 +32,9 @@ export default function RegisterPage() {
               Join Mess Manager and start tracking expenses
             </p>
           </div>
-          <RegisterForm />
+          <Suspense fallback={<div className="py-8">Loading form…</div>}>
+            <RegisterForm />
+          </Suspense>
 
           {/* Terms */}
           <p className="text-center text-xs text-muted-foreground mt-4 px-4">
@@ -208,7 +211,7 @@ export default function RegisterPage() {
               <div>
                 <p className="font-semibold text-foreground text-sm">Sheikh</p>
                 <p className="text-xs text-muted-foreground">
-                  Mess Manager, Delhi
+                  Mess Manager, Dhaka
                 </p>
               </div>
             </div>

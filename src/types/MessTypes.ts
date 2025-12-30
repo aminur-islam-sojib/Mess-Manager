@@ -12,11 +12,11 @@ export type SerializableMess = {
   _id: string;
   messName: string;
   managerId: string;
-  managerEmail: string;
-  members: string[];
-  status: string;
-  createdAt: string;
-  updatedAt: string;
+  managerEmail?: string;
+  members?: string[];
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
   [key: string]: unknown;
 };
 

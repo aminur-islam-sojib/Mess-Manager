@@ -2,7 +2,6 @@
 import { collections, dbConnect } from "@/lib/dbConnect";
 import { InputUser } from "@/types/Model";
 import bcrypt from "bcryptjs";
-import { ObjectId } from "mongodb";
 
 /* ----------------------------------------
    GET USERS

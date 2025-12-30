@@ -1,15 +1,7 @@
 "use server";
 import { collections, dbConnect } from "@/lib/dbConnect";
-import { CreateMessPayload, SerializableMess } from "@/types/MessTypes";
-import { ObjectId, Document } from "mongodb";
-
-type RawMessDoc = Document & {
-  _id: ObjectId;
-  managerId: ObjectId;
-  members?: ObjectId[];
-  createdAt?: Date;
-  updatedAt?: Date;
-};
+import { CreateMessPayload } from "@/types/MessTypes";
+import { ObjectId } from "mongodb";
 
 export const createMess = async (payload: CreateMessPayload) => {
   const { managerId, messName, managerEmail } = payload;
@@ -70,37 +62,59 @@ export const createMess = async (payload: CreateMessPayload) => {
   };
 };
 
-export const getSingleMess = async (managerId: string) => {
-  if (!managerId) {
-    return false;
+export const getSingleMessForUser = async (userId: string) => {
+  if (!userId) {
+    return {
+      success: false,
+      message: "User id required",
+    };
   }
 
   try {
     const mess = await dbConnect(collections.MESS).findOne({
-      managerId: new ObjectId(managerId),
       status: "active",
+      $or: [
+        { managerId: new ObjectId(userId) },
+        { members: new ObjectId(userId) },
+      ],
     });
 
     if (!mess) {
       return {
         success: false,
-        message: "Mess not found",
+        message: "No mess found for this user",
       };
     }
 
-    const doc = mess as RawMessDoc;
-    const serial: SerializableMess = {
-      ...doc,
-      _id: doc._id?.toString(),
-      managerId: doc.managerId?.toString(),
-      members: (doc.members || []).map((m) => m?.toString()),
-      createdAt: doc.createdAt?.toISOString(),
-      updatedAt: doc.updatedAt?.toISOString(),
-    } as SerializableMess;
+    const isManager = mess.managerId?.toString() === userId.toString();
 
+    // 🔐 DATA SHAPING BASED ON ROLE
+    if (!isManager) {
+      // 👉 Member view (LIMITED)
+      return {
+        success: true,
+        role: "member",
+        mess: {
+          _id: mess._id.toString(),
+          messName: mess.messName,
+          managerId: mess.managerId.toString(),
+        },
+      };
+    }
+
+    // 👉 Manager view (FULL)
     return {
       success: true,
-      mess: serial,
+      role: "manager",
+      mess: {
+        _id: mess._id.toString(),
+        messName: mess.messName,
+        managerId: mess.managerId.toString(),
+        members: (mess.members || []).map((m: string) => m.toString()),
+        status: mess.status,
+        createdAt: mess.createdAt?.toISOString(),
+        updatedAt: mess.updatedAt?.toISOString(),
+      },
     };
   } catch (error) {
     console.error("❌ Error fetching mess:", error);
@@ -110,3 +124,6 @@ export const getSingleMess = async (managerId: string) => {
     };
   }
 };
+
+// Backwards-compatible alias for code that imports `getSingleMess`
+export const getSingleMess = getSingleMessForUser;

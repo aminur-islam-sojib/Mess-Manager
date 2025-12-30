@@ -1,4 +1,4 @@
-import { getSingleMess } from "@/actions/server/Mess";
+import { getSingleMessForUser } from "@/actions/server/Mess";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import ManagerHeader from "@/components/ManagerComponents/ManagerHeader";
 import CreateMessButton from "@/components/Shared/CreateMessButton";
@@ -71,14 +71,10 @@ export default async function ManagerDashboard() {
     notFound();
   }
 
-  const messData = await getSingleMess(session.user.id);
-  const isMessExist =
-    messData === false
-      ? { success: false, message: "No ID provided" }
-      : messData;
+  const messData = await getSingleMessForUser(session.user.id);
 
   // If no mess exists
-  if (!isMessExist.success) {
+  if (!messData || !messData.success) {
     return <CreateMessButton />;
   }
   console.log(messData);

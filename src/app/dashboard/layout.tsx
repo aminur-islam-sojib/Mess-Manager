@@ -4,7 +4,7 @@ import { authOptions } from "../api/auth/[...nextauth]/options";
 import UserSidebar from "@/components/Navbar/UserSidebar";
 import ManagerSidebar from "@/components/Navbar/ManagerSidebar";
 import UserBottomNav from "@/components/Shared/UserBottomBar";
-import { getSingleMess } from "@/actions/server/Mess";
+import { getSingleMessForUser } from "@/actions/server/Mess";
 import ManagerBottomNav from "@/components/Shared/ManagerBottomNav";
 
 export default async function DashboardLayout({
@@ -26,10 +26,10 @@ export default async function DashboardLayout({
     notFound();
   }
 
-  const messData = await getSingleMess(session.user.id);
+  const messData = await getSingleMessForUser(session.user.id);
   const isMessExist =
-    messData === false
-      ? { success: false, message: "No ID provided" }
+    !messData || !messData.success
+      ? { success: false, message: "No mess found" }
       : messData;
 
   return (
