@@ -38,3 +38,10 @@ export type SidebarProps = {
   user: SessionUser;
   isMessExist?: MessResponseType;
 };
+
+// types/MessTypes.ts
+export type CreateMessPayload = {
+  managerId: string;
+  messName: string;
+  managerEmail: string;
+};

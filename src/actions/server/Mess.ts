@@ -1,5 +1,6 @@
+"use server";
 import { collections, dbConnect } from "@/lib/dbConnect";
-import { MessPayloadType, SerializableMess } from "@/types/MessTypes";
+import { CreateMessPayload, SerializableMess } from "@/types/MessTypes";
 import { ObjectId, Document } from "mongodb";
 
 type RawMessDoc = Document & {
@@ -10,11 +11,38 @@ type RawMessDoc = Document & {
   updatedAt?: Date;
 };
 
-// Create Mess Function
-export const createMess = async (payload: MessPayloadType) => {
+export const createMess = async (payload: CreateMessPayload) => {
   const { managerId, messName, managerEmail } = payload;
 
-  const messInfo = {
+  const messCollection = dbConnect(collections.MESS);
+  const userCollection = dbConnect(collections.USERS);
+
+  // 1. Check user exists
+  const user = await userCollection.findOne({
+    _id: new ObjectId(managerId),
+  });
+
+  if (!user) {
+    return {
+      success: false,
+      message: "User not found",
+    };
+  }
+
+  // 2. Prevent duplicate mess
+  const existingMess = await messCollection.findOne({
+    managerId: new ObjectId(managerId),
+  });
+
+  if (existingMess) {
+    return {
+      success: false,
+      message: "Mess already exists",
+    };
+  }
+
+  // 3. Create mess
+  const messResult = await messCollection.insertOne({
     messName,
     managerId: new ObjectId(managerId),
     managerEmail,
@@ -22,48 +50,24 @@ export const createMess = async (payload: MessPayloadType) => {
     status: "active",
     createdAt: new Date(),
     updatedAt: new Date(),
-  };
+  });
 
-  try {
-    const messCollection = dbConnect(collections.MESS);
-
-    // One manager = one mess (business rule)
-    const isMessExist = await messCollection.findOne({
-      managerId: new ObjectId(managerId),
-    });
-
-    if (isMessExist) {
-      const doc = isMessExist as RawMessDoc;
-      const serial: SerializableMess = {
-        ...doc,
-        _id: doc._id?.toString(),
-        managerId: doc.managerId?.toString(),
-        members: (doc.members || []).map((m) => m?.toString()),
-        createdAt: doc.createdAt?.toISOString(),
-        updatedAt: doc.updatedAt?.toISOString(),
-      } as SerializableMess;
-
-      return {
-        success: false,
-        message: "Mess already exists for this manager",
-        mess: serial,
-      };
+  // 4. Update role AFTER mess creation
+  await userCollection.updateOne(
+    { _id: new ObjectId(managerId) },
+    {
+      $set: {
+        role: "manager",
+        updatedAt: new Date(),
+      },
     }
+  );
 
-    const result = await messCollection.insertOne(messInfo);
-
-    return {
-      success: true,
-      message: "Mess created successfully",
-      messId: result.insertedId,
-    };
-  } catch (error) {
-    console.error("❌ Error creating mess:", error);
-    return {
-      success: false,
-      message: "Failed to create mess",
-    };
-  }
+  return {
+    success: true,
+    message: "Mess created & role updated",
+    messId: messResult.insertedId,
+  };
 };
 
 export const getSingleMess = async (managerId: string) => {

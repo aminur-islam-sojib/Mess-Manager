@@ -1,5 +1,6 @@
 import { getSingleMess } from "@/actions/server/Mess";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
+import ManagerHeader from "@/components/ManagerComponents/ManagerHeader";
 import CreateMessButton from "@/components/Shared/CreateMessButton";
 import {
   Users,
@@ -11,7 +12,6 @@ import {
   AlertCircle,
   DollarSign,
   UserPlus,
-  Bell,
 } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
@@ -89,24 +89,7 @@ export default async function ManagerDashboard() {
         <main className="pb-20 lg:pb-6">
           <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
             {/* Desktop Header - Only visible on desktop */}
-            <div className="hidden lg:flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">
-                  {mockData.messName}
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                  Manage your mess operations and expenses
-                </p>
-              </div>
-              <button className="p-3 rounded-xl hover:bg-accent transition-colors relative">
-                <Bell className="w-6 h-6 text-foreground" />
-                {mockData.pendingApprovals > 0 && (
-                  <span className="absolute top-1 right-1 w-5 h-5 bg-destructive text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center">
-                    {mockData.pendingApprovals}
-                  </span>
-                )}
-              </button>
-            </div>
+            {messData && <ManagerHeader messData={messData} />}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

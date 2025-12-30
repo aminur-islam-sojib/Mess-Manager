@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Building2, ArrowRight, CheckCircle } from "lucide-react";
 import { SessionUser } from "@/types/Model";
 import { useRouter } from "next/navigation";
+import { createMess } from "@/actions/server/Mess";
 
 export default function ContinueMessButton({ user }: { user: SessionUser }) {
   const router = useRouter();
@@ -39,24 +40,14 @@ export default function ContinueMessButton({ user }: { user: SessionUser }) {
     setIsCreating(true);
 
     try {
-      const res = await fetch("/api/mess", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setError(data.message || "Failed to create mess");
-        setIsCreating(false);
-        return;
-      }
+      const result = await createMess(payload);
+      console.log(result);
       setShowSuccess(true);
-      router.push("/dashboard/manager");
+      router.push("/dashboard");
     } catch (error) {
       console.log(error);
-      setError("Server error");
+    } finally {
       setIsCreating(false);
-      return;
     }
   };
 
