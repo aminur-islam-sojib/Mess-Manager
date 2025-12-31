@@ -6,7 +6,7 @@ import { NAV_CONFIG, Role } from "@/config/nav.config";
 
 export default function ManagerBottomNav({ role }: { role: Role }) {
   const pathname = usePathname();
-  const navItems = NAV_CONFIG[role] ?? [];
+  const navItems = (NAV_CONFIG[role] ?? []).slice(0, 4);
 
   const isActive = (href: string) => pathname === href;
 
@@ -28,7 +28,9 @@ export default function ManagerBottomNav({ role }: { role: Role }) {
               }`}
             >
               <Icon className="w-6 h-6" />
-              <span className="text-xs font-medium">{item.label}</span>
+              <span className="text-xs font-medium text-center">
+                {item.label}
+              </span>
             </Link>
           );
         })}

@@ -1,5 +1,6 @@
-"use client";
-
+import { getSingleMessForUser } from "@/actions/server/Mess";
+import { authOptions } from "@/app/api/auth/[...nextauth]/options";
+import NotFoundPage from "@/app/not-found";
 import {
   Receipt,
   Calendar,
@@ -12,7 +13,9 @@ import {
   Utensils,
   FileText,
 } from "lucide-react";
-// import ManagerAside from "@/components/Navbar/ManagerAside";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import NoMess from "@/components/Shared/NoMess";
 
 // Mock session data - Replace with actual session from useSession()
 const mockSession = {
@@ -73,7 +76,32 @@ const mockData = {
   ],
 };
 
-export default function UserDashboard() {
+export default async function UserDashboard() {
+  const session = await getServerSession(authOptions);
+
+  // ❌ Not logged in → kick out
+  if (!session || !session.user) {
+    redirect("/auth/login");
+  }
+
+  const role = session.user.role;
+
+  // ❌ Unknown role → show 404 (safety)
+  if (role !== "user" && role !== "manager") {
+    NotFoundPage();
+  }
+
+  const messData = await getSingleMessForUser(session.user.id);
+
+  // If no mess exists
+  if (!messData || !messData.success) {
+    return (
+      <div>
+        <NoMess />
+      </div>
+    );
+  }
+  console.log(messData);
   return (
     <div className="min-h-screen bg-background lg:flex">
       {/* Main Content Wrapper with Desktop Offset */}

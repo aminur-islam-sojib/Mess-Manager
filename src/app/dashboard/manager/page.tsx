@@ -1,7 +1,7 @@
 import { getSingleMessForUser } from "@/actions/server/Mess";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import ManagerHeader from "@/components/ManagerComponents/ManagerHeader";
-import CreateMessButton from "@/components/Shared/CreateMessButton";
+import CreateMessButton from "@/components/Shared/NoMess";
 import {
   Users,
   Receipt,
@@ -77,7 +77,7 @@ export default async function ManagerDashboard() {
   if (!messData || !messData.success) {
     return <CreateMessButton />;
   }
-  console.log(messData);
+
   return (
     <div className="min-h-screen bg-background lg:flex">
       <div className="flex-1 ">

@@ -1,4 +1,11 @@
-import { Home, Users, Receipt, Settings, type LucideIcon } from "lucide-react";
+import {
+  Home,
+  Users,
+  Receipt,
+  Settings,
+  UserPlus,
+  type LucideIcon,
+} from "lucide-react";
 
 export type Role = "manager" | "user" | "admin";
 
@@ -20,6 +27,12 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       label: "Members",
       href: "/dashboard/manager/members",
       icon: Users,
+      requiresMess: true,
+    },
+    {
+      label: "Invite Member",
+      href: "/dashboard/manager/invite-member",
+      icon: UserPlus,
       requiresMess: true,
     },
     {
