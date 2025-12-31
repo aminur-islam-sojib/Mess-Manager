@@ -31,7 +31,7 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
     },
     {
       label: "Invite Member",
-      href: "/dashboard/manager/invite-member",
+      href: "/dashboard/manager/invite",
       icon: UserPlus,
       requiresMess: true,
     },
@@ -72,6 +72,11 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       href: "/dashboard/user/manager/members",
       icon: Users,
       requiresMess: true,
+    },
+    {
+      label: "Invitation",
+      href: "/dashboard/user/invite",
+      icon: UserPlus,
     },
   ],
   admin: [

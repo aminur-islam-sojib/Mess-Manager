@@ -169,7 +169,7 @@ export async function sendInvitationAction(invitedEmail: string) {
   });
 
   // 🔗 Invitation Link
-  const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL}/join?token=${token}`;
+  const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/user/invite?token=${token}`;
 
   return {
     success: true,

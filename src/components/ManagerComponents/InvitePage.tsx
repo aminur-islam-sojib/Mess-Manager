@@ -11,8 +11,6 @@ export default function InvitePage() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [invitedLink, setInvitedLink] = useState("");
 
-  // Mock data
-
   const mockInviteLink = "https://messmanager.app/invite/abc123xyz";
 
   const validateEmail = (email: string) => {
