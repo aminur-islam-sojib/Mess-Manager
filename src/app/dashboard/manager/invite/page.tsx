@@ -47,7 +47,9 @@ export default async function InviteMember() {
           </p>
         </div>
 
-        <InvitePage />
+        {messData && session && (
+          <InvitePage messData={messData} session={session.user} />
+        )}
       </div>
     </div>
   );

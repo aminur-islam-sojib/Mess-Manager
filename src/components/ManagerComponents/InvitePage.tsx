@@ -2,7 +2,16 @@
 import { useState } from "react";
 import { Mail, Send, Copy, Check, X, Loader2 } from "lucide-react";
 import { sendInvitationAction } from "@/actions/server/Invitations";
-export default function InvitePage() {
+import { sendInvitationEmail } from "./SendInvitationMail";
+import { SessionUser } from "@/types/Model";
+import { MessResponseType } from "@/types/MessTypes";
+export default function InvitePage({
+  session,
+  messData,
+}: {
+  session: SessionUser;
+  messData: MessResponseType;
+}) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [isInviting, setIsInviting] = useState(false);
@@ -16,7 +25,11 @@ export default function InvitePage() {
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
-
+  if (!messData || !session) {
+    return null;
+  }
+  const messName = messData.mess?.messName ?? "";
+  const inviterName = session.name ?? "";
   const handleInvite = async () => {
     if (!email.trim()) {
       setError("Email is required");
@@ -36,8 +49,18 @@ export default function InvitePage() {
     try {
       setIsInviting(true);
       const result = await sendInvitationAction(email);
+      if (!result.inviteLink || result.inviteLink === "") {
+        return;
+      }
       if (result.inviteLink) {
         setInvitedLink(result.inviteLink);
+        const res = await sendInvitationEmail(
+          email,
+          invitedLink,
+          messName,
+          inviterName
+        );
+        console.log(res);
       }
       console.log(result);
       setIsInviting(false);
