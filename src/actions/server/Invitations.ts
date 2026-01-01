@@ -81,42 +81,92 @@ export const acceptInvitation = async (token: string, userId: string) => {
 };
 
 export const getInvitationByToken = async (token: string) => {
-  if (!token) {
-    return { success: false };
-  }
-
   try {
-    const invitationCollection = await dbConnect(collections.INVITATIONS);
-    const messCollection = await dbConnect(collections.MESS);
+    // ❌ Invalid token
+    if (!token || typeof token !== "string") {
+      return {
+        success: false,
+        error: "Invalid invitation token",
+        errorType: "invalid" as const,
+        invitation: null,
+      };
+    }
 
-    const invitation = await invitationCollection.findOne({
-      token,
-      status: "pending",
-      expiresAt: { $gt: new Date() },
-    });
+    const invitationCollection = dbConnect(collections.INVITATIONS);
+    const messCollection = dbConnect(collections.MESS);
+    const userCollection = dbConnect(collections.USERS);
+
+    // 🔍 Find invitation (without expiry filter first)
+    const invitation = await invitationCollection.findOne({ token });
 
     if (!invitation) {
       return {
         success: false,
-        message: "Invalid or expired invitation",
+        error: "Invitation not found",
+        errorType: "notfound" as const,
+        invitation: null,
       };
     }
 
+    // ❌ Already used
+    if (invitation.status === "accepted") {
+      return {
+        success: false,
+        error: "Invitation already used",
+        errorType: "used" as const,
+        invitation: null,
+      };
+    }
+
+    // ❌ Expired
+    if (invitation.expiresAt < new Date()) {
+      return {
+        success: false,
+        error: "Invitation expired",
+        errorType: "expired" as const,
+        invitation: null,
+      };
+    }
+
+    // 🔐 Optional: email-based authorization
+    const session = await getServerSession(authOptions);
+    if (
+      session?.user?.email &&
+      session.user.email !== invitation.invitedEmail
+    ) {
+      return {
+        success: false,
+        error: "Unauthorized invitation access",
+        errorType: "unauthorized" as const,
+        invitation: null,
+      };
+    }
+
+    // 🏠 Find mess
     const mess = await messCollection.findOne({
-      _id: invitation.messId,
+      _id: new ObjectId(invitation.messId),
     });
 
     if (!mess) {
       return {
         success: false,
-        message: "Mess not found",
+        error: "Mess not found",
+        errorType: "general" as const,
+        invitation: null,
       };
     }
+
+    // 👤 Find manager
+    const manager = await userCollection.findOne({
+      _id: new ObjectId(mess.managerId),
+    });
 
     return {
       success: true,
       invitation: {
         messName: mess.messName,
+        memberCount: mess.members?.length || 0,
+        inviterName: manager?.name || "Unknown",
         expiresAt: invitation.expiresAt,
       },
     };
@@ -124,7 +174,9 @@ export const getInvitationByToken = async (token: string) => {
     console.error("❌ Invitation Preview Error:", error);
     return {
       success: false,
-      message: "Failed to load invitation",
+      error: "Failed to validate invitation",
+      errorType: "general" as const,
+      invitation: null,
     };
   }
 };

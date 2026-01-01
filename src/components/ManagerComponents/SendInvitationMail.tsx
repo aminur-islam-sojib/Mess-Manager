@@ -18,16 +18,28 @@ export async function sendInvitationEmail(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mess Invitation</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .mobile-padding { padding: 20px 16px !important; }
+      .mobile-header { padding: 32px 20px !important; }
+      .mobile-text { font-size: 14px !important; }
+      .mobile-title { font-size: 22px !important; }
+      .mobile-h1 { font-size: 24px !important; }
+      .mobile-button { padding: 14px 32px !important; font-size: 15px !important; }
+      .mobile-box { padding: 16px !important; }
+      .mobile-small { font-size: 12px !important; }
+    }
+  </style>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
     <tr>
-      <td align="center" style="padding: 40px 0;">
-        <table role="presentation" style="width: 600px; max-width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+      <td align="center" style="padding: 0;">
+        <table role="presentation" style="width: 100%; max-width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 0; overflow: hidden; box-shadow: none;">
           
           <!-- Header with Logo -->
           <tr>
-            <td style="background: linear-gradient(135deg, #9FD5A3 0%, #7CB380 100%); padding: 40px 30px; text-align: center;">
+            <td class="mobile-header" style="background: linear-gradient(135deg, #9FD5A3 0%, #7CB380 100%); padding: 40px 24px; text-align: center;">
               <table role="presentation" style="width: 100%;">
                 <tr>
                   <td align="center">
@@ -66,7 +78,7 @@ export async function sendInvitationEmail(
   </g>
 </svg>
                     </div>
-                    <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">Mess Manager</h1>
+                    <h1 class="mobile-h1" style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">Mess Manager</h1>
                   </td>
                 </tr>
               </table>
@@ -75,14 +87,14 @@ export async function sendInvitationEmail(
 
           <!-- Main Content -->
           <tr>
-            <td style="padding: 40px 30px;">
+            <td class="mobile-padding" style="padding: 32px 24px;">
               <table role="presentation" style="width: 100%;">
                 <tr>
                   <td>
-                    <h2 style="margin: 0 0 16px 0; color: #1a1a1a; font-size: 24px; font-weight: 600;">
+                    <h2 class="mobile-title" style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 24px; font-weight: 600;">
                       You're Invited! 🎉
                     </h2>
-                    <p style="margin: 0 0 24px 0; color: #666666; font-size: 16px; line-height: 1.6;">
+                    <p class="mobile-text" style="margin: 0 0 20px 0; color: #666666; font-size: 16px; line-height: 1.5;">
                       <strong style="color: #1a1a1a;">${inviterName}</strong> has invited you to join <strong style="color: #1a1a1a;">${messName}</strong> on Mess Manager.
                     </p>
                   </td>
@@ -90,10 +102,10 @@ export async function sendInvitationEmail(
               </table>
 
               <!-- Features Box -->
-              <table role="presentation" style="width: 100%; margin: 24px 0;">
+              <table role="presentation" style="width: 100%; margin: 20px 0;">
                 <tr>
-                  <td style="background-color: #f8fafb; border-radius: 12px; padding: 24px;">
-                    <p style="margin: 0 0 16px 0; color: #1a1a1a; font-size: 14px; font-weight: 600;">
+                  <td class="mobile-box" style="background-color: #f8fafb; border-radius: 12px; padding: 20px;">
+                    <p class="mobile-text" style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; font-weight: 600;">
                       What you can do:
                     </p>
                     <table role="presentation" style="width: 100%;">
@@ -105,7 +117,7 @@ export async function sendInvitationEmail(
                                 <span style="color: #9FD5A3; font-size: 18px;">✓</span>
                               </td>
                               <td>
-                                <span style="color: #666666; font-size: 14px;">Track your daily meals and expenses</span>
+                                <span class="mobile-small" style="color: #666666; font-size: 14px;">Track your daily meals and expenses</span>
                               </td>
                             </tr>
                           </table>
@@ -119,7 +131,7 @@ export async function sendInvitationEmail(
                                 <span style="color: #9FD5A3; font-size: 18px;">✓</span>
                               </td>
                               <td>
-                                <span style="color: #666666; font-size: 14px;">View your balance and payment history</span>
+                                <span class="mobile-small" style="color: #666666; font-size: 14px;">View your balance and payment history</span>
                               </td>
                             </tr>
                           </table>
@@ -133,7 +145,7 @@ export async function sendInvitationEmail(
                                 <span style="color: #9FD5A3; font-size: 18px;">✓</span>
                               </td>
                               <td>
-                                <span style="color: #666666; font-size: 14px;">Get notified for due payments</span>
+                                <span class="mobile-small" style="color: #666666; font-size: 14px;">Get notified for due payments</span>
                               </td>
                             </tr>
                           </table>
@@ -145,13 +157,13 @@ export async function sendInvitationEmail(
               </table>
 
               <!-- CTA Button -->
-              <table role="presentation" style="width: 100%; margin: 32px 0;">
+              <table role="presentation" style="width: 100%; margin: 24px 0;">
                 <tr>
                   <td align="center">
                     <table role="presentation">
                       <tr>
                         <td style="border-radius: 12px; background-color: #9FD5A3;">
-                          <a href="${inviteLink}" style="display: inline-block; padding: 16px 48px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 12px;">
+                          <a href="${inviteLink}" class="mobile-button" style="display: inline-block; padding: 16px 48px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 12px;">
                             Accept Invitation →
                           </a>
                         </td>
@@ -162,27 +174,122 @@ export async function sendInvitationEmail(
               </table>
 
               <!-- Alternative Link -->
-              <table role="presentation" style="width: 100%; margin: 24px 0;">
+              <table role="presentation" style="width: 100%; margin: 20px 0;">
                 <tr>
-                  <td style="background-color: #fff8e6; border-left: 4px solid #ffa726; padding: 16px; border-radius: 8px;">
-                    <p style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 13px; font-weight: 600;">
+                  <td class="mobile-box" style="background-color: #fff8e6; border-left: 4px solid #ffa726; padding: 16px; border-radius: 8px;">
+                    <p class="mobile-small" style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 13px; font-weight: 600;">
                       Button not working?
                     </p>
-                    <p style="margin: 0; color: #666666; font-size: 13px; line-height: 1.5;">
+                    <p class="mobile-small" style="margin: 0; color: #666666; font-size: 13px; line-height: 1.5;">
                       Copy and paste this link into your browser:
                     </p>
-                    <p style="margin: 8px 0 0 0; color: #1a1a1a; font-size: 12px; word-break: break-all; font-family: monospace; background-color: #ffffff; padding: 8px; border-radius: 4px;">
+                    <p class="mobile-small" style="margin: 8px 0 0 0; color: #1a1a1a; font-size: 11px; word-break: break-all; font-family: monospace; background-color: #ffffff; padding: 8px; border-radius: 4px;">
                       ${inviteLink}
                     </p>
                   </td>
                 </tr>
               </table>
 
+              <!-- Help Section -->
+              <table role="presentation" style="width: 100%; margin: 20px 0; border-top: 1px solid #e5e5e5; padding-top: 20px;">
+                <tr>
+                  <td>
+                    <p class="mobile-text" style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; font-weight: 600;">
+                      Common Solutions:
+                    </p>
+                    <table role="presentation" style="width: 100%;">
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <table role="presentation">
+                            <tr>
+                              <td style="padding-right: 8px; vertical-align: top;">
+                                <span style="color: #9FD5A3; font-size: 14px;">•</span>
+                              </td>
+                              <td>
+                                <span class="mobile-small" style="color: #666666; font-size: 13px;">Check if you're using the latest invitation link</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <table role="presentation">
+                            <tr>
+                              <td style="padding-right: 8px; vertical-align: top;">
+                                <span style="color: #9FD5A3; font-size: 14px;">•</span>
+                              </td>
+                              <td>
+                                <span class="mobile-small" style="color: #666666; font-size: 13px;">Make sure you're logged in with the correct email</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <table role="presentation">
+                            <tr>
+                              <td style="padding-right: 8px; vertical-align: top;">
+                                <span style="color: #9FD5A3; font-size: 14px;">•</span>
+                              </td>
+                              <td>
+                                <span class="mobile-small" style="color: #666666; font-size: 13px;">Verify the link wasn't altered or truncated</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <table role="presentation">
+                            <tr>
+                              <td style="padding-right: 8px; vertical-align: top;">
+                                <span style="color: #9FD5A3; font-size: 14px;">•</span>
+                              </td>
+                              <td>
+                                <span class="mobile-small" style="color: #666666; font-size: 13px;">Check your spam/junk folder for this email</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Token Missing Warning Box -->
+              <table role="presentation" style="width: 100%; margin: 20px 0;">
+                <tr>
+                  <td class="mobile-box" style="background-color: #e3f2fd; border-left: 4px solid #2196F3; padding: 18px; border-radius: 8px;">
+                    <table role="presentation">
+                      <tr>
+                        <td style="padding-right: 12px; vertical-align: top;">
+                          <span style="font-size: 20px;">📧</span>
+                        </td>
+                        <td>
+                          <p class="mobile-text" style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 14px; font-weight: 600;">
+                            Don't see the invitation link or token?
+                          </p>
+                          <p class="mobile-small" style="margin: 0 0 12px 0; color: #666666; font-size: 13px; line-height: 1.5;">
+                            If you can't find the invitation link in this email or if it's missing from the link section, please contact <strong style="color: #1a1a1a;">${inviterName}</strong> (the mess manager) and request them to send a new invitation.
+                          </p>
+                          <p class="mobile-small" style="margin: 0; color: #666666; font-size: 13px; line-height: 1.5;">
+                            <strong style="color: #1a1a1a;">What to do:</strong> Ask the manager to resend your invitation from the Mess Manager dashboard. A fresh invitation link will be generated and sent to your email.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
               <!-- Expiry Notice -->
-              <table role="presentation" style="width: 100%; margin: 24px 0;">
+              <table role="presentation" style="width: 100%; margin: 20px 0;">
                 <tr>
                   <td align="center">
-                    <p style="margin: 0; color: #999999; font-size: 13px;">
+                    <p class="mobile-small" style="margin: 0; color: #999999; font-size: 13px;">
                       ⏰ This invitation expires in <strong>24 hours</strong>
                     </p>
                   </td>
@@ -194,14 +301,14 @@ export async function sendInvitationEmail(
 
           <!-- Footer -->
           <tr>
-            <td style="background-color: #f8fafb; padding: 24px 30px; border-top: 1px solid #e5e5e5;">
+            <td class="mobile-padding" style="background-color: #f8fafb; padding: 20px 24px; border-top: 1px solid #e5e5e5;">
               <table role="presentation" style="width: 100%;">
                 <tr>
                   <td align="center">
-                    <p style="margin: 0 0 12px 0; color: #999999; font-size: 12px;">
+                    <p class="mobile-small" style="margin: 0 0 8px 0; color: #999999; font-size: 12px;">
                       This invitation was sent to <strong>${toEmail}</strong>
                     </p>
-                    <p style="margin: 0; color: #999999; font-size: 12px;">
+                    <p class="mobile-small" style="margin: 0; color: #999999; font-size: 12px;">
                       © ${new Date().getFullYear()} Mess Manager. All rights reserved.
                     </p>
                   </td>
@@ -231,6 +338,17 @@ Accept your invitation by clicking this link:
 ${inviteLink}
 
 If the link doesn't work, copy and paste it into your browser.
+
+COMMON SOLUTIONS:
+• Check if you're using the latest invitation link
+• Make sure you're logged in with the correct email
+• Verify the link wasn't altered or truncated
+• Check your spam/junk folder for this email
+
+📧 DON'T SEE THE INVITATION LINK OR TOKEN?
+If you can't find the invitation link in this email or if it's missing from the link section, please contact ${inviterName} (the mess manager) and request them to send a new invitation.
+
+What to do: Ask the manager to resend your invitation from the Mess Manager dashboard. A fresh invitation link will be generated and sent to your email.
 
 This invitation expires in 24 hours.
 
