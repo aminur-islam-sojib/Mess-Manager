@@ -8,18 +8,15 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 
 export const acceptInvitation = async (token: string, userId: string) => {
   if (!token || !userId) {
-    return {
-      success: false,
-      message: "Token and userId required",
-    };
+    return { success: false, message: "Token and userId required" };
   }
 
   try {
-    const invitationCollection = await dbConnect(collections.INVITATIONS);
-    const messCollection = await dbConnect(collections.MESS);
+    const invitationCol = dbConnect(collections.INVITATIONS);
+    const messMemberCol = dbConnect(collections.MESS_MEMBERS);
 
-    // 1️⃣ Find invitation
-    const invitation = await invitationCollection.findOne({
+    // 1️⃣ Find valid invitation
+    const invitation = await invitationCol.findOne({
       token,
       status: "pending",
       expiresAt: { $gt: new Date() },
@@ -32,30 +29,35 @@ export const acceptInvitation = async (token: string, userId: string) => {
       };
     }
 
-    const messId = invitation.messId;
+    const messId = new ObjectId(invitation.messId);
     const userObjectId = new ObjectId(userId);
 
-    // 2️⃣ Add user to mess (prevent duplicate)
-    const messUpdateResult = await messCollection.updateOne(
-      {
-        _id: messId,
-        members: { $ne: userObjectId },
-      },
-      {
-        $addToSet: { members: userObjectId },
-        $set: { updatedAt: new Date() },
-      }
-    );
+    // 2️⃣ Prevent duplicate membership
+    const existingMember = await messMemberCol.findOne({
+      messId,
+      userId: userObjectId,
+      status: "active",
+    });
 
-    if (messUpdateResult.matchedCount === 0) {
+    if (existingMember) {
       return {
         success: false,
-        message: "User already in mess or mess not found",
+        message: "User already a member of this mess",
       };
     }
 
-    // 3️⃣ Mark invitation as accepted
-    await invitationCollection.updateOne(
+    // 3️⃣ Create mess member entry
+    await messMemberCol.insertOne({
+      messId,
+      userId: userObjectId,
+      role: "member",
+      status: "active",
+      joinDate: new Date(),
+      createdAt: new Date(),
+    });
+
+    // 4️⃣ Mark invitation as accepted
+    await invitationCol.updateOne(
       { _id: invitation._id },
       {
         $set: {
@@ -160,12 +162,18 @@ export const getInvitationByToken = async (token: string) => {
     const manager = await userCollection.findOne({
       _id: new ObjectId(mess.managerId),
     });
+    const memberCount = await dbConnect(
+      collections.MESS_MEMBERS
+    ).countDocuments({
+      messId: mess._id,
+      status: "active",
+    });
 
     return {
       success: true,
       invitation: {
         messName: mess.messName,
-        memberCount: mess.members?.length || 0,
+        memberCount,
         inviterName: manager?.name || "Unknown",
         expiresAt: invitation.expiresAt,
       },

@@ -71,49 +71,66 @@ export const getSingleMessForUser = async (userId: string) => {
   }
 
   try {
-    const mess = await dbConnect(collections.MESS).findOne({
+    const messCollection = dbConnect(collections.MESS);
+    const memberCollection = dbConnect(collections.MESS_MEMBERS);
+
+    const userObjectId = new ObjectId(userId);
+
+    // 1️⃣ Check if user is MANAGER
+    const managedMess = await messCollection.findOne({
+      managerId: userObjectId,
       status: "active",
-      $or: [
-        { managerId: new ObjectId(userId) },
-        { members: new ObjectId(userId) },
-      ],
     });
 
-    if (!mess) {
+    if (managedMess) {
+      return {
+        success: true,
+        role: "manager",
+        mess: {
+          _id: managedMess._id.toString(),
+          messName: managedMess.messName,
+          managerId: managedMess.managerId.toString(),
+          status: managedMess.status,
+          createdAt: managedMess.createdAt?.toISOString(),
+          updatedAt: managedMess.updatedAt?.toISOString(),
+        },
+      };
+    }
+
+    // 2️⃣ Check if user is MEMBER
+    const membership = await memberCollection.findOne({
+      userId: userObjectId,
+      status: "active",
+    });
+
+    if (!membership) {
       return {
         success: false,
         message: "No mess found for this user",
       };
     }
 
-    const isManager = mess.managerId?.toString() === userId.toString();
+    // 3️⃣ Fetch mess info
+    const mess = await messCollection.findOne({
+      _id: new ObjectId(membership.messId),
+      status: "active",
+    });
 
-    // 🔐 DATA SHAPING BASED ON ROLE
-    if (!isManager) {
-      // 👉 Member view (LIMITED)
+    if (!mess) {
       return {
-        success: true,
-        role: "member",
-        mess: {
-          _id: mess._id.toString(),
-          messName: mess.messName,
-          managerId: mess.managerId.toString(),
-        },
+        success: false,
+        message: "Mess not found",
       };
     }
 
-    // 👉 Manager view (FULL)
+    // 👉 Member view (LIMITED DATA)
     return {
       success: true,
-      role: "manager",
+      role: membership.role || "member",
       mess: {
         _id: mess._id.toString(),
         messName: mess.messName,
         managerId: mess.managerId.toString(),
-        members: (mess.members || []).map((m: string) => m.toString()),
-        status: mess.status,
-        createdAt: mess.createdAt?.toISOString(),
-        updatedAt: mess.updatedAt?.toISOString(),
       },
     };
   } catch (error) {
@@ -127,3 +144,5 @@ export const getSingleMessForUser = async (userId: string) => {
 
 // Backwards-compatible alias for code that imports `getSingleMess`
 export const getSingleMess = getSingleMessForUser;
+
+export const getMessMember = async (userid: string) => {};

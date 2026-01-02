@@ -6,7 +6,7 @@ import { NAV_CONFIG, Role } from "@/config/nav.config";
 
 export default function UserBottomNav({ role }: { role: Role }) {
   const pathname = usePathname();
-  const navItems = NAV_CONFIG[role] ?? [].slice(0, 4);
+  const navItems = (NAV_CONFIG[role] ?? []).slice(0, 4);
 
   const isActive = (href: string) => pathname === href;
 

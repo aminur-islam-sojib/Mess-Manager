@@ -1,6 +1,8 @@
 "use client";
 
+import { acceptInvitation } from "@/actions/server/Invitations";
 import { InvitationType } from "@/types/Invitations";
+import { SessionUser } from "@/types/Model";
 import {
   CheckCircle,
   Calendar,
@@ -9,30 +11,61 @@ import {
   Shield,
   Loader2,
   ArrowRight,
+  AlertCircle,
+  X,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+
 export default function UserInvitationPageClient({
   invitation,
+  sessionUser,
+  token,
 }: {
   invitation: InvitationType;
+  sessionUser: SessionUser;
+  token: string;
 }) {
   const [isAccepting, setIsAccepting] = useState(false);
   const [isAccepted, setIsAccepted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
   const handleAccept = async () => {
     setIsAccepting(true);
+    setError(null); // Clear any previous errors
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      if (!sessionUser?.id) {
+        console.error("User not authenticated");
+        setError("User not authenticated. Please log in and try again.");
+        setIsAccepting(false);
+        return;
+      }
+
+      const res = await acceptInvitation(token, sessionUser.id);
+      console.log(res);
       setIsAccepting(false);
-      setIsAccepted(true);
 
-      // Redirect after success
-      setTimeout(() => {
-        console.log("Redirecting to dashboard...");
-        // router.push('/dashboard/user');
-      }, 2000);
-    }, 1500);
+      if (res?.success) {
+        setIsAccepted(true);
+        // Redirect after success
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 2000);
+      } else {
+        setError(
+          res?.message || "Failed to accept invitation. Please try again."
+        );
+        console.error("Accept invitation failed", res?.message);
+      }
+    } catch (error) {
+      console.log(error);
+      setError("An unexpected error occurred. Please try again.");
+      setIsAccepting(false);
+    }
   };
+
   if (isAccepted) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -72,6 +105,7 @@ export default function UserInvitationPageClient({
     }
     return `${minutesLeft}m`;
   };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background Decoration */}
@@ -81,7 +115,7 @@ export default function UserInvitationPageClient({
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 w-full  ">
+      <div className="relative z-10 w-full">
         {/* Card Container */}
         <div className="bg-card border border-border rounded-3xl shadow-2xl overflow-hidden">
           {/* Header Section */}
@@ -136,6 +170,8 @@ export default function UserInvitationPageClient({
 
           {/* Content Section */}
           <div className="p-8">
+            {/* Error Alert */}
+
             {/* Mess Details Card */}
             <div className="bg-muted/50 rounded-2xl p-6 mb-6 border border-border">
               <div className="flex items-start justify-between mb-4">
@@ -250,7 +286,23 @@ export default function UserInvitationPageClient({
                 </>
               )}
             </button>
-
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3 mb-6">
+                <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground mb-1">
+                    Error
+                  </p>
+                  <p className="text-sm text-muted-foreground">{error}</p>
+                </div>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
             {/* Expiry Warning */}
             <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 flex items-start gap-3">
               <Clock className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />

@@ -5,6 +5,7 @@ import {
   Settings,
   UserPlus,
   type LucideIcon,
+  UtensilsCrossed,
 } from "lucide-react";
 
 export type Role = "manager" | "user" | "admin";
@@ -22,6 +23,12 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       label: "Overview",
       href: "/dashboard/manager",
       icon: Home,
+    },
+    {
+      label: "Meals",
+      href: "/dashboard/manager/meals",
+      icon: UtensilsCrossed,
+      requiresMess: true,
     },
     {
       label: "Members",
@@ -69,7 +76,7 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
     },
     {
       label: "Members",
-      href: "/dashboard/user/manager/members",
+      href: "/dashboard/user/members",
       icon: Users,
       requiresMess: true,
     },

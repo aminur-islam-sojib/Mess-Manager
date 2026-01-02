@@ -4,6 +4,7 @@ export const collections = {
   USERS: "users",
   MESS: "mess",
   INVITATIONS: "invitations",
+  MESS_MEMBERS: "mess_member",
 };
 
 const uri = process.env.MONGO_URI;
