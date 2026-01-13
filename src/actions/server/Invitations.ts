@@ -5,6 +5,7 @@ import { ObjectId } from "mongodb";
 import crypto from "crypto";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
+import { revalidatePath } from "next/cache";
 
 export const acceptInvitation = async (token: string, userId: string) => {
   if (!token || !userId) {
@@ -67,6 +68,11 @@ export const acceptInvitation = async (token: string, userId: string) => {
         },
       }
     );
+
+    // 🔥 5️⃣ REVALIDATE DASHBOARD CACHE
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/user");
+    revalidatePath("/dashboard/manager");
 
     return {
       success: true,

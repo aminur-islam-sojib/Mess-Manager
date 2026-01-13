@@ -2,6 +2,7 @@
 import { collections, dbConnect } from "@/lib/dbConnect";
 import { CreateMessPayload } from "@/types/MessTypes";
 import { ObjectId } from "mongodb";
+import { revalidatePath } from "next/cache";
 
 export const createMess = async (payload: CreateMessPayload) => {
   const { managerId, messName, managerEmail } = payload;
@@ -15,10 +16,7 @@ export const createMess = async (payload: CreateMessPayload) => {
   });
 
   if (!user) {
-    return {
-      success: false,
-      message: "User not found",
-    };
+    return { success: false, message: "User not found" };
   }
 
   // 2. Prevent duplicate mess
@@ -27,10 +25,7 @@ export const createMess = async (payload: CreateMessPayload) => {
   });
 
   if (existingMess) {
-    return {
-      success: false,
-      message: "Mess already exists",
-    };
+    return { success: false, message: "Mess already exists" };
   }
 
   // 3. Create mess
@@ -44,7 +39,7 @@ export const createMess = async (payload: CreateMessPayload) => {
     updatedAt: new Date(),
   });
 
-  // 4. Update role AFTER mess creation
+  // 4. Update role
   await userCollection.updateOne(
     { _id: new ObjectId(managerId) },
     {
@@ -55,10 +50,15 @@ export const createMess = async (payload: CreateMessPayload) => {
     }
   );
 
+  // 🔥 5. REVALIDATE DASHBOARD CACHE
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/manager");
+  revalidatePath("/dashboard/user");
+
   return {
     success: true,
     message: "Mess created & role updated",
-    messId: messResult.insertedId,
+    messId: messResult.insertedId.toString(),
   };
 };
 
