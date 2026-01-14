@@ -12,8 +12,6 @@ const pendingAlerts = 3;
 export default function ManagerSidebar({ user, isMessExist }: SidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  console.log(isMessExist);
-
   return (
     <>
       {/* ================= DESKTOP SIDEBAR ================= */}

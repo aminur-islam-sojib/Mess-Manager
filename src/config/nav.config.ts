@@ -25,7 +25,7 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       icon: Home,
     },
     {
-      label: "Meals",
+      label: "Add Meals",
       href: "/dashboard/manager/meals",
       icon: UtensilsCrossed,
       requiresMess: true,

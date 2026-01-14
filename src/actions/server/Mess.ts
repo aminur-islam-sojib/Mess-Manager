@@ -3,45 +3,58 @@ import { collections, dbConnect } from "@/lib/dbConnect";
 import { CreateMessPayload } from "@/types/MessTypes";
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 
 export const createMess = async (payload: CreateMessPayload) => {
   const { managerId, messName, managerEmail } = payload;
 
   const messCollection = dbConnect(collections.MESS);
   const userCollection = dbConnect(collections.USERS);
+  const memberCollection = dbConnect(collections.MESS_MEMBERS);
 
-  // 1. Check user exists
-  const user = await userCollection.findOne({
-    _id: new ObjectId(managerId),
-  });
+  const managerObjectId = new ObjectId(managerId);
 
+  // 1️⃣ Check user exists
+  const user = await userCollection.findOne({ _id: managerObjectId });
   if (!user) {
     return { success: false, message: "User not found" };
   }
 
-  // 2. Prevent duplicate mess
+  // 2️⃣ Prevent duplicate mess
   const existingMess = await messCollection.findOne({
-    managerId: new ObjectId(managerId),
+    managerId: managerObjectId,
   });
 
   if (existingMess) {
     return { success: false, message: "Mess already exists" };
   }
 
-  // 3. Create mess
+  // 3️⃣ Create mess
   const messResult = await messCollection.insertOne({
     messName,
-    managerId: new ObjectId(managerId),
+    managerId: managerObjectId,
     managerEmail,
-    members: [new ObjectId(managerId)],
     status: "active",
     createdAt: new Date(),
     updatedAt: new Date(),
   });
 
-  // 4. Update role
+  const messId = messResult.insertedId;
+
+  // 4️⃣ Insert MANAGER into mess_members 🔥
+  await memberCollection.insertOne({
+    messId,
+    userId: managerObjectId,
+    role: "manager",
+    status: "active",
+    joinDate: new Date(),
+    createdAt: new Date(),
+  });
+
+  // 5️⃣ Update user role
   await userCollection.updateOne(
-    { _id: new ObjectId(managerId) },
+    { _id: managerObjectId },
     {
       $set: {
         role: "manager",
@@ -50,15 +63,15 @@ export const createMess = async (payload: CreateMessPayload) => {
     }
   );
 
-  // 🔥 5. REVALIDATE DASHBOARD CACHE
+  // 6️⃣ Revalidate cache
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/manager");
   revalidatePath("/dashboard/user");
 
   return {
     success: true,
-    message: "Mess created & role updated",
-    messId: messResult.insertedId.toString(),
+    message: "Mess created & manager added",
+    messId: messId.toString(),
   };
 };
 
@@ -145,4 +158,89 @@ export const getSingleMessForUser = async (userId: string) => {
 // Backwards-compatible alias for code that imports `getSingleMess`
 export const getSingleMess = getSingleMessForUser;
 
-export const getMessMember = async (userid: string) => {};
+export const getMessMembers = async () => {
+  try {
+    // 🔐 Auth check
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return {
+        success: false,
+        message: "Unauthorized",
+      };
+    }
+
+    const managerId = new ObjectId(session.user.id);
+
+    const messCollection = dbConnect(collections.MESS);
+    const memberCollection = dbConnect(collections.MESS_MEMBERS);
+    const userCollection = dbConnect(collections.USERS);
+
+    // 1️⃣ Find manager's mess
+    const mess = await messCollection.findOne({
+      managerId,
+      status: "active",
+    });
+
+    if (!mess) {
+      return {
+        success: false,
+        message: "No active mess found for this manager",
+      };
+    }
+
+    // 2️⃣ Get all active members of the mess
+    const messMembers = await memberCollection
+      .find({
+        messId: mess._id,
+        status: "active",
+      })
+      .toArray();
+
+    if (messMembers.length === 0) {
+      return {
+        success: true,
+        members: [],
+      };
+    }
+
+    // 3️⃣ Get user details
+    const userIds = messMembers.map((m) => m.userId);
+
+    const users = await userCollection
+      .find(
+        { _id: { $in: userIds } },
+        { projection: { password: 0 } } // 🔐 Never expose password
+      )
+      .toArray();
+
+    // 4️⃣ Merge member + user data
+    const members = messMembers.map((member) => {
+      const user = users.find(
+        (u) => u._id.toString() === member.userId.toString()
+      );
+
+      return {
+        userId: member.userId.toString(),
+        name: user?.name || "Unknown",
+        email: user?.email || "Unknown",
+        role: member.role,
+        status: member.status,
+        joinDate: member.joinDate?.toISOString(),
+      };
+    });
+
+    return {
+      success: true,
+      messId: mess._id.toString(),
+      messName: mess.messName,
+      members,
+    };
+  } catch (error) {
+    console.error("❌ Error fetching mess users:", error);
+    return {
+      success: false,
+      message: "Failed to fetch mess users",
+    };
+  }
+};
