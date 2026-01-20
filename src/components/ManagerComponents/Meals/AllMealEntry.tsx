@@ -15,6 +15,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { addMealEntry } from "@/actions/server/Meals";
 
 interface MealManagementClientProps {
   messData: MessDataResponse;
@@ -46,7 +47,19 @@ export default function AllMealEntry({ messData }: MealManagementClientProps) {
       meals: allMembersMeals,
       messId: messData.messId,
     });
-    alert(`Meal added for all members on ${format(selectedDate, "PPP")}`);
+
+    const payload = {
+      date: format(selectedDate, "yyyy-MM-dd"),
+      meals: allMembersMeals,
+      mode: "all" as const,
+    };
+
+    const res = await addMealEntry(payload);
+    if (res.success) {
+      toast.success(res.message);
+    } else {
+      toast.error(res.message);
+    }
   };
 
   const handleSubmit = async () => {
@@ -58,10 +71,9 @@ export default function AllMealEntry({ messData }: MealManagementClientProps) {
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
       confirmButtonText: "Yes, Add!",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        mealEntry();
-        toast.success("Meal Added Successfully!");
+        await mealEntry();
       }
     });
   };

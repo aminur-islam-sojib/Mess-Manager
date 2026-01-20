@@ -46,14 +46,9 @@ export default function IndividualMealEntry({
 
   const mealEntry = async () => {
     if (!selectedMember) {
-      alert("Please select a member");
+      toast.error("Please select a member!");
       return;
     }
-    console.log("Submitting for individual member:", {
-      date: format(selectedDate, "yyyy-MM-dd"),
-      userId: selectedMember,
-      meals: individualMeals,
-    });
 
     const payload = {
       date: format(selectedDate, "yyyy-MM-dd"),
@@ -63,7 +58,11 @@ export default function IndividualMealEntry({
     };
 
     const res = await addMealEntry(payload);
-    console.log("Meal entry submitted successfully", res);
+    if (res.success) {
+      toast.success(res.message);
+    } else {
+      toast.error(res.message);
+    }
   };
 
   const handleSubmit = async () => {
@@ -80,7 +79,6 @@ export default function IndividualMealEntry({
     }).then((result) => {
       if (result.isConfirmed) {
         mealEntry();
-        toast.success("Meal Added Successfully!");
       }
     });
   };
