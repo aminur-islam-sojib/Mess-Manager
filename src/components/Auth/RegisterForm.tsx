@@ -1,23 +1,36 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { Chrome, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import { createUser } from "@/actions/server/Users";
+import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import React, { useState } from "react";
+import { toast } from "sonner";
+import GoogleLoginButton from "./GoogleLoginButton";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormDataType } from "@/types/Model";
+import { signIn } from "next-auth/react";
 
 export default function RegisterForm() {
+  const sp = useSearchParams();
+  const role = sp.get("role");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormDataType>({
+    provider: "credentials",
     fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
+    role: role as "user" | "manager",
   });
+
   const [errors, setErrors] = useState({
     fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
-
+  const [loading, setLoading] = useState<boolean>(false);
+  const router = useRouter();
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -82,19 +95,41 @@ export default function RegisterForm() {
     return isValid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      console.log("Form submitted:", formData);
-      // Handle registration logic here
-      // router.push('/role-selection');
+    if (!validateForm()) return;
+
+    try {
+      setLoading(true);
+
+      // 1️⃣ Create user
+      await createUser(formData);
+
+      // 2️⃣ Auto login using credentials
+      const loginResult = await signIn("credentials", {
+        email: formData.email,
+        password: formData.password,
+        redirect: false, // important
+      });
+
+      if (!loginResult?.ok) {
+        toast.error(
+          "Account created, but login failed. Please login manually."
+        );
+        router.push("/auth/login");
+        return;
+      }
+
+      // 3️⃣ Success
+      toast.success("Account created & logged in 🎉");
+      router.replace("/dashboard"); // server decides role
+    } catch (error: any) {
+      toast.error(error.message || "Something went wrong");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleGoogleLogin = () => {
-    console.log("Google login clicked");
-    // Handle Google OAuth logic here
-  };
   return (
     <div>
       {/* Registration Form */}
@@ -252,7 +287,7 @@ export default function RegisterForm() {
           type="submit"
           className="w-full py-3.5 px-6 rounded-xl font-semibold text-base bg-primary text-primary-foreground hover:opacity-90 shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 mt-6"
         >
-          Create Account
+          {loading ? "Account Creating..." : " Create Account"}
         </button>
       </form>
 
@@ -266,14 +301,7 @@ export default function RegisterForm() {
       </div>
 
       {/* Google Login Button */}
-      <button
-        type="button"
-        onClick={handleGoogleLogin}
-        className="w-full py-3.5 px-6 rounded-xl font-medium text-base bg-card text-foreground border-2 border-input hover:bg-accent hover:border-primary/50 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3 shadow-sm"
-      >
-        <Chrome className="w-5 h-5" />
-        Sign up with Google
-      </button>
+      {<GoogleLoginButton />}
     </div>
   );
 }

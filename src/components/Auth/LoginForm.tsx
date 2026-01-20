@@ -1,8 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { Chrome, Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import React, { useState } from "react";
+import GoogleLoginButton from "./GoogleLoginButton";
+import { toast } from "sonner";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function LoginFormPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -30,23 +36,20 @@ export default function LoginFormPage() {
 
   const validateForm = () => {
     const newErrors = {
-      fullName: "",
       email: "",
       password: "",
-      confirmPassword: "",
     };
+
     let isValid = true;
 
-    // Email validation
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
       isValid = false;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email";
+      newErrors.email = "Enter a valid email address";
       isValid = false;
     }
 
-    // Password validation
     if (!formData.password) {
       newErrors.password = "Password is required";
       isValid = false;
@@ -59,19 +62,30 @@ export default function LoginFormPage() {
     return isValid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      console.log("Form submitted:", formData);
       // Handle registration logic here
       // router.push('/role-selection');
+      try {
+        const result = await signIn("credentials", {
+          email: formData.email,
+          password: formData.password,
+          redirect: false,
+        });
+
+        if (result?.status == 200) {
+          toast.success("Login Successful!");
+          router.push(`/dashboard`);
+        } else if (result?.status == 401) {
+          toast.error(`${result?.error}`);
+        }
+      } catch (error: any) {
+        toast.error(`${error.message}`);
+      }
     }
   };
 
-  const handleGoogleLogin = () => {
-    console.log("Google login clicked");
-    // Handle Google OAuth logic here
-  };
   return (
     <div>
       {/* Registration Form */}
@@ -154,7 +168,7 @@ export default function LoginFormPage() {
           type="submit"
           className="w-full py-3.5 px-6 rounded-xl font-semibold text-base bg-primary text-primary-foreground hover:opacity-90 shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 mt-6"
         >
-          Create Account
+          Log In
         </button>
       </form>
 
@@ -168,14 +182,7 @@ export default function LoginFormPage() {
       </div>
 
       {/* Google Login Button */}
-      <button
-        type="button"
-        onClick={handleGoogleLogin}
-        className="w-full py-3.5 px-6 rounded-xl font-medium text-base bg-card text-foreground border-2 border-input hover:bg-accent hover:border-primary/50 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3 shadow-sm"
-      >
-        <Chrome className="w-5 h-5" />
-        Sign up with Google
-      </button>
+      {<GoogleLoginButton />}
     </div>
   );
 }
