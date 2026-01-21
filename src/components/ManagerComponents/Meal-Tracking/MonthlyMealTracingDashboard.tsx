@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import {
   Calendar,
@@ -8,14 +9,14 @@ import {
   Utensils,
   TrendingUp,
   Download,
-  Search,
-  ChevronDown,
-  BarChart2,
-  User,
+  Award,
+  ChevronRight,
+  DollarSign,
   PieChart,
+  BarChart2,
 } from "lucide-react";
 
-interface MemberData {
+interface MemberMonthlyData {
   _id: string;
   name: string;
   email: string;
@@ -26,11 +27,12 @@ interface MemberData {
   entries: number;
 }
 
-interface AttendanceData {
+interface MonthlyReportData {
   success: boolean;
-  date: string;
   messId: string;
   messName: string;
+  month: number;
+  year: number;
   summary: {
     breakfast: number;
     lunch: number;
@@ -38,62 +40,58 @@ interface AttendanceData {
     totalMeals: number;
     entries: number;
   };
-  data: MemberData[];
+  data: MemberMonthlyData[];
 }
 
-interface DailyMealAttendanceProps {
-  attendanceData: AttendanceData;
+interface MonthlyReportProps {
+  reportData: MonthlyReportData;
+  costPerMeal?: number;
 }
 
-export default function DailyMealAttendance({
-  attendanceData,
-}: DailyMealAttendanceProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "meals">("meals");
+export default function MonthlyMessReport({
+  reportData,
+  costPerMeal = 50,
+}: MonthlyReportProps) {
   const [selectedView, setSelectedView] = useState<"overview" | "members">(
     "overview",
   );
 
-  const { date, messName, summary, data } = attendanceData;
+  const { messName, month, year, summary, data } = reportData;
 
-  const dateObj = new Date(date);
-  const dayOfWeek = dateObj.toLocaleDateString("en-US", { weekday: "long" });
-  const monthDay = dateObj.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
 
-  // Filter and sort data
-  const filteredData = data
-    .filter(
-      (member) =>
-        member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchQuery.toLowerCase()),
-    )
-    .sort((a, b) => {
-      if (sortBy === "meals") return b.totalMeals - a.totalMeals;
-      return a.name.localeCompare(b.name);
-    });
+  const currentMonth = monthNames[month - 1];
 
-  // Calculate percentages
-  const breakfastPct =
-    summary.entries > 0 ? (summary.breakfast / summary.entries) * 100 : 0;
-  const lunchPct =
-    summary.entries > 0 ? (summary.lunch / summary.entries) * 100 : 0;
-  const dinnerPct =
-    summary.entries > 0 ? (summary.dinner / summary.entries) * 100 : 0;
+  // Calculate costs
+  const totalCost = summary.totalMeals * costPerMeal;
+  const avgCostPerMember = data.length > 0 ? totalCost / data.length : 0;
 
-  // Calculate attendance rate
-  const attendanceRate =
-    summary.entries > 0
-      ? ((summary.totalMeals / (summary.entries * 3)) * 100).toFixed(0)
-      : 0;
-
-  const avgPerMember =
-    summary.entries > 0 ? (summary.totalMeals / summary.entries).toFixed(1) : 0;
-
-  // Find top attendee
+  // Find top contributor
   const topMember = [...data].sort((a, b) => b.totalMeals - a.totalMeals)[0];
+
+  // Calculate meal percentages
+  const breakfastPct =
+    summary.totalMeals > 0 ? (summary.breakfast / summary.totalMeals) * 100 : 0;
+  const lunchPct =
+    summary.totalMeals > 0 ? (summary.lunch / summary.totalMeals) * 100 : 0;
+  const dinnerPct =
+    summary.totalMeals > 0 ? (summary.dinner / summary.totalMeals) * 100 : 0;
+
+  // Sort members by total meals
+  const sortedMembers = [...data].sort((a, b) => b.totalMeals - a.totalMeals);
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8">
@@ -112,16 +110,13 @@ export default function DailyMealAttendance({
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar className="w-5 h-5 text-primary-foreground/80" />
                   <span className="text-sm font-medium text-primary-foreground/80">
-                    Daily Attendance
+                    Monthly Report
                   </span>
                 </div>
                 <h1 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-2">
-                  {dayOfWeek}
+                  {currentMonth} {year}
                 </h1>
-                <p className="text-primary-foreground/90 text-lg">{monthDay}</p>
-                <p className="text-primary-foreground/80 text-sm mt-1">
-                  {messName}
-                </p>
+                <p className="text-primary-foreground/90">{messName}</p>
               </div>
 
               <button className="px-4 py-2 bg-white/20 backdrop-blur-sm text-primary-foreground rounded-xl hover:bg-white/30 transition-all flex items-center gap-2 border border-white/20">
@@ -145,27 +140,23 @@ export default function DailyMealAttendance({
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
                 <Users className="w-5 h-5 text-primary-foreground/80 mb-2" />
                 <p className="text-2xl font-bold text-primary-foreground">
-                  {summary.entries}
+                  {data.length}
                 </p>
-                <p className="text-xs text-primary-foreground/80">
-                  Members Present
+                <p className="text-xs text-primary-foreground/80">Members</p>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+                <DollarSign className="w-5 h-5 text-primary-foreground/80 mb-2" />
+                <p className="text-2xl font-bold text-primary-foreground">
+                  ${totalCost.toLocaleString()}
                 </p>
+                <p className="text-xs text-primary-foreground/80">Total Cost</p>
               </div>
 
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
                 <TrendingUp className="w-5 h-5 text-primary-foreground/80 mb-2" />
                 <p className="text-2xl font-bold text-primary-foreground">
-                  {attendanceRate}%
-                </p>
-                <p className="text-xs text-primary-foreground/80">
-                  Attendance Rate
-                </p>
-              </div>
-
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-                <BarChart2 className="w-5 h-5 text-primary-foreground/80 mb-2" />
-                <p className="text-2xl font-bold text-primary-foreground">
-                  {avgPerMember}
+                  {(summary.totalMeals / data.length).toFixed(1)}
                 </p>
                 <p className="text-xs text-primary-foreground/80">
                   Avg per Member
@@ -215,7 +206,7 @@ export default function DailyMealAttendance({
                     <p className="text-2xl font-bold text-foreground">
                       {summary.breakfast}
                     </p>
-                    <p className="text-xs text-muted-foreground">members</p>
+                    <p className="text-xs text-muted-foreground">meals</p>
                   </div>
                 </div>
                 <p className="text-sm font-medium text-foreground mb-3">
@@ -223,7 +214,7 @@ export default function DailyMealAttendance({
                 </p>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Attendance</span>
+                    <span className="text-muted-foreground">Distribution</span>
                     <span className="font-bold text-orange-500">
                       {breakfastPct.toFixed(1)}%
                     </span>
@@ -247,7 +238,7 @@ export default function DailyMealAttendance({
                     <p className="text-2xl font-bold text-foreground">
                       {summary.lunch}
                     </p>
-                    <p className="text-xs text-muted-foreground">members</p>
+                    <p className="text-xs text-muted-foreground">meals</p>
                   </div>
                 </div>
                 <p className="text-sm font-medium text-foreground mb-3">
@@ -255,7 +246,7 @@ export default function DailyMealAttendance({
                 </p>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Attendance</span>
+                    <span className="text-muted-foreground">Distribution</span>
                     <span className="font-bold text-yellow-500">
                       {lunchPct.toFixed(1)}%
                     </span>
@@ -279,7 +270,7 @@ export default function DailyMealAttendance({
                     <p className="text-2xl font-bold text-foreground">
                       {summary.dinner}
                     </p>
-                    <p className="text-xs text-muted-foreground">members</p>
+                    <p className="text-xs text-muted-foreground">meals</p>
                   </div>
                 </div>
                 <p className="text-sm font-medium text-foreground mb-3">
@@ -287,7 +278,7 @@ export default function DailyMealAttendance({
                 </p>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Attendance</span>
+                    <span className="text-muted-foreground">Distribution</span>
                     <span className="font-bold text-blue-500">
                       {dinnerPct.toFixed(1)}%
                     </span>
@@ -302,20 +293,20 @@ export default function DailyMealAttendance({
               </div>
             </div>
 
-            {/* Detailed Stats */}
+            {/* Financial Overview */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Distribution Breakdown */}
+              {/* Cost Breakdown */}
               <div className="bg-card border border-border rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <BarChart2 className="w-5 h-5 text-primary" />
+                    <DollarSign className="w-5 h-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">
-                      Meal Distribution
+                      Financial Summary
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Today&apos;s breakdown
+                      Cost breakdown
                     </p>
                   </div>
                 </div>
@@ -325,11 +316,11 @@ export default function DailyMealAttendance({
                     <div className="flex items-center gap-3">
                       <Coffee className="w-5 h-5 text-orange-500" />
                       <span className="text-sm font-medium text-foreground">
-                        Breakfast Served
+                        Breakfast Cost
                       </span>
                     </div>
                     <span className="text-lg font-bold text-foreground">
-                      {summary.breakfast}
+                      ${(summary.breakfast * costPerMeal).toLocaleString()}
                     </span>
                   </div>
 
@@ -337,11 +328,11 @@ export default function DailyMealAttendance({
                     <div className="flex items-center gap-3">
                       <Sun className="w-5 h-5 text-yellow-500" />
                       <span className="text-sm font-medium text-foreground">
-                        Lunch Served
+                        Lunch Cost
                       </span>
                     </div>
                     <span className="text-lg font-bold text-foreground">
-                      {summary.lunch}
+                      ${(summary.lunch * costPerMeal).toLocaleString()}
                     </span>
                   </div>
 
@@ -349,37 +340,46 @@ export default function DailyMealAttendance({
                     <div className="flex items-center gap-3">
                       <Moon className="w-5 h-5 text-blue-500" />
                       <span className="text-sm font-medium text-foreground">
-                        Dinner Served
+                        Dinner Cost
                       </span>
                     </div>
                     <span className="text-lg font-bold text-foreground">
-                      {summary.dinner}
+                      ${(summary.dinner * costPerMeal).toLocaleString()}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between p-4 rounded-xl bg-primary/10 border border-primary/20">
                     <span className="text-sm font-semibold text-foreground">
-                      Total Meals Today
+                      Total Monthly Cost
                     </span>
                     <span className="text-2xl font-bold text-primary">
-                      {summary.totalMeals}
+                      ${totalCost.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-background border border-border">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Per Member Average
+                    </span>
+                    <span className="text-lg font-bold text-foreground">
+                      ${avgCostPerMember.toLocaleString()}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Top Attendee */}
+              {/* Top Contributor */}
               <div className="bg-linear-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-primary" />
+                    <Award className="w-5 h-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">
-                      Top Attendee
+                      Top Contributor
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Most meals today
+                      Highest meal count
                     </p>
                   </div>
                 </div>
@@ -431,10 +431,21 @@ export default function DailyMealAttendance({
                     <div className="bg-card/50 backdrop-blur-sm rounded-xl p-4 border border-border">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">
-                          Total Meals Today
+                          Total Meals
                         </span>
                         <span className="text-2xl font-bold text-primary">
                           {topMember.totalMeals}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-sm text-muted-foreground">
+                          Estimated Cost
+                        </span>
+                        <span className="text-lg font-bold text-foreground">
+                          $
+                          {(
+                            topMember.totalMeals * costPerMeal
+                          ).toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -445,192 +456,136 @@ export default function DailyMealAttendance({
           </>
         ) : (
           /* Members View */
-          <>
-            {/* Search Bar */}
-            <div className="bg-card border border-border rounded-2xl p-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search members..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border-2 border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all"
-                  />
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <div className="p-5 border-b border-border bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <BarChart2 className="w-5 h-5 text-primary" />
+                  <div>
+                    <h3 className="font-semibold text-foreground">
+                      Member Rankings
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Sorted by total meals
+                    </p>
+                  </div>
                 </div>
-
-                <div className="relative">
-                  <select
-                    value={sortBy}
-                    onChange={(e) =>
-                      setSortBy(e.target.value as "name" | "meals")
-                    }
-                    className="appearance-none pl-4 pr-10 py-2.5 rounded-xl border-2 border-input bg-background text-foreground focus:outline-none focus:border-primary transition-all cursor-pointer w-full sm:w-auto"
-                  >
-                    <option value="meals">Sort by Meals</option>
-                    <option value="name">Sort by Name</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                </div>
+                <span className="text-sm font-medium text-muted-foreground">
+                  {data.length} Members
+                </span>
               </div>
             </div>
 
-            {/* Members List */}
-            <div className="bg-card border border-border rounded-2xl overflow-hidden">
-              <div className="p-5 border-b border-border bg-muted/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-primary" />
-                    <div>
-                      <h3 className="font-semibold text-foreground">
-                        Today&apos;s Attendance
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        Member meal records
-                      </p>
+            <div className="divide-y divide-border">
+              {sortedMembers.map((member, index) => (
+                <div
+                  key={member._id}
+                  className="p-5 hover:bg-accent transition-colors group"
+                >
+                  <div className="flex items-start gap-4">
+                    {/* Rank Badge */}
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center  shrink-0 font-bold ${
+                        index === 0
+                          ? "bg-yellow-500/20 text-yellow-600 border-2 border-yellow-500/30"
+                          : index === 1
+                            ? "bg-gray-400/20 text-gray-600 border-2 border-gray-400/30"
+                            : index === 2
+                              ? "bg-orange-600/20 text-orange-700 border-2 border-orange-600/30"
+                              : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {index === 0
+                        ? "🥇"
+                        : index === 1
+                          ? "🥈"
+                          : index === 2
+                            ? "🥉"
+                            : `#${index + 1}`}
                     </div>
-                  </div>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {filteredData.length} Members
-                  </span>
-                </div>
-              </div>
 
-              <div className="divide-y divide-border">
-                {filteredData.map((member) => (
-                  <div
-                    key={member._id}
-                    className="p-5 hover:bg-accent transition-colors group"
-                  >
-                    <div className="flex items-start gap-4">
-                      {/* Avatar */}
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                        <span className="text-lg font-bold text-primary">
-                          {member.name.charAt(0).toUpperCase()}
+                    {/* Member Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-foreground truncate">
+                            {member.name}
+                          </p>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {member.email}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-primary">
+                            {member.totalMeals}
+                          </p>
+                          <p className="text-xs text-muted-foreground">meals</p>
+                        </div>
+                      </div>
+
+                      {/* Meal Breakdown */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-2.5 text-center">
+                          <Coffee className="w-4 h-4 text-orange-500 mx-auto mb-1" />
+                          <p className="text-sm font-bold text-foreground">
+                            {member.breakfast}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Breakfast
+                          </p>
+                        </div>
+                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2.5 text-center">
+                          <Sun className="w-4 h-4 text-yellow-500 mx-auto mb-1" />
+                          <p className="text-sm font-bold text-foreground">
+                            {member.lunch}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Lunch</p>
+                        </div>
+                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2.5 text-center">
+                          <Moon className="w-4 h-4 text-blue-500 mx-auto mb-1" />
+                          <p className="text-sm font-bold text-foreground">
+                            {member.dinner}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Dinner
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Cost */}
+                      <div className="mt-3 flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <span className="text-sm text-muted-foreground">
+                          Estimated Cost
+                        </span>
+                        <span className="text-lg font-bold text-foreground">
+                          ${(member.totalMeals * costPerMeal).toLocaleString()}
                         </span>
                       </div>
-
-                      {/* Member Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-foreground truncate">
-                              {member.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground truncate">
-                              {member.email}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-primary">
-                              {member.totalMeals}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              meals
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Meal Breakdown */}
-                        <div className="grid grid-cols-3 gap-2">
-                          <div
-                            className={`${
-                              member.breakfast > 0
-                                ? "bg-orange-500/10 border-orange-500/20"
-                                : "bg-muted border-border"
-                            } border rounded-lg p-2.5 text-center`}
-                          >
-                            <Coffee
-                              className={`w-4 h-4 mx-auto mb-1 ${
-                                member.breakfast > 0
-                                  ? "text-orange-500"
-                                  : "text-muted-foreground"
-                              }`}
-                            />
-                            <p
-                              className={`text-sm font-bold ${
-                                member.breakfast > 0
-                                  ? "text-foreground"
-                                  : "text-muted-foreground"
-                              }`}
-                            >
-                              {member.breakfast}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Breakfast
-                            </p>
-                          </div>
-                          <div
-                            className={`${
-                              member.lunch > 0
-                                ? "bg-yellow-500/10 border-yellow-500/20"
-                                : "bg-muted border-border"
-                            } border rounded-lg p-2.5 text-center`}
-                          >
-                            <Sun
-                              className={`w-4 h-4 mx-auto mb-1 ${
-                                member.lunch > 0
-                                  ? "text-yellow-500"
-                                  : "text-muted-foreground"
-                              }`}
-                            />
-                            <p
-                              className={`text-sm font-bold ${
-                                member.lunch > 0
-                                  ? "text-foreground"
-                                  : "text-muted-foreground"
-                              }`}
-                            >
-                              {member.lunch}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Lunch
-                            </p>
-                          </div>
-                          <div
-                            className={`${
-                              member.dinner > 0
-                                ? "bg-blue-500/10 border-blue-500/20"
-                                : "bg-muted border-border"
-                            } border rounded-lg p-2.5 text-center`}
-                          >
-                            <Moon
-                              className={`w-4 h-4 mx-auto mb-1 ${
-                                member.dinner > 0
-                                  ? "text-blue-500"
-                                  : "text-muted-foreground"
-                              }`}
-                            />
-                            <p
-                              className={`text-sm font-bold ${
-                                member.dinner > 0
-                                  ? "text-foreground"
-                                  : "text-muted-foreground"
-                              }`}
-                            >
-                              {member.dinner}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Dinner
-                            </p>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
-                ))}
-
-                {filteredData.length === 0 && (
-                  <div className="p-12 text-center">
-                    <User className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                    <p className="text-muted-foreground">No members found</p>
-                  </div>
-                )}
-              </div>
+                </div>
+              ))}
             </div>
-          </>
+          </div>
         )}
+
+        {/* Action Card */}
+        <div className="bg-linear-to-r from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-lg mb-1">
+                Need detailed analytics?
+              </h3>
+              <p className="text-sm text-primary-foreground/80">
+                Export this report or view historical trends
+              </p>
+            </div>
+            <button className="px-6 py-3 bg-white text-primary rounded-xl font-semibold hover:shadow-lg transition-all flex items-center gap-2">
+              View Reports
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -114,7 +114,7 @@ export default async function ManagerDashboard() {
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-foreground">
-                  ₹{mockData.monthlyExpense.toLocaleString()}
+                  ${mockData.monthlyExpense.toLocaleString()}
                 </p>
                 <p className="text-xs text-primary mt-1 flex items-center gap-1">
                   <TrendingUp className="w-3 h-3" /> +12% from last
@@ -146,7 +146,7 @@ export default async function ManagerDashboard() {
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-foreground">
-                  ₹{Math.round(mockData.monthlyExpense / mockData.totalMembers)}
+                  ${Math.round(mockData.monthlyExpense / mockData.totalMembers)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Average cost
@@ -214,7 +214,7 @@ export default async function ManagerDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-foreground">
-                        ₹{expense.amount}
+                        ${expense.amount}
                       </p>
                       <p
                         className={`text-xs font-medium ${
@@ -261,7 +261,7 @@ export default async function ManagerDashboard() {
                             : "text-destructive"
                         }`}
                       >
-                        ₹{Math.abs(member.balance)}
+                        ${Math.abs(member.balance)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {member.balance >= 0 ? "Credit" : "Due"}

@@ -31,8 +31,8 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       requiresMess: true,
     },
     {
-      label: "Members",
-      href: "/dashboard/manager/members",
+      label: "Meals Reports",
+      href: "/dashboard/manager/meals-report",
       icon: Users,
       requiresMess: true,
     },
@@ -75,8 +75,8 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       requiresMess: true,
     },
     {
-      label: "Members",
-      href: "/dashboard/user/members",
+      label: "Meal Report",
+      href: "/dashboard/user/meals-report",
       icon: Users,
       requiresMess: true,
     },

@@ -101,7 +101,6 @@ export default async function UserDashboard() {
       </div>
     );
   }
-  console.log(messData);
   return (
     <div className="min-h-screen bg-background lg:flex">
       {/* Main Content Wrapper with Desktop Offset */}
@@ -138,7 +137,7 @@ export default async function UserDashboard() {
                     Payment Due
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    You have an outstanding balance of ₹
+                    You have an outstanding balance of $
                     {Math.abs(mockData.currentBalance)}. Please settle your
                     dues.
                   </p>
@@ -172,7 +171,7 @@ export default async function UserDashboard() {
                       : "text-destructive"
                   }`}
                 >
-                  ₹{Math.abs(mockData.currentBalance)}
+                  ${Math.abs(mockData.currentBalance)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {mockData.currentBalance >= 0 ? "Credit" : "Due"}
@@ -188,7 +187,7 @@ export default async function UserDashboard() {
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-foreground">
-                  ₹{mockData.monthlyExpense.toLocaleString()}
+                  ${mockData.monthlyExpense.toLocaleString()}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Total expenses
@@ -258,7 +257,7 @@ export default async function UserDashboard() {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-foreground">
-                          ₹{bill.amount}
+                          ${bill.amount}
                         </p>
                         <button className="text-xs text-primary font-medium hover:underline mt-1">
                           Pay Now
@@ -291,8 +290,8 @@ export default async function UserDashboard() {
                         transaction.type === "payment"
                           ? "bg-primary/10 text-primary"
                           : transaction.status === "pending"
-                          ? "bg-orange-500/10 text-orange-500"
-                          : "bg-muted text-muted-foreground"
+                            ? "bg-orange-500/10 text-orange-500"
+                            : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {transaction.type === "payment" ? (
@@ -310,7 +309,7 @@ export default async function UserDashboard() {
                       <p className="text-xs text-muted-foreground">
                         {new Date(transaction.date).toLocaleDateString(
                           "en-US",
-                          { month: "short", day: "numeric" }
+                          { month: "short", day: "numeric" },
                         )}
                       </p>
                     </div>
@@ -322,7 +321,7 @@ export default async function UserDashboard() {
                             : "text-foreground"
                         }`}
                       >
-                        {transaction.amount > 0 ? "+" : ""}₹
+                        {transaction.amount > 0 ? "+" : ""}$
                         {Math.abs(transaction.amount)}
                       </p>
                       <p
