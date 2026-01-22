@@ -5,6 +5,8 @@ import { collections, dbConnect } from "@/lib/dbConnect";
 import { ObjectId } from "mongodb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
+import { getUserMess } from "@/lib/getUserMess";
+import { MealMember } from "@/types/MealManagementTypes";
 
 type MealPayload = {
   date: string; // "2024-12-26"
@@ -33,7 +35,7 @@ export const addMealEntry = async (payload: MealPayload) => {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" };
+      return { success: false as const, message: "Unauthorized" };
     }
 
     const managerId = new ObjectId(session.user.id);
@@ -42,7 +44,10 @@ export const addMealEntry = async (payload: MealPayload) => {
       payload.meals.breakfast + payload.meals.lunch + payload.meals.dinner;
 
     if (totalMeals <= 0) {
-      return { success: false, message: "Meals must be greater than 0" };
+      return {
+        success: false as const,
+        message: "Meals must be greater than 0",
+      };
     }
 
     /* ---------------------------------
@@ -61,7 +66,7 @@ export const addMealEntry = async (payload: MealPayload) => {
     });
 
     if (!mess) {
-      return { success: false, message: "Mess not found" };
+      return { success: false as const, message: "Mess not found" };
     }
 
     /* =================================
@@ -69,7 +74,7 @@ export const addMealEntry = async (payload: MealPayload) => {
     ================================== */
     if (payload.mode === "individual") {
       if (!payload.memberId) {
-        return { success: false, message: "Member ID required" };
+        return { success: false as const, message: "Member ID required" };
       }
 
       const memberObjectId = new ObjectId(payload.memberId);
@@ -82,7 +87,10 @@ export const addMealEntry = async (payload: MealPayload) => {
       });
 
       if (!isMember) {
-        return { success: false, message: "User not part of this mess" };
+        return {
+          success: false as const,
+          message: "User not part of this mess",
+        };
       }
 
       // 🔥 UPSERT + INCREMENT
@@ -103,11 +111,11 @@ export const addMealEntry = async (payload: MealPayload) => {
             createdAt: new Date(),
           },
         },
-        { upsert: true }
+        { upsert: true },
       );
 
       return {
-        success: true,
+        success: true as const,
         message: "Meal updated successfully for member",
       };
     }
@@ -123,7 +131,7 @@ export const addMealEntry = async (payload: MealPayload) => {
       .toArray();
 
     if (members.length === 0) {
-      return { success: false, message: "No active members found" };
+      return { success: false as const, message: "No active members found" };
     }
 
     // 🚀 BULK UPSERT (FAST + SAFE)
@@ -152,69 +160,176 @@ export const addMealEntry = async (payload: MealPayload) => {
     await mealCollection.bulkWrite(operations);
 
     return {
-      success: true,
+      success: true as const,
       message: `Meal updated for ${members.length} members`,
     };
   } catch (error: any) {
     console.error("❌ Add Meal Error:", error);
 
     return {
-      success: false,
+      success: false as const,
       message: "Failed to add meal entry",
     };
   }
 };
 
+//  GET TODAYS MEAL
 export const getTodayMeals = async () => {
   try {
-    /* ---------- AUTH ---------- */
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" };
+      return { success: false as const, message: "Unauthorized" };
     }
 
-    const userId = session.user.id; // STRING (IMPORTANT)
+    const userObjectId = new ObjectId(session.user.id);
+    const mess = await getUserMess(userObjectId);
 
-    const messCollection = dbConnect(collections.MESS);
-    const memberCollection = dbConnect(collections.MESS_MEMBERS);
+    if (!mess) {
+      return { success: false as const, message: "Mess not found" };
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
     const mealCollection = dbConnect(collections.MEAL_ENTRIES);
 
-    /* ---------- FIND ACTIVE MESS ---------- */
-    let mess = await messCollection.findOne({
-      managerId: new ObjectId(userId),
-      status: "active",
-    });
+    const data = (await mealCollection
+      .aggregate([
+        { $match: { messId: mess._id, date: today } },
+        {
+          $lookup: {
+            from: collections.USERS,
+            localField: "userId",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        { $unwind: "$user" },
+        {
+          $group: {
+            _id: { $toString: "$userId" },
+            name: { $first: "$user.name" },
+            breakfast: { $sum: "$breakdown.breakfast" },
+            lunch: { $sum: "$breakdown.lunch" },
+            dinner: { $sum: "$breakdown.dinner" },
+            totalMeals: { $sum: "$meals" },
+          },
+        },
+      ])
+      .toArray()) as unknown as MealMember[];
 
-    if (!mess) {
-      const membership = await memberCollection.findOne({
-        userId, // STRING
-        status: "active",
-      });
+    return {
+      success: true as const,
+      date: today,
+      messId: mess._id.toString(),
+      messName: mess.messName,
+      data,
+    };
+  } catch (err) {
+    console.error("❌ Today meals error", err);
+    return { success: false as const, message: "Failed to load today meals" };
+  }
+};
 
-      if (!membership) {
-        return { success: false, message: "Mess not found" };
-      }
+// GET MONTHLY MEAL DETAILS
+export const getMonthlyMeals = async ({
+  month,
+  year,
+}: {
+  month: number;
+  year: number;
+}) => {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return { success: false as const, message: "Unauthorized" };
+  }
 
-      mess = await messCollection.findOne({
-        _id: membership.messId,
-        status: "active",
-      });
+  const userObjectId = new ObjectId(session.user.id);
+  const mess = await getUserMess(userObjectId);
+
+  if (!mess) {
+    return { success: false as const, message: "Mess not found" };
+  }
+
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 1);
+
+  const mealCollection = dbConnect(collections.MEAL_ENTRIES);
+
+  const data = (await mealCollection
+    .aggregate([
+      {
+        $match: {
+          messId: mess._id,
+          createdAt: { $gte: start, $lt: end },
+        },
+      },
+      {
+        $lookup: {
+          from: collections.USERS,
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $group: {
+          _id: { $toString: "$userId" },
+          name: { $first: "$user.name" },
+          breakfast: { $sum: "$breakdown.breakfast" },
+          lunch: { $sum: "$breakdown.lunch" },
+          dinner: { $sum: "$breakdown.dinner" },
+          totalMeals: { $sum: "$meals" },
+        },
+      },
+    ])
+    .toArray()) as unknown as MealMember[];
+
+  return {
+    success: true as const,
+    messId: mess._id.toString(),
+    messName: mess.messName,
+    month,
+    year,
+    data,
+  };
+};
+
+// GET MEA
+export const getMealsByDateRange = async ({
+  from,
+  to,
+}: {
+  from?: string;
+  to?: string;
+}) => {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { success: false as const, message: "Unauthorized" };
     }
 
+    const userObjectId = new ObjectId(session.user.id);
+    const mess = await getUserMess(userObjectId);
+
     if (!mess) {
-      return { success: false, message: "Mess not found" };
+      return { success: false as const, message: "Mess not found" };
     }
 
-    /* ---------- TODAY (LOCAL SAFE) ---------- */
-    const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
+    const today = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 6);
 
-    /* ---------- AGGREGATION ---------- */
-    const data = await mealCollection
+    const finalFrom = from ?? sevenDaysAgo.toISOString().slice(0, 10);
+    const finalTo = to ?? today.toISOString().slice(0, 10);
+
+    const mealCollection = dbConnect(collections.MEAL_ENTRIES);
+
+    const data = (await mealCollection
       .aggregate([
         {
           $match: {
-            messId: mess._id, // ✅ ObjectId match
-            date: today,
+            messId: mess._id,
+            date: { $gte: finalFrom, $lte: finalTo },
           },
         },
         {
@@ -225,69 +340,32 @@ export const getTodayMeals = async () => {
             as: "user",
           },
         },
-        {
-          $unwind: {
-            path: "$user",
-            preserveNullAndEmptyArrays: true,
-          },
-        },
+        { $unwind: "$user" },
         {
           $group: {
-            _id: { $toString: "$userId" }, // ✅ Convert ObjectId to string
-
+            _id: { $toString: "$userId" },
             name: { $first: "$user.name" },
-            email: { $first: "$user.email" },
-
-            breakfast: {
-              $sum: { $ifNull: ["$breakdown.breakfast", 0] },
-            },
-            lunch: {
-              $sum: { $ifNull: ["$breakdown.lunch", 0] },
-            },
-            dinner: {
-              $sum: { $ifNull: ["$breakdown.dinner", 0] },
-            },
-
-            totalMeals: { $sum: { $ifNull: ["$meals", 0] } },
+            breakfast: { $sum: "$breakdown.breakfast" },
+            lunch: { $sum: "$breakdown.lunch" },
+            dinner: { $sum: "$breakdown.dinner" },
+            totalMeals: { $sum: "$meals" },
             entries: { $sum: 1 },
           },
         },
         { $sort: { name: 1 } },
       ])
-      .toArray();
-
-    /* ---------- SUMMARY ---------- */
-    const summary = data.reduce(
-      (acc, user) => {
-        acc.breakfast += user.breakfast;
-        acc.lunch += user.lunch;
-        acc.dinner += user.dinner;
-        acc.totalMeals += user.totalMeals;
-        acc.entries += user.entries;
-        return acc;
-      },
-      {
-        breakfast: 0,
-        lunch: 0,
-        dinner: 0,
-        totalMeals: 0,
-        entries: 0,
-      }
-    );
+      .toArray()) as unknown as MealMember[];
 
     return {
-      success: true,
-      date: today,
+      success: true as const,
+      from: finalFrom,
+      to: finalTo,
       messId: mess._id.toString(),
       messName: mess.messName,
-      summary,
       data,
     };
-  } catch (error) {
-    console.error("❌ Get Today Meals Error:", error);
-    return {
-      success: false,
-      message: "Failed to fetch today's meals",
-    };
+  } catch (err) {
+    console.error("❌ Range meal error", err);
+    return { success: false as const, message: "Failed to load meals" };
   }
 };

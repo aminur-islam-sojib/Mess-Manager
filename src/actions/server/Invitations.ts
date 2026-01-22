@@ -66,7 +66,7 @@ export const acceptInvitation = async (token: string, userId: string) => {
           acceptedBy: userObjectId,
           acceptedAt: new Date(),
         },
-      }
+      },
     );
 
     // 🔥 5️⃣ REVALIDATE DASHBOARD CACHE
@@ -169,7 +169,7 @@ export const getInvitationByToken = async (token: string) => {
       _id: new ObjectId(mess.managerId),
     });
     const memberCount = await dbConnect(
-      collections.MESS_MEMBERS
+      collections.MESS_MEMBERS,
     ).countDocuments({
       messId: mess._id,
       status: "active",
