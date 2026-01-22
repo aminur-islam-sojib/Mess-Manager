@@ -51,7 +51,7 @@ Built with **Next.js 16 (Turbopack)**, **TypeScript**, and **MongoDB**, the plat
 ✅ **Secure Invitations** — Time-limited, token-based member onboarding  
 ✅ **Type-Safe Operations** — 100% TypeScript with discriminated unions for error handling  
 ✅ **Mobile-Responsive** — Full Tailwind CSS implementation with responsive breakpoints  
-✅ **Production-Ready** — Comprehensive error handling, caching, and optimization  
+✅ **Production-Ready** — Comprehensive error handling, caching, and optimization
 
 ---
 
@@ -59,25 +59,25 @@ Built with **Next.js 16 (Turbopack)**, **TypeScript**, and **MongoDB**, the plat
 
 ### Manager Features
 
-| Feature | Description | Status |
-|---------|-------------|--------|
-| **Mess Creation** | Create and manage multiple messes | ✅ Complete |
-| **Member Invitations** | Send time-limited invites via email with tracking | ✅ Complete |
+| Feature                 | Description                                                | Status      |
+| ----------------------- | ---------------------------------------------------------- | ----------- |
+| **Mess Creation**       | Create and manage multiple messes                          | ✅ Complete |
+| **Member Invitations**  | Send time-limited invites via email with tracking          | ✅ Complete |
 | **Daily Meal Tracking** | Record breakfast, lunch, dinner for all/individual members | ✅ Complete |
-| **Monthly Reports** | Aggregated meal data with cost calculations | ✅ Complete |
-| **Custom Date Range** | Query meal data between specific dates with filtering | ✅ Complete |
-| **Member Management** | View active members, roles, and join dates | ✅ Complete |
-| **Dashboard Analytics** | Overview of key metrics and pending items | ✅ Complete |
+| **Monthly Reports**     | Aggregated meal data with cost calculations                | ✅ Complete |
+| **Custom Date Range**   | Query meal data between specific dates with filtering      | ✅ Complete |
+| **Member Management**   | View active members, roles, and join dates                 | ✅ Complete |
+| **Dashboard Analytics** | Overview of key metrics and pending items                  | ✅ Complete |
 
 ### Member/User Features
 
-| Feature | Description | Status |
-|---------|-------------|--------|
-| **Join via Invitation** | Accept time-limited invitations with validation | ✅ Complete |
-| **View Mess Details** | Access mess information and member count | ✅ Complete |
-| **Meal History** | Track personal meal records with date range filtering | ✅ Complete |
-| **Monthly Meal Report** | Personal meal analytics and consumption trends | ✅ Complete |
-| **Dashboard** | Quick overview of balance, expenses, and pending items | ✅ Complete |
+| Feature                 | Description                                            | Status      |
+| ----------------------- | ------------------------------------------------------ | ----------- |
+| **Join via Invitation** | Accept time-limited invitations with validation        | ✅ Complete |
+| **View Mess Details**   | Access mess information and member count               | ✅ Complete |
+| **Meal History**        | Track personal meal records with date range filtering  | ✅ Complete |
+| **Monthly Meal Report** | Personal meal analytics and consumption trends         | ✅ Complete |
+| **Dashboard**           | Quick overview of balance, expenses, and pending items | ✅ Complete |
 
 ### Planned Features
 
@@ -120,6 +120,7 @@ Built with **Next.js 16 (Turbopack)**, **TypeScript**, and **MongoDB**, the plat
 ### Request Flow
 
 **Manager Adding Meals:**
+
 ```
 Manager → Page Form → Server Action (addMealEntry)
   → MongoDB Aggregation → Validation → Upsert Operation
@@ -127,6 +128,7 @@ Manager → Page Form → Server Action (addMealEntry)
 ```
 
 **Member Joining:**
+
 ```
 Email Link (Token) → GetInvitationsByToken → Validate Expiry
   → Check Existing Member → Insert to mess_members
@@ -138,6 +140,7 @@ Email Link (Token) → GetInvitationsByToken → Validate Expiry
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - **Framework:** Next.js 16.1.1 (Turbopack)
 - **Language:** TypeScript 5.0
 - **UI Framework:** React 19.2.3
@@ -149,6 +152,7 @@ Email Link (Token) → GetInvitationsByToken → Validate Expiry
 - **Notifications:** Sonner (toast) + SweetAlert2 (dialogs)
 
 ### Backend
+
 - **Runtime:** Node.js (via Next.js)
 - **Database:** MongoDB 7.0
 - **Authentication:** NextAuth 4.24.13
@@ -156,6 +160,7 @@ Email Link (Token) → GetInvitationsByToken → Validate Expiry
 - **Hashing:** bcryptjs 3.0.3
 
 ### Developer Tools
+
 - **Linting:** ESLint 9
 - **Type Checking:** TypeScript strict mode
 - **Build Tool:** Turbopack (Next.js built-in)
@@ -173,6 +178,7 @@ Before installing, ensure you have:
 - **Git** for version control
 
 Optional but recommended:
+
 - **VS Code** with TypeScript support
 - **MongoDB Compass** for database visualization
 
@@ -278,6 +284,7 @@ export const authOptions: NextAuthOptions = {
 **File:** `src/lib/mailer.ts`
 
 Supports:
+
 - ✅ Gmail (App Password required)
 - ✅ SendGrid
 - ✅ Custom SMTP servers
@@ -298,6 +305,7 @@ const transporter = nodemailer.createTransport({
 **File:** `src/lib/dbIndexes.ts`
 
 Automatic index creation for:
+
 - `users.email` (unique)
 - `mess.managerId` (indexed)
 - `mess_members.messId, userId` (compound)
@@ -394,6 +402,7 @@ mess-manager/
 ### Collections Structure
 
 #### `users`
+
 ```typescript
 {
   _id: ObjectId,
@@ -408,6 +417,7 @@ mess-manager/
 ```
 
 #### `mess`
+
 ```typescript
 {
   _id: ObjectId,
@@ -421,6 +431,7 @@ mess-manager/
 ```
 
 #### `mess_members`
+
 ```typescript
 {
   _id: ObjectId,
@@ -435,6 +446,7 @@ mess-manager/
 ```
 
 #### `meal_entries`
+
 ```typescript
 {
   _id: ObjectId,
@@ -454,6 +466,7 @@ mess-manager/
 ```
 
 #### `invitations`
+
 ```typescript
 {
   _id: ObjectId,
@@ -472,6 +485,7 @@ mess-manager/
 ```
 
 #### `invitations` (Indexes)
+
 ```
 db.invitations.createIndex({ token: 1 }, { unique: true })
 db.invitations.createIndex({ messId: 1 })
@@ -489,6 +503,7 @@ All server actions are located in `src/actions/server/` and return discriminated
 #### Meal Management
 
 **`getTodayMeals()`**
+
 ```typescript
 // Returns today's meal records with aggregated data
 const response: GetTodayMealsResponse = await getTodayMeals();
@@ -498,6 +513,7 @@ const response: GetTodayMealsResponse = await getTodayMeals();
 ```
 
 **`getMonthlyMeals({ month, year })`**
+
 ```typescript
 const response: GetMonthlyMealsResponse = await getMonthlyMeals({
   month: 1,
@@ -507,6 +523,7 @@ const response: GetMonthlyMealsResponse = await getMonthlyMeals({
 ```
 
 **`getMealsByDateRange({ from?, to? })`**
+
 ```typescript
 const response: GetMealsByDateRangeResponse = await getMealsByDateRange({
   from: "2025-01-01",
@@ -516,6 +533,7 @@ const response: GetMealsByDateRangeResponse = await getMealsByDateRange({
 ```
 
 **`addMealEntry(payload)`**
+
 ```typescript
 type MealPayload = {
   date: string; // "2025-01-23"
@@ -537,6 +555,7 @@ const response = await addMealEntry({
 #### Mess Operations
 
 **`createMess({ managerId, messName, managerEmail })`**
+
 ```typescript
 const response = await createMess({
   managerId: "507f1f77bcf86cd799439011",
@@ -547,6 +566,7 @@ const response = await createMess({
 ```
 
 **`getSingleMessForUser(userId)`**
+
 ```typescript
 const response = await getSingleMessForUser(userId);
 // Manager: { success: true, role: "manager", mess: { ... } }
@@ -555,6 +575,7 @@ const response = await getSingleMessForUser(userId);
 ```
 
 **`getMessMembers()`**
+
 ```typescript
 const response = await getMessMembers();
 // {
@@ -574,6 +595,7 @@ const response = await getMessMembers();
 #### Invitations
 
 **`sendInvitation({ email, messName })`** (Manager only)
+
 ```typescript
 const response = await sendInvitation({
   email: "newmember@example.com",
@@ -583,6 +605,7 @@ const response = await sendInvitation({
 ```
 
 **`getInvitationsByToken(token)`**
+
 ```typescript
 const response = await getInvitationsByToken(token);
 // {
@@ -599,6 +622,7 @@ const response = await getInvitationsByToken(token);
 ```
 
 **`acceptInvitation(token)`**
+
 ```typescript
 const response = await acceptInvitation(token);
 // { success: true, redirectUrl: "/dashboard" }
@@ -612,13 +636,13 @@ const response = await acceptInvitation(token);
 
 ### Role-Based Access Control (RBAC)
 
-| Route | Manager | Member | Admin | Status |
-|-------|---------|--------|-------|--------|
-| `/dashboard` | ✅ | ✅ | ✅ | Protected |
-| `/dashboard/manager/*` | ✅ | ❌ | ✅ | Protected |
-| `/dashboard/user/*` | ❌ | ✅ | ✅ | Protected |
-| `/auth/login` | ✅ | ✅ | ✅ | Public |
-| `/api/init` | ⚠️ | ⚠️ | ⚠️ | Dev only |
+| Route                  | Manager | Member | Admin | Status    |
+| ---------------------- | ------- | ------ | ----- | --------- |
+| `/dashboard`           | ✅      | ✅     | ✅    | Protected |
+| `/dashboard/manager/*` | ✅      | ❌     | ✅    | Protected |
+| `/dashboard/user/*`    | ❌      | ✅     | ✅    | Protected |
+| `/auth/login`          | ✅      | ✅     | ✅    | Public    |
+| `/api/init`            | ⚠️      | ⚠️     | ⚠️    | Dev only  |
 
 ### Session Validation
 
@@ -646,16 +670,17 @@ if (!["user", "manager", "admin"].includes(session.user.role)) {
 ### NextAuth Configuration
 
 **Credentials Provider:**
+
 ```typescript
 CredentialsProvider({
   async authorize(credentials) {
     const user = await getUser(credentials.email);
-    if (user && await bcrypt.compare(credentials.password, user.password)) {
+    if (user && (await bcrypt.compare(credentials.password, user.password))) {
       return { id: user._id.toString(), email: user.email, role: user.role };
     }
     return null;
-  }
-})
+  },
+});
 ```
 
 ---
@@ -682,6 +707,7 @@ git push origin main
 ### Self-Hosted (VPS/Server)
 
 **Prerequisites:**
+
 - Node.js 18+
 - PM2 for process management
 - Nginx as reverse proxy
@@ -698,10 +724,10 @@ pm2 start npm --name "mess-manager" -- start
 server {
   listen 443 ssl http2;
   server_name yourdomain.com;
-  
+
   ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-  
+
   location / {
     proxy_pass http://localhost:3000;
     proxy_set_header Host $host;
@@ -718,6 +744,7 @@ systemctl start nginx
 ### Docker Deployment
 
 **Dockerfile:**
+
 ```dockerfile
 FROM node:18-alpine
 
@@ -734,8 +761,9 @@ CMD ["npm", "start"]
 ```
 
 **docker-compose.yml:**
+
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   app:
     build: .
@@ -761,12 +789,14 @@ volumes:
 ### Frontend Optimization
 
 ✅ **Next.js Built-in Features:**
+
 - Image optimization with `next/image`
 - Automatic code splitting
 - Server-side rendering (SSR) for critical pages
 - Static generation (SSG) with incremental revalidation
 
 ✅ **Client-Side Optimization:**
+
 ```typescript
 // Framer Motion with AnimatePresence for smooth transitions
 <AnimatePresence mode="wait">
@@ -778,6 +808,7 @@ volumes:
 ```
 
 ✅ **CSS Optimization:**
+
 - Tailwind CSS with JIT compilation
 - CSS purging in production (unused styles removed)
 - Critical CSS inlining
@@ -785,6 +816,7 @@ volumes:
 ### Backend Optimization
 
 ✅ **MongoDB Aggregation Pipelines:**
+
 ```typescript
 // Single pipeline for complex queries (vs N+1 queries)
 const data = await mealCollection
@@ -798,11 +830,13 @@ const data = await mealCollection
 ```
 
 ✅ **Database Indexing:**
+
 - Compound indexes on frequently queried fields
 - TTL indexes for automatic expiration
 - Text indexes for search (future)
 
 ✅ **Caching Strategy:**
+
 ```typescript
 // Server-side cache revalidation
 revalidatePath("/dashboard/manager");
@@ -825,13 +859,13 @@ revalidatePath("/dashboard/user");
 
 ### Data Protection
 
-| Area | Implementation |
-|------|-----------------|
-| **Password** | Bcrypt 10 rounds, never plain text |
-| **Session** | JWT with NextAuth, httpOnly cookies |
-| **API Calls** | NextAuth session validation, Server Actions |
-| **Database** | MongoDB connection pooling, credentials in .env |
-| **Email** | Token-based invitations with 24h expiry |
+| Area          | Implementation                                  |
+| ------------- | ----------------------------------------------- |
+| **Password**  | Bcrypt 10 rounds, never plain text              |
+| **Session**   | JWT with NextAuth, httpOnly cookies             |
+| **API Calls** | NextAuth session validation, Server Actions     |
+| **Database**  | MongoDB connection pooling, credentials in .env |
+| **Email**     | Token-based invitations with 24h expiry         |
 
 ### OWASP Top 10 Mitigation
 
@@ -849,12 +883,14 @@ revalidatePath("/dashboard/user");
 ### Best Practices
 
 ✅ **Never expose:**
+
 - MongoDB connection strings in client code
 - API keys in version control
 - User passwords in logs
 - Full error messages to frontend
 
 ✅ **Always:**
+
 - Validate input on server-side
 - Use HTTPS in production
 - Keep dependencies updated
@@ -868,15 +904,17 @@ revalidatePath("/dashboard/user");
 ### Common Issues
 
 **Issue:** `MongoNetworkError: getaddrinfo ENOTFOUND`
+
 ```bash
 # Cause: Invalid MONGO_URI or network connection
-# Solution: 
+# Solution:
 # 1. Verify MONGO_URI in .env.local
 # 2. Check MongoDB Atlas firewall (add 0.0.0.0/0 for development)
 # 3. Test connection: mongosh "your_connection_string"
 ```
 
 **Issue:** `NextAuth session is undefined`
+
 ```bash
 # Cause: Missing NEXTAUTH_SECRET or session configuration
 # Solution:
@@ -886,6 +924,7 @@ revalidatePath("/dashboard/user");
 ```
 
 **Issue:** `Email not sending`
+
 ```bash
 # Cause: Invalid SMTP credentials or provider permissions
 # Solution for Gmail:
@@ -895,6 +934,7 @@ revalidatePath("/dashboard/user");
 ```
 
 **Issue:** `Page renders but data is undefined`
+
 ```bash
 # Cause: Server action failed silently
 # Solution:
@@ -906,6 +946,7 @@ revalidatePath("/dashboard/user");
 ### Debugging
 
 **Enable Debug Logging:**
+
 ```typescript
 // src/lib/dbConnect.ts
 process.env.DEBUG = "mongodb:*";
@@ -915,6 +956,7 @@ debug: true, // NextAuth debug mode
 ```
 
 **MongoDB Query Debugging:**
+
 ```bash
 # Connect to MongoDB and check indexes
 mongosh "your_connection_string"
@@ -929,12 +971,14 @@ db.collection.find({...}).explain("executionStats")
 We welcome contributions! Please follow these guidelines:
 
 ### Code Style
+
 - ✅ TypeScript strict mode
 - ✅ ESLint configuration (run `npm run lint`)
 - ✅ Prettier formatting (2-space indentation)
 - ✅ Descriptive commit messages
 
 ### Pull Request Process
+
 1. Fork the repository
 2. Create feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit changes (`git commit -m 'Add amazing feature'`)
@@ -942,6 +986,7 @@ We welcome contributions! Please follow these guidelines:
 5. Open Pull Request with detailed description
 
 ### Testing Checklist
+
 - [ ] Page renders correctly
 - [ ] All forms validate input
 - [ ] Error messages display properly
@@ -954,6 +999,7 @@ We welcome contributions! Please follow these guidelines:
 ## 🗓️ Roadmap
 
 ### Phase 2 (Next)
+
 - [ ] Expense approval workflows
 - [ ] Automated cost-per-meal calculations
 - [ ] Email digest reports
@@ -961,6 +1007,7 @@ We welcome contributions! Please follow these guidelines:
 - [ ] Admin dashboard
 
 ### Phase 3 (Future)
+
 - [ ] Mobile app (React Native)
 - [ ] Multi-currency support
 - [ ] Two-factor authentication
@@ -968,6 +1015,7 @@ We welcome contributions! Please follow these guidelines:
 - [ ] Integration with payment gateways
 
 ### Community Requests
+
 - Request a feature: [GitHub Issues](https://github.com/yourusername/mess-manager/issues)
 - Discuss ideas: [GitHub Discussions](https://github.com/yourusername/mess-manager/discussions)
 
@@ -981,12 +1029,12 @@ This project is licensed under the MIT License - see [LICENSE](./LICENSE) file f
 
 ## 👥 Support & Contact
 
-| Channel | Link |
-|---------|------|
-| **GitHub Issues** | [Report bugs](https://github.com/yourusername/mess-manager/issues) |
-| **Email** | support@mess-manager.com |
-| **Documentation** | [Wiki](https://github.com/yourusername/mess-manager/wiki) |
-| **Twitter** | [@MessManagerApp](https://twitter.com/mess_manager) |
+| Channel           | Link                                                                     |
+| ----------------- | ------------------------------------------------------------------------ |
+| **GitHub Issues** | [Report bugs](https://github.com/aminur-islam-sojib/mess-manager/issues) |
+| **Email**         | sojibahmed.connect@gmail.com                                             |
+| **Documentation** | [Wiki](https://github.com/aminur-islam-sojib/mess-manager/wiki)          |
+| **WhatsApp**      | [@WhatsApp](https://wa.me/8801757829428)                                 |
 
 ---
 
@@ -1001,7 +1049,7 @@ This project is licensed under the MIT License - see [LICENSE](./LICENSE) file f
 
 <div align="center">
 
-**Made with ❤️ for managing shared communities**
+**Made with ❤️ for Sojib Ahmed**
 
 [⬆ Back to Top](#mess-manager)
 
