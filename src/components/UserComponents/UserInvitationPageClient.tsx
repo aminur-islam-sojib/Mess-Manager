@@ -55,7 +55,7 @@ export default function UserInvitationPageClient({
         }, 2000);
       } else {
         setError(
-          res?.message || "Failed to accept invitation. Please try again."
+          res?.message || "Failed to accept invitation. Please try again.",
         );
         console.error("Accept invitation failed", res?.message);
       }

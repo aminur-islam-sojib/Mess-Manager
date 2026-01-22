@@ -6,6 +6,8 @@ import {
   UserPlus,
   type LucideIcon,
   UtensilsCrossed,
+  BarChartHorizontalBig,
+  TrendingDown,
 } from "lucide-react";
 
 export type Role = "manager" | "user" | "admin";
@@ -33,7 +35,7 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
     {
       label: "Meals Reports",
       href: "/dashboard/manager/meals-report",
-      icon: Users,
+      icon: BarChartHorizontalBig,
       requiresMess: true,
     },
     {
@@ -63,9 +65,20 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       icon: Home,
     },
     {
+      label: "Meal Report",
+      href: "/dashboard/user/meals-report",
+      icon: BarChartHorizontalBig,
+      requiresMess: true,
+    },
+    {
+      label: "Invitation",
+      href: "/dashboard/user/invite",
+      icon: UserPlus,
+    },
+    {
       label: "Expenses",
       href: "/dashboard/user/expenses",
-      icon: Receipt,
+      icon: TrendingDown,
       requiresMess: true,
     },
     {
@@ -73,17 +86,6 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       href: "/dashboard/user/settings",
       icon: Settings,
       requiresMess: true,
-    },
-    {
-      label: "Meal Report",
-      href: "/dashboard/user/meals-report",
-      icon: Users,
-      requiresMess: true,
-    },
-    {
-      label: "Invitation",
-      href: "/dashboard/user/invite",
-      icon: UserPlus,
     },
   ],
   admin: [
@@ -95,7 +97,7 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
     {
       label: "Expenses",
       href: "/dashboard/admin/expenses",
-      icon: Receipt,
+      icon: TrendingDown,
     },
     {
       label: "Settings",

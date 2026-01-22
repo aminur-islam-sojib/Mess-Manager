@@ -243,7 +243,7 @@ export default async function ManagerDashboard() {
                     className="flex items-center gap-3 p-3 rounded-xl border border-border"
                   >
                     <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                      {member.name.charAt(0)}
+                      {member.name ? member.name.charAt(0) : "?"}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-foreground truncate">

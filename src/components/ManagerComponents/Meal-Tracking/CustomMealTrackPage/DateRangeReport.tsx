@@ -46,7 +46,7 @@ interface DateRangeReportData {
 }
 
 interface DateRangeReportProps {
-  reportData: DateRangeReportData;
+  reportData?: any;
 }
 
 export default function DateRangeReport({ reportData }: DateRangeReportProps) {
@@ -56,7 +56,35 @@ export default function DateRangeReport({ reportData }: DateRangeReportProps) {
   >("all");
   const [viewMode, setViewMode] = useState<"cards" | "compact">("cards");
 
-  const { from, to, messName, summary, data } = reportData;
+  // Return empty state if no data
+  if (
+    !reportData?.success ||
+    !reportData?.data ||
+    !Array.isArray(reportData.data)
+  ) {
+    return (
+      <div className="max-w-7xl mx-auto text-center py-16">
+        <p className="text-muted-foreground">No meal data available</p>
+      </div>
+    );
+  }
+
+  const { from, to, messName, data } = reportData;
+
+  // Calculate summary from data
+  const summary = {
+    breakfast: data.reduce(
+      (sum: number, m: any) => sum + (m.breakfast || 0),
+      0,
+    ),
+    lunch: data.reduce((sum: number, m: any) => sum + (m.lunch || 0), 0),
+    dinner: data.reduce((sum: number, m: any) => sum + (m.dinner || 0), 0),
+    totalMeals: data.reduce(
+      (sum: number, m: any) => sum + (m.totalMeals || 0),
+      0,
+    ),
+    entries: data.length,
+  };
 
   // Format dates
   const startDate = new Date(from);
@@ -76,13 +104,13 @@ export default function DateRangeReport({ reportData }: DateRangeReportProps) {
 
   // Sort and filter members
   const processedData = [...data]
-    .filter((member) => {
+    .filter((member: any) => {
       if (filterMealType === "all") return true;
       return member[filterMealType] > 0;
     })
-    .sort((a, b) => {
+    .sort((a: any, b: any) => {
       if (sortBy === "meals") return b.totalMeals - a.totalMeals;
-      return a.name.localeCompare(b.name);
+      return a.name?.localeCompare(b.name || "") || 0;
     });
 
   // Calculate statistics
@@ -97,7 +125,10 @@ export default function DateRangeReport({ reportData }: DateRangeReportProps) {
     summary.totalMeals > 0 ? (summary.dinner / summary.totalMeals) * 100 : 0;
 
   // Find most active member
-  const mostActive = [...data].sort((a, b) => b.totalMeals - a.totalMeals)[0];
+  const mostActive =
+    data.length > 0
+      ? [...data].sort((a: any, b: any) => b.totalMeals - a.totalMeals)[0]
+      : null;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

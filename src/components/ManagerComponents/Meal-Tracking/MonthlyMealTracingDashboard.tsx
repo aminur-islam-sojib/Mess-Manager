@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState } from "react";
 import {
@@ -16,35 +17,8 @@ import {
   BarChart2,
 } from "lucide-react";
 
-interface MemberMonthlyData {
-  _id: string;
-  name: string;
-  email: string;
-  breakfast: number;
-  lunch: number;
-  dinner: number;
-  totalMeals: number;
-  entries: number;
-}
-
-interface MonthlyReportData {
-  success: boolean;
-  messId: string;
-  messName: string;
-  month: number;
-  year: number;
-  summary: {
-    breakfast: number;
-    lunch: number;
-    dinner: number;
-    totalMeals: number;
-    entries: number;
-  };
-  data: MemberMonthlyData[];
-}
-
 interface MonthlyReportProps {
-  reportData: MonthlyReportData;
+  reportData?: any;
   costPerMeal?: number;
 }
 
@@ -56,7 +30,37 @@ export default function MonthlyMessReport({
     "overview",
   );
 
-  const { messName, month, year, summary, data } = reportData;
+  // Return empty state if no data
+  if (
+    !reportData?.success ||
+    !reportData?.data ||
+    !Array.isArray(reportData.data)
+  ) {
+    return (
+      <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto text-center py-16">
+          <p className="text-muted-foreground">No meal data available</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { messName, month, year, data } = reportData;
+
+  // Calculate summary from data
+  const summary = {
+    breakfast: data.reduce(
+      (sum: number, m: any) => sum + (m.breakfast || 0),
+      0,
+    ),
+    lunch: data.reduce((sum: number, m: any) => sum + (m.lunch || 0), 0),
+    dinner: data.reduce((sum: number, m: any) => sum + (m.dinner || 0), 0),
+    totalMeals: data.reduce(
+      (sum: number, m: any) => sum + (m.totalMeals || 0),
+      0,
+    ),
+    entries: data.length,
+  };
 
   const monthNames = [
     "January",
@@ -80,7 +84,10 @@ export default function MonthlyMessReport({
   const avgCostPerMember = data.length > 0 ? totalCost / data.length : 0;
 
   // Find top contributor
-  const topMember = [...data].sort((a, b) => b.totalMeals - a.totalMeals)[0];
+  const topMember =
+    data.length > 0
+      ? [...data].sort((a: any, b: any) => b.totalMeals - a.totalMeals)[0]
+      : null;
 
   // Calculate meal percentages
   const breakfastPct =
