@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import {
   Calendar,
@@ -15,10 +14,12 @@ import {
   User,
   PieChart,
 } from "lucide-react";
-
-interface DailyMealAttendanceProps {
-  attendanceData?: any;
-}
+import {
+  DailyMealAttendanceProps,
+  MealSummary,
+  MealMember,
+  GetTodayMealsResponseSuccess,
+} from "@/types/MealManagementTypes";
 
 export default function DailyMealAttendance({
   attendanceData,
@@ -44,20 +45,15 @@ export default function DailyMealAttendance({
     );
   }
 
-  const { date, messName, data } = attendanceData;
+  const typedData = attendanceData as GetTodayMealsResponseSuccess;
+  const { date, messName, data } = typedData;
 
   // Calculate summary from data
-  const summary = {
-    breakfast: data.reduce(
-      (sum: number, m: any) => sum + (m.breakfast || 0),
-      0,
-    ),
-    lunch: data.reduce((sum: number, m: any) => sum + (m.lunch || 0), 0),
-    dinner: data.reduce((sum: number, m: any) => sum + (m.dinner || 0), 0),
-    totalMeals: data.reduce(
-      (sum: number, m: any) => sum + (m.totalMeals || 0),
-      0,
-    ),
+  const summary: MealSummary = {
+    breakfast: data.reduce((sum, m) => sum + (m.breakfast || 0), 0),
+    lunch: data.reduce((sum, m) => sum + (m.lunch || 0), 0),
+    dinner: data.reduce((sum, m) => sum + (m.dinner || 0), 0),
+    totalMeals: data.reduce((sum, m) => sum + (m.totalMeals || 0), 0),
     entries: data.length,
   };
 
@@ -69,15 +65,15 @@ export default function DailyMealAttendance({
   });
 
   // Filter and sort data
-  const filteredData = data
+  const filteredData: MealMember[] = data
     .filter(
-      (member: any) =>
+      (member) =>
         member.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.email?.toLowerCase().includes(searchQuery.toLowerCase()),
+        member._id?.toLowerCase().includes(searchQuery.toLowerCase()),
     )
-    .sort((a: any, b: any) => {
+    .sort((a, b) => {
       if (sortBy === "meals") return b.totalMeals - a.totalMeals;
-      return a.name?.localeCompare(b.name || "") || 0;
+      return a.name.localeCompare(b.name);
     });
 
   // Calculate percentages
@@ -98,9 +94,9 @@ export default function DailyMealAttendance({
     summary.entries > 0 ? (summary.totalMeals / summary.entries).toFixed(1) : 0;
 
   // Find top attendee
-  const topMember =
+  const topMember: MealMember | null =
     data.length > 0
-      ? [...data].sort((a: any, b: any) => b.totalMeals - a.totalMeals)[0]
+      ? [...data].sort((a, b) => b.totalMeals - a.totalMeals)[0]
       : null;
 
   return (

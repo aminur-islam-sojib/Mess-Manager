@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState } from "react";
 import { AnimatePresence, motion, cubicBezier } from "framer-motion";
@@ -6,6 +5,10 @@ import DailyMealAttendance from "./TodaysMealTracking";
 import MonthlyMessReport from "./MonthlyMealTracingDashboard";
 import { CalendarCog, CalendarDaysIcon, Timer } from "lucide-react";
 import DateRangeReport from "./CustomMealTracker";
+import {
+  GetTodayMealsResponse,
+  GetMonthlyMealsResponse,
+} from "@/types/MealManagementTypes";
 
 const views = [
   { key: "daily", label: "Daily", icon: Timer },
@@ -35,13 +38,15 @@ const contentVariants = {
   },
 };
 
+interface TabsViewClassicProps {
+  todayData?: GetTodayMealsResponse | { success: false; message: string };
+  monthlyData?: GetMonthlyMealsResponse | { success: false; message: string };
+}
+
 export default function TabsViewClassic({
   todayData,
   monthlyData,
-}: {
-  todayData?: any;
-  monthlyData?: any;
-}) {
+}: TabsViewClassicProps) {
   const [selectedView, setSelectedView] = useState<
     "daily" | "monthly" | "custom"
   >("daily");

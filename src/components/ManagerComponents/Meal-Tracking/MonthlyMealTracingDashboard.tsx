@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState } from "react";
 import {
@@ -16,16 +15,17 @@ import {
   PieChart,
   BarChart2,
 } from "lucide-react";
-
-interface MonthlyReportProps {
-  reportData?: any;
-  costPerMeal?: number;
-}
+import {
+  MonthlyMealTracingDashboardProps,
+  MealSummary,
+  MealMember,
+  GetMonthlyMealsResponseSuccess,
+} from "@/types/MealManagementTypes";
 
 export default function MonthlyMessReport({
   reportData,
   costPerMeal = 50,
-}: MonthlyReportProps) {
+}: MonthlyMealTracingDashboardProps) {
   const [selectedView, setSelectedView] = useState<"overview" | "members">(
     "overview",
   );
@@ -45,20 +45,15 @@ export default function MonthlyMessReport({
     );
   }
 
-  const { messName, month, year, data } = reportData;
+  const typedData = reportData as GetMonthlyMealsResponseSuccess;
+  const { messName, month, year, data } = typedData;
 
   // Calculate summary from data
-  const summary = {
-    breakfast: data.reduce(
-      (sum: number, m: any) => sum + (m.breakfast || 0),
-      0,
-    ),
-    lunch: data.reduce((sum: number, m: any) => sum + (m.lunch || 0), 0),
-    dinner: data.reduce((sum: number, m: any) => sum + (m.dinner || 0), 0),
-    totalMeals: data.reduce(
-      (sum: number, m: any) => sum + (m.totalMeals || 0),
-      0,
-    ),
+  const summary: MealSummary = {
+    breakfast: data.reduce((sum, m) => sum + (m.breakfast || 0), 0),
+    lunch: data.reduce((sum, m) => sum + (m.lunch || 0), 0),
+    dinner: data.reduce((sum, m) => sum + (m.dinner || 0), 0),
+    totalMeals: data.reduce((sum, m) => sum + (m.totalMeals || 0), 0),
     entries: data.length,
   };
 
@@ -84,9 +79,9 @@ export default function MonthlyMessReport({
   const avgCostPerMember = data.length > 0 ? totalCost / data.length : 0;
 
   // Find top contributor
-  const topMember =
+  const topMember: MealMember | null =
     data.length > 0
-      ? [...data].sort((a: any, b: any) => b.totalMeals - a.totalMeals)[0]
+      ? [...data].sort((a, b) => b.totalMeals - a.totalMeals)[0]
       : null;
 
   // Calculate meal percentages

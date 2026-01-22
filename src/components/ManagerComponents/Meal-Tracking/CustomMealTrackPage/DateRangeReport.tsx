@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import {
   Calendar,
@@ -17,37 +16,12 @@ import {
   BarChart3,
   Clock,
 } from "lucide-react";
-
-interface MemberRangeData {
-  _id: string;
-  name: string;
-  email: string;
-  breakfast: number;
-  lunch: number;
-  dinner: number;
-  totalMeals: number;
-  entries: number;
-}
-
-interface DateRangeReportData {
-  success: boolean;
-  from: string;
-  to: string;
-  messId: string;
-  messName: string;
-  summary: {
-    breakfast: number;
-    lunch: number;
-    dinner: number;
-    totalMeals: number;
-    entries: number;
-  };
-  data: MemberRangeData[];
-}
-
-interface DateRangeReportProps {
-  reportData?: any;
-}
+import {
+  DateRangeReportProps,
+  MealSummary,
+  MealMember,
+  GetMealsByDateRangeResponseSuccess,
+} from "@/types/MealManagementTypes";
 
 export default function DateRangeReport({ reportData }: DateRangeReportProps) {
   const [sortBy, setSortBy] = useState<"meals" | "name">("meals");
@@ -69,20 +43,15 @@ export default function DateRangeReport({ reportData }: DateRangeReportProps) {
     );
   }
 
-  const { from, to, messName, data } = reportData;
+  const typedData = reportData as GetMealsByDateRangeResponseSuccess;
+  const { from, to, messName, data } = typedData;
 
   // Calculate summary from data
-  const summary = {
-    breakfast: data.reduce(
-      (sum: number, m: any) => sum + (m.breakfast || 0),
-      0,
-    ),
-    lunch: data.reduce((sum: number, m: any) => sum + (m.lunch || 0), 0),
-    dinner: data.reduce((sum: number, m: any) => sum + (m.dinner || 0), 0),
-    totalMeals: data.reduce(
-      (sum: number, m: any) => sum + (m.totalMeals || 0),
-      0,
-    ),
+  const summary: MealSummary = {
+    breakfast: data.reduce((sum, m) => sum + (m.breakfast || 0), 0),
+    lunch: data.reduce((sum, m) => sum + (m.lunch || 0), 0),
+    dinner: data.reduce((sum, m) => sum + (m.dinner || 0), 0),
+    totalMeals: data.reduce((sum, m) => sum + (m.totalMeals || 0), 0),
     entries: data.length,
   };
 
@@ -103,14 +72,16 @@ export default function DateRangeReport({ reportData }: DateRangeReportProps) {
   };
 
   // Sort and filter members
-  const processedData = [...data]
-    .filter((member: any) => {
+  const processedData: MealMember[] = [...data]
+    .filter((member) => {
       if (filterMealType === "all") return true;
-      return member[filterMealType] > 0;
+      const mealCount =
+        member[filterMealType as "breakfast" | "lunch" | "dinner"];
+      return mealCount > 0;
     })
-    .sort((a: any, b: any) => {
+    .sort((a, b) => {
       if (sortBy === "meals") return b.totalMeals - a.totalMeals;
-      return a.name?.localeCompare(b.name || "") || 0;
+      return a.name.localeCompare(b.name);
     });
 
   // Calculate statistics
@@ -125,9 +96,9 @@ export default function DateRangeReport({ reportData }: DateRangeReportProps) {
     summary.totalMeals > 0 ? (summary.dinner / summary.totalMeals) * 100 : 0;
 
   // Find most active member
-  const mostActive =
+  const mostActive: MealMember | null =
     data.length > 0
-      ? [...data].sort((a: any, b: any) => b.totalMeals - a.totalMeals)[0]
+      ? [...data].sort((a, b) => b.totalMeals - a.totalMeals)[0]
       : null;
 
   return (
@@ -441,7 +412,11 @@ export default function DateRangeReport({ reportData }: DateRangeReportProps) {
             <div className="relative">
               <select
                 value={filterMealType}
-                onChange={(e) => setFilterMealType(e.target.value as any)}
+                onChange={(e) =>
+                  setFilterMealType(
+                    e.target.value as "all" | "breakfast" | "lunch" | "dinner",
+                  )
+                }
                 className="appearance-none pl-4 pr-10 py-2 rounded-xl border-2 border-input bg-background text-foreground focus:outline-none focus:border-primary transition-all cursor-pointer text-sm"
               >
                 <option value="all">All Meals</option>
@@ -456,7 +431,7 @@ export default function DateRangeReport({ reportData }: DateRangeReportProps) {
             <div className="relative">
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as "meals" | "name")}
                 className="appearance-none pl-4 pr-10 py-2 rounded-xl border-2 border-input bg-background text-foreground focus:outline-none focus:border-primary transition-all cursor-pointer text-sm"
               >
                 <option value="meals">Sort by Meals</option>
