@@ -57,7 +57,7 @@ export default function MealDateRangePicker({ onData }: Props) {
 
       // Simulated API call - replace with your actual function
       const res = await getMealsByDateRange({ from, to });
-      console.log(res);
+
       if (!res.success) {
         setError(res.message || "Failed to load data");
         return;

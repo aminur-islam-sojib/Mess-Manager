@@ -44,7 +44,6 @@ export default function UserInvitationPageClient({
       }
 
       const res = await acceptInvitation(token, sessionUser.id);
-      console.log(res);
       setIsAccepting(false);
 
       if (res?.success) {
