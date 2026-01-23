@@ -6,6 +6,7 @@ export const collections = {
   INVITATIONS: "invitations",
   MESS_MEMBERS: "mess_member",
   MEAL_ENTRIES: "meal_entries",
+  EXPENSES: "expenses",
 };
 
 const uri = process.env.MONGO_URI;
