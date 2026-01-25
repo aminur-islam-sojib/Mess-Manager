@@ -1,7 +1,6 @@
 "use client";
 import { format } from "date-fns";
 import { getAllExpenses, addExpense } from "@/actions/server/Expense";
-import IndividualMemberSelector from "@/components/Shared/IndividualMemberSelector";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -27,7 +26,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { MessDataResponse } from "@/types/MealManagement";
 import { Label } from "@radix-ui/react-label";
 import { Separator } from "@radix-ui/react-separator";
 import { CalendarIcon, DollarSign, Loader2 } from "lucide-react";
@@ -45,14 +43,10 @@ interface ExpenseFormData {
 }
 
 type AddExpenseProps = {
-  messData: MessDataResponse;
   setIsAddModalOpen: (value: boolean) => void;
 };
 
-export default function AddExpense({
-  setIsAddModalOpen,
-  messData,
-}: AddExpenseProps) {
+export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(false);
@@ -66,11 +60,10 @@ export default function AddExpense({
     paidBy: "",
   });
   const categories = [
-    "Groceries",
-    "Utilities",
-    "Supplies",
-    "Maintenance",
-    "Other",
+    { label: "Grocery", value: "grocery" },
+    { label: "Utility", value: "utility" },
+    { label: "Rent", value: "rent" },
+    { label: "Others", value: "others" },
   ];
 
   // 🔹 Fetch all expenses
@@ -91,11 +84,6 @@ export default function AddExpense({
     loadExpenses();
   }, []);
 
-  // 🔹 Sync selected member from selector
-  const getSelectedId = (userId: string) => {
-    setFormData((prev) => ({ ...prev, paidBy: userId }));
-  };
-
   // 🔹 Validate form
   const validateForm = (): boolean => {
     const newErrors: Partial<ExpenseFormData> = {};
@@ -105,7 +93,6 @@ export default function AddExpense({
       newErrors.amount = "Valid amount is required";
     if (!formData.category) newErrors.category = "Category is required";
     if (!formData.date) newErrors.date = "Date is required";
-    if (!formData.paidBy) newErrors.paidBy = "Paid by is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -113,6 +100,7 @@ export default function AddExpense({
 
   // 🔹 Submit form
   const handleSubmit = async () => {
+    console.log("click");
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -121,13 +109,9 @@ export default function AddExpense({
       title: formData.title,
       description: formData.description,
       amount: parseFloat(formData.amount),
-      category: formData.category.toLowerCase() as
-        | "grocery"
-        | "utility"
-        | "rent"
-        | "others", // match backend category type
+      category: formData.category as "grocery" | "utility" | "rent" | "others",
       expenseDate: formData.date,
-      paidBy: formData.paidBy,
+      // paidBy is not provided - backend will use current user's ID
     };
 
     startTransition(async () => {
@@ -232,8 +216,8 @@ export default function AddExpense({
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -288,18 +272,6 @@ export default function AddExpense({
               )}
             </div>
 
-            {/* Paid By - Custom Selector */}
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">
-                Paid By <span className="text-destructive">*</span>
-              </Label>
-
-              <IndividualMemberSelector
-                messData={messData}
-                setSelectedId={getSelectedId}
-              />
-            </div>
-
             {/* Description */}
             <div className="space-y-2">
               <Label
@@ -326,7 +298,7 @@ export default function AddExpense({
             className=" cursor-pointer"
             variant="secondary"
             onClick={() => setIsAddModalOpen(false)}
-            disabled={isLoading}
+            disabled={isLoading || isPending}
           >
             Cancel
           </Button>

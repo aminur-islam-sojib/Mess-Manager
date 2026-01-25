@@ -33,7 +33,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   ExpenseDocumentSerialized,
   GetExpensesSerializedResponse,
@@ -41,6 +42,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { MessDataResponse } from "@/types/MealManagement";
 import { format } from "date-fns";
+import { approveExpense } from "@/actions/server/Expense";
+import Swal from "sweetalert2";
 
 interface Expense {
   id: string;
@@ -57,35 +60,36 @@ type FinancialRecordsProps = {
   allExpenses: GetExpensesSerializedResponse;
   setIsAddModalOpen: (value: boolean) => void;
   messData: MessDataResponse;
+  role: string;
 };
 
 export default function FinancialRecords({
   allExpenses,
   setIsAddModalOpen,
   messData,
+  role,
 }: FinancialRecordsProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   // --- STATE (Functional Logic Kept) ---
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const userRole: "manager" | "user" = "manager";
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
-
+  console.log(allExpenses);
   // Compute mapped expenses from allExpenses prop
   const mappedExpenses = useMemo(() => {
     if (allExpenses.success && allExpenses.expenses) {
-      return allExpenses.expenses.map(
-        (e: ExpenseDocumentSerialized, index: number) => ({
-          id: `expense-${e.expenseDate}-${index}`,
-          date: e.expenseDate,
-          title: e.title,
-          category: e.category,
-          amount: e.amount,
-          paidBy: e.paidBy,
-          status: e.status,
-          description: e.description,
-        }),
-      );
+      return allExpenses.expenses.map((e: ExpenseDocumentSerialized) => ({
+        id: e.id,
+        date: e.expenseDate,
+        title: e.title,
+        category: e.category,
+        amount: e.amount,
+        paidBy: e.paidBy,
+        status: e.status,
+        description: e.description,
+      }));
     }
     return [];
   }, [allExpenses]);
@@ -109,15 +113,38 @@ export default function FinancialRecords({
     setDeleteConfirmId(null);
   };
 
-  const handleApprove = (id: string) => {
-    setExpenses(
-      expenses.map((exp) =>
-        exp.id === id ? { ...exp, status: "approved" as const } : exp,
-      ),
-    );
+  const approveExpenses = async (expenseId: string) => {
+    try {
+      console.log("expenseId", expenseId);
+      const res = await approveExpense(expenseId);
+      console.log(res);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
-  console.log(messData);
+  const handleApprove = (id: string) => {
+    Swal.fire({
+      title: "Are you sure?",
+      text: "You wanna accept this expenses!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#88be89",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, Add Expenses!",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        console.log("expenseId", id);
+        startTransition(async () => {
+          const res = await approveExpenses(id);
+          console.log(res);
+          // 🔄 Refresh the page to fetch updated expenses
+          router.refresh();
+        });
+      }
+    });
+  };
+
   const getPayerName = (id: string) => {
     const member = messData.members?.find((m) => m.userId === id);
     return member ? member.name : "Unknown Member";
@@ -182,6 +209,7 @@ export default function FinancialRecords({
                   <TableHead>Payer</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Status</TableHead>
+
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -257,15 +285,17 @@ export default function FinancialRecords({
                             {expense.status}
                           </Badge>
                         </TableCell>
+
                         <TableCell>
-                          <div className="flex items-center justify-center gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                            {userRole === "manager" &&
+                          <div className="flex items-center justify-center gap-1  group-hover:opacity-100 transition-opacity">
+                            {role === "manager" &&
                               expense.status === "pending" && (
                                 <Button
                                   size="icon"
                                   variant="ghost"
                                   className="text-emerald-600"
                                   onClick={() => handleApprove(expense.id)}
+                                  disabled={isPending}
                                 >
                                   <CheckCircle className="w-4 h-4" />
                                 </Button>
@@ -310,10 +340,15 @@ export default function FinancialRecords({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setDeleteConfirmId(null)}>
+            <Button
+              className="mr-2 cursor-pointer bg-accent"
+              variant="ghost"
+              onClick={() => setDeleteConfirmId(null)}
+            >
               Cancel
             </Button>
             <Button
+              className="cursor-pointer "
               variant="destructive"
               onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
             >
@@ -344,7 +379,7 @@ export default function FinancialRecords({
               </div>
 
               <div className="p-8 space-y-4">
-                {/* Financials and Status Row */}
+                {/* Financial and Status Row */}
                 <div className="grid grid-cols-2 gap-8">
                   <div className="space-y-1">
                     <p className="text-[11px] text-muted-foreground uppercase font-bold tracking-wider">
@@ -414,17 +449,16 @@ export default function FinancialRecords({
               </div>
 
               {/* Footer Actions */}
-              {/* Footer Actions */}
               <DialogFooter className="p-6 bg-muted/50 border-t flex flex-row items-center gap-3 sm:space-x-0">
                 <Button
                   variant="outline"
-                  className="flex-1 font-semibold hover:bg-background h-11" // Added height for better mobile touch
+                  className="flex-1 font-semibold hover:bg-background h-11 cursor-pointer" // Added height for better mobile touch
                   onClick={() => setSelectedExpense(null)}
                 >
                   Close Window
                 </Button>
 
-                <Button className="flex-1 font-semibold h-11 shadow-sm">
+                <Button className="flex-1 font-semibold h-11 shadow-sm cursor-pointer">
                   <Pencil className="w-4 h-4 mr-2" />
                   Edit Record
                 </Button>

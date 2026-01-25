@@ -17,6 +17,7 @@ import AddExpense from "./AddExpense";
 import { MessDataResponse } from "@/types/MealManagement";
 import { cn } from "@/lib/utils";
 import FinancialRecords from "./FinancialRecords";
+import UserAddExpense from "./UserAddExpense";
 
 interface Expense {
   id: string;
@@ -32,11 +33,13 @@ interface Expense {
 type MessExpenseManagementProps = {
   messData: MessDataResponse;
   allExpenses: GetExpensesSerializedResponse;
+  role: string;
 };
 
 export default function MessExpenseManagement({
   messData,
   allExpenses,
+  role,
 }: MessExpenseManagementProps) {
   // --- STATE (Functional Logic Kept) ---
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -115,7 +118,7 @@ export default function MessExpenseManagement({
         </div>
 
         {/* STATS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {[
             {
               label: "Total Volume",
@@ -145,7 +148,7 @@ export default function MessExpenseManagement({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
             >
-              <Card className="relative overflow-hidden border-none shadow-md">
+              <Card className="relative overflow-hidden border-none shadow-sm">
                 <CardContent>
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
@@ -172,22 +175,25 @@ export default function MessExpenseManagement({
         </div>
 
         {/* FILTERS & TABLE */}
-        {allExpenses && messData && (
+        {allExpenses && messData && role && (
           <FinancialRecords
             allExpenses={allExpenses}
+            setIsAddModalOpen={handleIsModalOpen}
+            messData={messData}
+            role={role}
+          />
+        )}
+
+        {/* DON'T TOUCH: Add Expense Component */}
+        {role === "manager" && isAddModalOpen && messData && (
+          <AddExpense
             setIsAddModalOpen={handleIsModalOpen}
             messData={messData}
           />
         )}
 
-        {/* --- MODALS (Modernized with Shadcn) --- */}
-
-        {/* DON'T TOUCH: Add Expense Component */}
-        {isAddModalOpen && messData && (
-          <AddExpense
-            setIsAddModalOpen={handleIsModalOpen}
-            messData={messData}
-          />
+        {role === "user" && isAddModalOpen && (
+          <UserAddExpense setIsAddModalOpen={handleIsModalOpen} />
         )}
       </div>
     </div>

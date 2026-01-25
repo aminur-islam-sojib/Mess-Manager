@@ -66,6 +66,7 @@ export type ExpenseDocumentSerialized = {
   status: "pending" | "approved";
   createdAt: string;
   updatedAt: string;
+  id: string;
 };
 
 export type GetExpensesResponse =
@@ -73,5 +74,10 @@ export type GetExpensesResponse =
   | { success: false; message: string };
 
 export type GetExpensesSerializedResponse =
-  | { success: true; expenses: ExpenseDocumentSerialized[] }
+  | {
+      success: true;
+      expenses: ExpenseDocumentSerialized[];
+      from: string;
+      to: string;
+    }
   | { success: false; message: string };
