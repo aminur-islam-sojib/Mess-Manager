@@ -30,6 +30,7 @@ import {
   Filter,
   Receipt,
   Pencil,
+  CalendarIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,13 @@ import { MessDataResponse } from "@/types/MealManagement";
 import { format } from "date-fns";
 import { approveExpense } from "@/actions/server/Expense";
 import Swal from "sweetalert2";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { DateRange } from "react-day-picker";
 
 interface Expense {
   id: string;
@@ -61,6 +69,9 @@ type FinancialRecordsProps = {
   setIsAddModalOpen: (value: boolean) => void;
   messData: MessDataResponse;
   role: string;
+  onDateRangeChange?: (dateRange: DateRange | undefined) => void;
+  isLoadingExpenses?: boolean;
+  selectedDateRange?: DateRange | undefined;
 };
 
 export default function FinancialRecords({
@@ -68,12 +79,18 @@ export default function FinancialRecords({
   setIsAddModalOpen,
   messData,
   role,
+  onDateRangeChange,
+  isLoadingExpenses = false,
+  selectedDateRange,
 }: FinancialRecordsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   // --- STATE (Functional Logic Kept) ---
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [date, setDate] = useState<DateRange | undefined>(selectedDateRange);
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   console.log(allExpenses);
@@ -106,6 +123,35 @@ export default function FinancialRecords({
     "Maintenance",
     "Other",
   ];
+
+  // --- Filter Expenses ---
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter((expense) => {
+      const categoryMatch =
+        filterCategory === "all" ||
+        expense.category.toLowerCase() === filterCategory.toLowerCase();
+      const statusMatch =
+        filterStatus === "all" || expense.status === filterStatus;
+
+      // Date range filter
+      let dateMatch = true;
+      if (date?.from || date?.to) {
+        const expenseDate = new Date(expense.date);
+        if (date.from && expenseDate < date.from) {
+          dateMatch = false;
+        }
+        if (date.to) {
+          const endOfDay = new Date(date.to);
+          endOfDay.setHours(23, 59, 59, 999);
+          if (expenseDate > endOfDay) {
+            dateMatch = false;
+          }
+        }
+      }
+
+      return categoryMatch && statusMatch && dateMatch;
+    });
+  }, [expenses, filterCategory, filterStatus, date]);
 
   // --- Handlers (Functional Logic Kept) ---
   const handleDelete = (id: string) => {
@@ -159,20 +205,80 @@ export default function FinancialRecords({
       .slice(0, 2);
   };
 
+  // Handle date change - refetch expenses with new date range
+  const handleDateChange = (newDate: DateRange | undefined) => {
+    setDate(newDate);
+    // Call parent callback to fetch data
+    if (onDateRangeChange) {
+      onDateRangeChange(newDate);
+    }
+  };
+
   return (
     <>
       <Card className=" shadow-none ">
         <CardHeader className="pb-0">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            {/* Left: Title & Icon */}
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-muted rounded-lg">
+              <div className="p-2 bg-primary/10 text-primary rounded-lg">
                 <Filter className="w-4 h-4" />
               </div>
-              <CardTitle className="text-lg">Financial Records</CardTitle>
+              <CardTitle className="text-xl font-semibold tracking-tight">
+                Financial Records
+              </CardTitle>
             </div>
+
+            {/* Right: Filters Group */}
             <div className="flex flex-wrap items-center gap-3">
-              <Select defaultValue="all">
-                <SelectTrigger className="w-37.5 bg-muted/50 border-none">
+              {/* Modern Date Range Picker */}
+              <div className="grid gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="date"
+                      variant={"outline"}
+                      disabled={isLoadingExpenses}
+                      className={cn(
+                        "w-65 justify-start text-left font-normal bg-muted/50 border-none hover:bg-muted transition-colors",
+                        !date && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 opacity-70" />
+                      {isLoadingExpenses ? (
+                        <span>Loading...</span>
+                      ) : date?.from ? (
+                        date.to ? (
+                          <>
+                            {format(date.from, "LLL dd, y") +
+                              " - " +
+                              format(date.to, "LLL dd, y")}
+                          </>
+                        ) : (
+                          format(date.from, "LLL dd, y")
+                        )
+                      ) : (
+                        <span>Pick a date range</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={date?.from}
+                      selected={date}
+                      onSelect={handleDateChange}
+                      numberOfMonths={2}
+                      className="rounded-md border shadow-2xl"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Category Select */}
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="w-40 bg-muted/50 border-none focus:ring-1">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -184,8 +290,10 @@ export default function FinancialRecords({
                   ))}
                 </SelectContent>
               </Select>
-              <Select defaultValue="all">
-                <SelectTrigger className="w-32.5 bg-muted/50 border-none">
+
+              {/* Status Select */}
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-36 bg-muted/50 border-none focus:ring-1">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -215,7 +323,7 @@ export default function FinancialRecords({
               </TableHeader>
               <TableBody>
                 <AnimatePresence mode="popLayout">
-                  {expenses.length === 0 ? (
+                  {filteredExpenses.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="h-64 text-center">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
@@ -231,7 +339,7 @@ export default function FinancialRecords({
                       </TableCell>
                     </TableRow>
                   ) : (
-                    expenses.map((expense) => (
+                    filteredExpenses.map((expense) => (
                       <TableRow
                         key={expense.id}
                         className="group hover:bg-muted/30 transition-colors"

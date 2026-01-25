@@ -32,11 +32,5 @@ export default async function ExpensePage() {
 
   console.log("all", allExpenses);
 
-  return (
-    <MessExpenseManagement
-      messData={serializedMessData}
-      allExpenses={allExpenses}
-      role={role}
-    />
-  );
+  return <MessExpenseManagement messData={serializedMessData} role={role} />;
 }

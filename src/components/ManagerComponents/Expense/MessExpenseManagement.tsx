@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useTransition } from "react";
 import { motion } from "framer-motion";
 import { Plus, DollarSign, CheckCircle, Clock, TrendingUp } from "lucide-react";
 
@@ -18,6 +18,8 @@ import { MessDataResponse } from "@/types/MealManagement";
 import { cn } from "@/lib/utils";
 import FinancialRecords from "./FinancialRecords";
 import UserAddExpense from "./UserAddExpense";
+import { getAllExpenses } from "@/actions/server/Expense";
+import { DateRange } from "react-day-picker";
 
 interface Expense {
   id: string;
@@ -32,23 +34,48 @@ interface Expense {
 
 type MessExpenseManagementProps = {
   messData: MessDataResponse;
-  allExpenses: GetExpensesSerializedResponse;
   role: string;
 };
 
 export default function MessExpenseManagement({
   messData,
-  allExpenses,
+
   role,
 }: MessExpenseManagementProps) {
   // --- STATE (Functional Logic Kept) ---
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [allExpenses, setAllExpenses] = useState<
+    GetExpensesSerializedResponse | undefined
+  >();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [isPending, startTransition] = useTransition();
+
+  // 🔥 MASTER FETCH FUNCTION - Called from both parent mount and child date selection
+  const fetchExpensesWithDateRange = async (fromDate?: Date, toDate?: Date) => {
+    startTransition(async () => {
+      const data = await getAllExpenses(fromDate, toDate);
+      setAllExpenses(data);
+    });
+  };
+
+  // Fetch all expenses on component mount (default = current month)
+  useEffect(() => {
+    fetchExpensesWithDateRange();
+  }, []);
+
+  // 🔥 CALLBACK FUNCTION - Child component (FinancialRecords) calls this with selected dates
+  const handleDateRangeChange = (newDateRange: DateRange | undefined) => {
+    setDateRange(newDateRange);
+    if (newDateRange?.from) {
+      // Fetch data with new date range
+      fetchExpensesWithDateRange(newDateRange.from, newDateRange.to);
+    }
+  };
 
   // Compute mapped expenses from allExpenses prop
   const mappedExpenses = useMemo(() => {
-    if (allExpenses.success && allExpenses.expenses) {
+    if (allExpenses && allExpenses.success && allExpenses.expenses) {
       return allExpenses.expenses.map(
         (e: ExpenseDocumentSerialized, index: number) => ({
           id: `expense-${e.expenseDate}-${index}`,
@@ -69,6 +96,14 @@ export default function MessExpenseManagement({
   useEffect(() => {
     setExpenses(mappedExpenses);
   }, [mappedExpenses]);
+
+  if (!role) {
+    return (
+      <div>
+        <h1>User role needed</h1>
+      </div>
+    );
+  }
 
   // --- Calculations ---
   const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
@@ -181,6 +216,9 @@ export default function MessExpenseManagement({
             setIsAddModalOpen={handleIsModalOpen}
             messData={messData}
             role={role}
+            onDateRangeChange={handleDateRangeChange}
+            isLoadingExpenses={isPending}
+            selectedDateRange={dateRange}
           />
         )}
 
