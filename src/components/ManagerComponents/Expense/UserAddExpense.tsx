@@ -257,7 +257,7 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
                     onSelect={(date) =>
                       setFormData({
                         ...formData,
-                        date: date ? date.toISOString() : "",
+                        date: date ? date.toISOString().split("T")[0] : "",
                       })
                     }
                     initialFocus

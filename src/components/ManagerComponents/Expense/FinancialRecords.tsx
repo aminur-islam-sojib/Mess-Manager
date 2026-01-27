@@ -93,6 +93,24 @@ export default function FinancialRecords({
   const [date, setDate] = useState<DateRange | undefined>(selectedDateRange);
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  // Initialize date range from allExpenses response (current month dates)
+  useEffect(() => {
+    if (
+      allExpenses.success &&
+      allExpenses.from &&
+      allExpenses.to &&
+      !selectedDateRange
+    ) {
+      const fromDate = new Date(allExpenses.from);
+      const toDate = new Date(allExpenses.to);
+      setDate({
+        from: fromDate,
+        to: toDate,
+      });
+    }
+  }, [allExpenses, selectedDateRange]);
+
   console.log(allExpenses);
   // Compute mapped expenses from allExpenses prop
   const mappedExpenses = useMemo(() => {
@@ -263,15 +281,25 @@ export default function FinancialRecords({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      initialFocus
-                      mode="range"
-                      defaultMonth={date?.from}
-                      selected={date}
-                      onSelect={handleDateChange}
-                      numberOfMonths={2}
-                      className="rounded-md border shadow-2xl"
-                    />
+                    <div className="p-4">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={date?.from}
+                        selected={date}
+                        onSelect={handleDateChange}
+                        numberOfMonths={2}
+                        className="rounded-md border "
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-3"
+                        onClick={() => handleDateChange(undefined)}
+                      >
+                        Clear Selection
+                      </Button>
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>

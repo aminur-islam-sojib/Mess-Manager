@@ -273,7 +273,7 @@ export default function AddExpense({
                     onSelect={(date) =>
                       setFormData({
                         ...formData,
-                        date: date ? date.toISOString() : "",
+                        date: date ? date.toISOString().split("T")[0] : "",
                       })
                     }
                     initialFocus

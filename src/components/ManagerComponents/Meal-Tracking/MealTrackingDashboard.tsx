@@ -50,6 +50,10 @@ export default function TabsViewClassic({
   const [selectedView, setSelectedView] = useState<
     "daily" | "monthly" | "custom"
   >("daily");
+
+  console.log("monthly data ", monthlyData);
+  console.log("todays data ", todayData);
+
   return (
     <div>
       <div className="relative flex items-center gap-1 bg-muted rounded-xl p-1">

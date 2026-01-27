@@ -326,3 +326,241 @@ export const approveExpense = async (expenseId: string) => {
     return { success: false, message: "Approval failed" };
   }
 };
+
+type TodaysExpenseSummaryResponse = {
+  success: boolean;
+  data?: {
+    messId: string;
+    date: string;
+    totalAmount: number;
+    totalCount: number;
+    byCategory: {
+      category: string;
+      amount: number;
+    }[];
+  };
+  message?: string;
+};
+
+export async function getTodaysExpenseSummary(): Promise<TodaysExpenseSummaryResponse> {
+  try {
+    // 🔐 Auth
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+
+    const userId = new ObjectId(session.user.id);
+
+    // 🏠 Resolve mess & role
+    const { messId, role } = await resolveActiveMess(userId);
+
+    const expensesCollection = dbConnect(collections.EXPENSES);
+
+    // 📅 Today range (convert to YYYY-MM-DD string format)
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0]; // "2026-01-26"
+    const tomorrowStr = new Date(today.getTime() + 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0]; // "2026-01-27"
+
+    console.log("🔍 getTodaysExpenseSummary Debug:", {
+      userId: userId.toString(),
+      messId: messId.toString(),
+      role,
+      todayStr,
+      tomorrowStr,
+    });
+
+    // 👤 Role-based visibility
+    const baseMatch =
+      role === "manager"
+        ? { messId }
+        : {
+            messId,
+            $or: [{ status: "approved" }, { addedBy: userId }],
+          };
+
+    // 🔥 Debug: Check if there are ANY expenses for this mess
+    const allExpensesCount = await expensesCollection.countDocuments({
+      messId,
+    });
+    console.log(`📊 Total expenses for this mess: ${allExpensesCount}`);
+
+    // 🔥 Debug: Check sample expenses
+    const sampleExpenses = await expensesCollection
+      .find({ messId })
+      .limit(5)
+      .toArray();
+    console.log("📊 Sample expenses:", JSON.stringify(sampleExpenses, null, 2));
+
+    // 🔥 Debug: Check if there are expenses for today
+    const todayExpensesCount = await expensesCollection.countDocuments({
+      messId,
+      expenseDate: {
+        $gte: todayStr,
+        $lt: tomorrowStr,
+      },
+    });
+    console.log(`📊 Today's expenses: ${todayExpensesCount}`);
+
+    // 🔥 Debug: Check sample today expenses
+    const sampleTodayExpenses = await expensesCollection
+      .find({
+        messId,
+        expenseDate: {
+          $gte: todayStr,
+          $lt: tomorrowStr,
+        },
+      })
+      .limit(5)
+      .toArray();
+    console.log(
+      "📊 Sample today expenses:",
+      JSON.stringify(sampleTodayExpenses, null, 2),
+    );
+
+    // 🔥 Aggregation
+    const result = await expensesCollection
+      .aggregate([
+        {
+          $match: {
+            ...baseMatch,
+            expenseDate: {
+              $gte: todayStr,
+              $lt: tomorrowStr,
+            },
+          },
+        },
+        {
+          $facet: {
+            summary: [
+              {
+                $group: {
+                  _id: null,
+                  totalAmount: { $sum: "$amount" },
+                  totalCount: { $sum: 1 },
+                },
+              },
+            ],
+            byCategory: [
+              {
+                $group: {
+                  _id: "$category",
+                  amount: { $sum: "$amount" },
+                },
+              },
+              {
+                $project: {
+                  _id: 0,
+                  category: "$_id",
+                  amount: 1,
+                },
+              },
+            ],
+          },
+        },
+      ])
+      .toArray();
+
+    console.log("📊 Aggregation result:", result);
+
+    const summary = result[0]?.summary[0] ?? {
+      totalAmount: 0,
+      totalCount: 0,
+    };
+
+    return {
+      success: true,
+      data: {
+        messId: messId.toString(),
+        date: todayStr,
+        totalAmount: summary.totalAmount,
+        totalCount: summary.totalCount,
+        byCategory: result[0]?.byCategory ?? [],
+      },
+    };
+  } catch (error) {
+    console.error("Today's expense summary error:", error);
+    return {
+      success: false,
+      message: "Failed to fetch today's expense summary",
+    };
+  }
+}
+
+export async function getMonthlyTotalExpenses(
+  year?: number,
+  month?: number, // 0 = Jan
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+
+    const userId = new ObjectId(session.user.id);
+    const { messId } = await resolveActiveMess(userId);
+
+    const expenseCollection = dbConnect(collections.EXPENSES);
+
+    // 📅 Default → current month
+    const now = new Date();
+    const targetYear = year ?? now.getFullYear();
+    const targetMonth = month ?? now.getMonth();
+
+    const startDate = new Date(targetYear, targetMonth, 1);
+    const endDate = new Date(targetYear, targetMonth + 1, 1);
+
+    const result = await expenseCollection
+      .aggregate([
+        // 🔥 Convert string → Date
+        {
+          $addFields: {
+            expenseDateObj: { $toDate: "$expenseDate" },
+          },
+        },
+        {
+          $match: {
+            messId,
+            status: "approved",
+            expenseDateObj: {
+              $gte: startDate,
+              $lt: endDate,
+            },
+          },
+        },
+        {
+          $group: {
+            _id: "$category",
+            totalAmount: { $sum: "$amount" },
+            count: { $sum: 1 },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalCost: { $sum: "$totalAmount" },
+            categories: {
+              $push: {
+                category: "$_id",
+                totalAmount: "$totalAmount",
+                count: "$count",
+              },
+            },
+          },
+        },
+      ])
+      .toArray();
+
+    return {
+      success: true,
+      month: targetMonth + 1,
+      year: targetYear,
+      totalCost: result[0]?.totalCost ?? 0,
+    };
+  } catch (error) {
+    console.error("Monthly summary error:", error);
+    return { success: false, message: "Failed to fetch monthly summary" };
+  }
+}
