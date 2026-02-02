@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Calendar,
   Users,
@@ -21,7 +21,6 @@ import {
   MealMember,
   GetTodayMealsResponseSuccess,
 } from "@/types/MealManagementTypes";
-import { getMonthlyExpensesSummary } from "@/actions/server/Expense";
 
 export default function TodaysMessReport({
   attendanceData,
@@ -30,15 +29,6 @@ export default function TodaysMessReport({
   const [selectedView, setSelectedView] = useState<"overview" | "members">(
     "overview",
   );
-
-  const fetchData = async () => {
-    const res = await getMonthlyExpensesSummary();
-    console.log(res);
-  };
-
-  useEffect(() => {
-    fetchData();
-  });
 
   // Return empty state if no data
   if (

@@ -1,4 +1,3 @@
-import { getAllExpenses } from "@/actions/server/Expense";
 import { getMessMembers } from "@/actions/server/Mess";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import MessExpenseManagement from "@/components/ManagerComponents/Expense/MessExpenseManagement";
@@ -20,8 +19,6 @@ export default async function ExpensePage() {
     message: messData.message || undefined,
   };
 
-  const allExpenses = await getAllExpenses();
-
   if (!role) {
     return (
       <div>
@@ -30,11 +27,5 @@ export default async function ExpensePage() {
     );
   }
 
-  return (
-    <MessExpenseManagement
-      messData={serializedMessData}
-      allExpenses={allExpenses}
-      role={role}
-    />
-  );
+  return <MessExpenseManagement messData={serializedMessData} role={role} />;
 }

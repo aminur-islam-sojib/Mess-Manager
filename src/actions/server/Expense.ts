@@ -210,10 +210,42 @@ export async function getAllExpenses(
   }
 }
 
-export async function getMonthlyExpensesSummary(
-  year?: number,
-  month?: number, // 0 = Jan
+async function getMonthlyTotalMeals(
+  messId: ObjectId,
+  startDate: Date,
+  endDate: Date,
 ) {
+  const mealCollection = dbConnect(collections.MEAL_ENTRIES);
+
+  const result = await mealCollection
+    .aggregate([
+      {
+        $addFields: {
+          mealDateObj: { $toDate: "$date" },
+        },
+      },
+      {
+        $match: {
+          messId,
+          mealDateObj: {
+            $gte: startDate,
+            $lt: endDate,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalMeals: { $sum: "$meals" }, // ✅ THIS IS THE FIX
+        },
+      },
+    ])
+    .toArray();
+
+  return result[0]?.totalMeals ?? 0;
+}
+
+export async function getMonthlyExpensesSummary(year?: number, month?: number) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -225,7 +257,6 @@ export async function getMonthlyExpensesSummary(
 
     const expenseCollection = dbConnect(collections.EXPENSES);
 
-    // 📅 Default → current month
     const now = new Date();
     const targetYear = year ?? now.getFullYear();
     const targetMonth = month ?? now.getMonth();
@@ -233,9 +264,9 @@ export async function getMonthlyExpensesSummary(
     const startDate = new Date(targetYear, targetMonth, 1);
     const endDate = new Date(targetYear, targetMonth + 1, 1);
 
-    const result = await expenseCollection
+    // 💰 EXPENSE SUMMARY
+    const expenseResult = await expenseCollection
       .aggregate([
-        // 🔥 Convert string → Date
         {
           $addFields: {
             expenseDateObj: { $toDate: "$expenseDate" },
@@ -274,12 +305,24 @@ export async function getMonthlyExpensesSummary(
       ])
       .toArray();
 
+    const totalCost = expenseResult[0]?.totalCost ?? 0;
+    const categories = expenseResult[0]?.categories ?? [];
+
+    // 🍽️ TOTAL MEALS (REAL DATA)
+    const totalMeals = await getMonthlyTotalMeals(messId, startDate, endDate);
+
+    // 🧮 COST PER MEAL
+    const costPerMeal =
+      totalMeals > 0 ? Number((totalCost / totalMeals).toFixed(2)) : 0;
+
     return {
       success: true,
       month: targetMonth + 1,
       year: targetYear,
-      totalCost: result[0]?.totalCost ?? 0,
-      categories: result[0]?.categories ?? [],
+      totalCost,
+      totalMeals,
+      costPerMeal,
+      categories,
     };
   } catch (error) {
     console.error("Monthly summary error:", error);

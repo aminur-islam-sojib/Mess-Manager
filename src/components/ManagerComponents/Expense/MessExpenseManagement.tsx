@@ -1,8 +1,16 @@
 "use client";
 
 import { useState, useEffect, useMemo, useTransition } from "react";
-import { motion } from "framer-motion";
-import { Plus, DollarSign, CheckCircle, Clock, TrendingUp } from "lucide-react";
+import { AnimatePresence, cubicBezier, motion } from "framer-motion";
+import {
+  Plus,
+  DollarSign,
+  CheckCircle,
+  Clock,
+  TrendingUp,
+  CalendarDaysIcon,
+  UsersIcon,
+} from "lucide-react";
 
 // Shadcn UI (Assuming these are in your components/ui folder)
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +28,8 @@ import FinancialRecords from "./FinancialRecords";
 import UserAddExpense from "./UserAddExpense";
 import { getAllExpenses } from "@/actions/server/Expense";
 import { DateRange } from "react-day-picker";
+import IndividualExpenses from "./IndividualExpenses";
+import { getMemberMealAndCostSummary } from "@/actions/server/MealExpenses";
 
 interface Expense {
   id: string;
@@ -36,10 +46,39 @@ type MessExpenseManagementProps = {
   messData: MessDataResponse;
   role: string;
 };
+const views = [
+  { key: "monthlyExpenses", label: "Monthly Expenses", icon: CalendarDaysIcon },
+  {
+    key: "individualExpenses",
+    label: "Individual Expenses",
+    icon: UsersIcon,
+  },
+] as const;
+const contentVariants = {
+  initial: {
+    opacity: 0,
+    y: 10,
+  },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.35,
+      ease: cubicBezier(0.25, 0.46, 0.45, 0.94),
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    transition: {
+      duration: 0.25,
+      ease: cubicBezier(0.17, 0.67, 0.83, 0.67),
+    },
+  },
+};
 
 export default function MessExpenseManagement({
   messData,
-
   role,
 }: MessExpenseManagementProps) {
   // --- STATE (Functional Logic Kept) ---
@@ -50,6 +89,17 @@ export default function MessExpenseManagement({
   >();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [isPending, startTransition] = useTransition();
+  const [selectedView, setSelectedView] = useState<
+    "monthlyExpenses" | "individualExpenses"
+  >("monthlyExpenses");
+
+  const fetchMealCost = async () => {
+    const res = await getMemberMealAndCostSummary();
+    console.log("mela cos", res);
+  };
+  useEffect(() => {
+    fetchMealCost();
+  }, []);
 
   // 🔥 MASTER FETCH FUNCTION - Called from both parent mount and child date selection
   const fetchExpensesWithDateRange = async (fromDate?: Date, toDate?: Date) => {
@@ -209,18 +259,84 @@ export default function MessExpenseManagement({
           ))}
         </div>
 
-        {/* FILTERS & TABLE */}
-        {allExpenses && messData && role && (
-          <FinancialRecords
-            allExpenses={allExpenses}
-            setIsAddModalOpen={handleIsModalOpen}
-            messData={messData}
-            role={role}
-            onDateRangeChange={handleDateRangeChange}
-            isLoadingExpenses={isPending}
-            selectedDateRange={dateRange}
-          />
-        )}
+        <div className=" flex flex-col gap-5">
+          <div className="relative flex items-center gap-1 bg-muted rounded-xl p-1">
+            {views.map(({ key, label, icon: Icon }) => {
+              const isActive = selectedView === key;
+
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelectedView(key)}
+                  className="relative flex-1 px-4 py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 z-10"
+                >
+                  {/* Active background */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeViewTab"
+                      className="absolute inset-0 rounded-lg bg-primary shadow-sm"
+                      transition={{
+                        type: "spring",
+                        stiffness: 350,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+
+                  <span
+                    className={`relative flex items-center gap-2 transition-colors ${
+                      isActive
+                        ? "text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Animated Content */}
+          <div className="relative ">
+            <AnimatePresence mode="wait">
+              {selectedView === "monthlyExpenses" && (
+                <motion.div
+                  key="daily"
+                  variants={contentVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                >
+                  {allExpenses && messData && role && (
+                    <FinancialRecords
+                      allExpenses={allExpenses}
+                      setIsAddModalOpen={handleIsModalOpen}
+                      messData={messData}
+                      role={role}
+                      onDateRangeChange={handleDateRangeChange}
+                      isLoadingExpenses={isPending}
+                      selectedDateRange={dateRange}
+                    />
+                  )}
+                </motion.div>
+              )}
+
+              {selectedView === "individualExpenses" && (
+                <motion.div
+                  key="monthly"
+                  variants={contentVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                >
+                  <IndividualExpenses />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
 
         {/* DON'T TOUCH: Add Expense Component */}
         {role === "manager" && isAddModalOpen && messData && (

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion, cubicBezier } from "framer-motion";
 import DailyMealAttendance from "./TodaysMealTracking";
 import MonthlyMessReport from "./MonthlyMealTracingDashboard";
@@ -9,6 +9,7 @@ import {
   GetTodayMealsResponse,
   GetMonthlyMealsResponse,
 } from "@/types/MealManagementTypes";
+import { getMonthlyExpensesSummary } from "@/actions/server/Expense";
 
 const views = [
   { key: "daily", label: "Daily", icon: Timer },
@@ -50,9 +51,20 @@ export default function TabsViewClassic({
   const [selectedView, setSelectedView] = useState<
     "daily" | "monthly" | "custom"
   >("daily");
+  const [costPerMeal, setCostPerMeal] = useState<number | undefined>();
 
-  console.log("monthly data ", monthlyData);
-  console.log("todays data ", todayData);
+  useEffect(() => {
+    if (costPerMeal !== undefined) return;
+
+    const fetchData = async () => {
+      const res = await getMonthlyExpensesSummary();
+      if (!res) return;
+      setCostPerMeal(res.costPerMeal);
+      console.log(res);
+    };
+
+    fetchData();
+  }, [costPerMeal]);
 
   return (
     <div>
@@ -105,7 +117,10 @@ export default function TabsViewClassic({
               animate="animate"
               exit="exit"
             >
-              <DailyMealAttendance attendanceData={todayData} />
+              <DailyMealAttendance
+                attendanceData={todayData}
+                costPerMeal={costPerMeal}
+              />
             </motion.div>
           )}
 
