@@ -3,22 +3,7 @@
 import { dbConnect, collections } from "@/lib/dbConnect";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
-import { ObjectId, WithId, Document } from "mongodb";
-
-// Proper Expense document type
-interface ExpenseDocument extends Document {
-  _id: ObjectId;
-  messId: ObjectId;
-  title: string;
-  amount: number;
-  category: string;
-  description?: string;
-  status: "pending" | "approved" | "rejected";
-  paidBy: ObjectId;
-  addedBy: ObjectId;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { ObjectId } from "mongodb";
 
 // Success response
 interface ManagerDashboardSuccess {
