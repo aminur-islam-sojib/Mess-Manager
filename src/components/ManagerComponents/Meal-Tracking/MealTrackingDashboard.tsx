@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, cubicBezier } from "framer-motion";
-import DailyMealAttendance from "./TodaysMealTracking";
 import MonthlyMessReport from "./MonthlyMealTracingDashboard";
 import { CalendarCog, CalendarDaysIcon, Timer } from "lucide-react";
 import DateRangeReport from "./CustomMealTracker";
@@ -10,6 +9,7 @@ import {
   GetMonthlyMealsResponse,
 } from "@/types/MealManagementTypes";
 import { getMonthlyExpensesSummary } from "@/actions/server/Expense";
+import TodaysMessReport2 from "@/components/Shared/MealTrack/TodaysMessReport";
 
 const views = [
   { key: "daily", label: "Daily", icon: Timer },
@@ -117,7 +117,11 @@ export default function TabsViewClassic({
               animate="animate"
               exit="exit"
             >
-              <DailyMealAttendance
+              {/* <DailyMealAttendance
+                attendanceData={todayData}
+                costPerMeal={costPerMeal}
+              /> */}
+              <TodaysMessReport2
                 attendanceData={todayData}
                 costPerMeal={costPerMeal}
               />

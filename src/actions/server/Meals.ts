@@ -163,8 +163,10 @@ export const addMealEntry = async (payload: MealPayload) => {
       success: true as const,
       message: `Meal updated for ${members.length} members`,
     };
-  } catch (error: any) {
-    console.error("❌ Add Meal Error:", error);
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    console.error("❌ Add Meal Error:", errorMessage);
 
     return {
       success: false as const,

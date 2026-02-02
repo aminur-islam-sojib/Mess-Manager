@@ -80,8 +80,10 @@ export default function LoginFormPage() {
         } else if (result?.status == 401) {
           toast.error(`${result?.error}`);
         }
-      } catch (error: any) {
-        toast.error(`${error.message}`);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : "An error occurred";
+        toast.error(errorMessage);
       }
     }
   };
