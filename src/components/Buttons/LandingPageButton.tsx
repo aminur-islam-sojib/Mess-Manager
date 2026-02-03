@@ -6,13 +6,12 @@ import { useState } from "react";
 
 export default function LandingPageButton() {
   const [selectedRole, setSelectedRole] = useState<"user" | "manager" | null>(
-    null
+    null,
   );
   const router = useRouter();
 
   const handleContinue = () => {
     if (selectedRole) {
-      console.log("selected Role", selectedRole);
       router.push(`/auth/register?role=${selectedRole}`);
     }
   };

@@ -72,6 +72,7 @@ export interface MealSummary {
 // Props for DailyMealAttendance component
 export interface DailyMealAttendanceProps {
   attendanceData?: GetTodayMealsResponse;
+  costPerMeal?: number;
 }
 
 // Props for MonthlyMealTracingDashboard component

@@ -54,19 +54,12 @@ export default function InvitePage({
       }
       if (result.inviteLink) {
         setInvitedLink(result.inviteLink);
-        const res = await sendInvitationEmail(
-          email,
-          invitedLink,
-          messName,
-          inviterName
-        );
-        console.log(res);
+        await sendInvitationEmail(email, invitedLink, messName, inviterName);
       }
-      console.log(result);
+
       setIsInviting(false);
       setShowSuccess(true);
     } catch (error) {
-      console.log(error);
       return { success: false, message: error };
     } finally {
       setEmail("");

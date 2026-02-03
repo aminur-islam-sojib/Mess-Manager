@@ -2,8 +2,13 @@
 "use client";
 
 import { Bell } from "lucide-react";
+import { SessionUser } from "@/types/Model";
 
-export default function DesktopTopBar({ user }: any) {
+interface DesktopTopBarProps {
+  user: SessionUser;
+}
+
+export default function DesktopTopBar({ user }: DesktopTopBarProps) {
   return (
     <header className="hidden lg:flex fixed top-0 left-72 right-0 h-16 bg-card border-b border-border z-40 px-6 items-center justify-end">
       <div className="flex items-center gap-4">

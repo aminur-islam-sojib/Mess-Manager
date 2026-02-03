@@ -8,14 +8,12 @@ export default async function TestPage() {
   if (session?.user.id) {
     const mess = await getSingleMess(session?.user?.id);
     if (mess) {
-      console.log(mess.success);
     }
   }
   try {
     const session = await getServerSession(authOptions);
     const mess = await getSingleMess(session?.user?.id as string);
     if (mess) {
-      console.log(mess.message);
     }
   } catch (error) {
     console.log(error);

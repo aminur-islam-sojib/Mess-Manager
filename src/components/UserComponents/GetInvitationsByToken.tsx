@@ -5,7 +5,6 @@ export default async function GetInvitationsByToken({
 }: {
   token: string;
 }) {
-  const res = await getInvitationByToken(token);
-  console.log(res);
+  await getInvitationByToken(token);
   return <div>GetInvitationsByToken</div>;
 }

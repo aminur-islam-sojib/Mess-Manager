@@ -1,6 +1,5 @@
 import {
   Home,
-  Users,
   Receipt,
   Settings,
   UserPlus,

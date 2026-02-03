@@ -1,3 +1,9 @@
+export type CurrentUser = {
+  id: string;
+  name: string;
+  email: string;
+};
+
 export type MessMember = {
   userId: string;
   name: string;
@@ -8,6 +14,7 @@ export type MessMember = {
 };
 
 export type MessDataResponse = {
+  currentUser?: CurrentUser;
   success: boolean;
   messId?: string;
   messName?: string;

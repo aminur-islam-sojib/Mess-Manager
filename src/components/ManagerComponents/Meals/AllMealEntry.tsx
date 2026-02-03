@@ -21,7 +21,7 @@ interface MealManagementClientProps {
   messData: MessDataResponse;
 }
 
-export default function AllMealEntry({ messData }: MealManagementClientProps) {
+export default function AllMealEntry({}: MealManagementClientProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   // All members meals
@@ -36,18 +36,12 @@ export default function AllMealEntry({ messData }: MealManagementClientProps) {
       ...prev,
       [mealType]: Math.max(
         0,
-        prev[mealType as keyof typeof prev] + (increment ? 0.5 : -0.5)
+        prev[mealType as keyof typeof prev] + (increment ? 0.5 : -0.5),
       ),
     }));
   };
 
   const mealEntry = async () => {
-    console.log("Submitting for all members:", {
-      date: format(selectedDate, "yyyy-MM-dd"),
-      meals: allMembersMeals,
-      messId: messData.messId,
-    });
-
     const payload = {
       date: format(selectedDate, "yyyy-MM-dd"),
       meals: allMembersMeals,

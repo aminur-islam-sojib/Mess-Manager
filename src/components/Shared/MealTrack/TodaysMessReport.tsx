@@ -18,61 +18,17 @@ import {
 import {
   DailyMealAttendanceProps,
   MealSummary,
-  MealMember,
   GetTodayMealsResponseSuccess,
 } from "@/types/MealManagementTypes";
 import { getMonthlyExpensesSummary } from "@/actions/server/Expense";
+import StatCard from "./StatCard";
+import MealCard from "./MealCard";
+import CostRow from "./CostRow";
+import MiniStat from "./MiniStat";
+import MemberRow from "./MemberRow";
+import ToggleButton from "./ToggleButton";
 
-// ====== PROPER TYPE DEFINITIONS FOR COMPONENTS ======
-
-interface StatCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-}
-
-interface ToggleButtonProps {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}
-
-interface MealCardProps {
-  icon: React.ReactNode;
-  color: "orange" | "yellow" | "blue";
-  label: string;
-  count: number;
-  pct: number;
-}
-
-interface CostRowProps {
-  label: string;
-  amount: number;
-  icon: React.ReactNode;
-}
-
-interface MiniStatProps {
-  icon: React.ReactNode;
-  count: number;
-  label: string;
-  color: "orange" | "yellow" | "blue";
-}
-
-interface MemberRowProps {
-  member: MealMember;
-  rank: number;
-  costPerMeal: number;
-}
-
-interface MemberMealStatProps {
-  icon: React.ReactNode;
-  val: number;
-  label: string;
-  color: "orange" | "yellow" | "blue";
-}
-
-export default function TodaysMessReport({
+export default function TodaysMessReport2({
   attendanceData,
   costPerMeal = 50,
 }: DailyMealAttendanceProps & { costPerMeal?: number }) {
@@ -80,7 +36,6 @@ export default function TodaysMessReport({
     "overview",
   );
 
-  // Fix: Added dependency array [] to prevent infinite re-renders
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -388,143 +343,3 @@ export default function TodaysMessReport({
     </div>
   );
 }
-
-/** * HELPER SUB-COMPONENTS
- * (In a real app, move these to separate files or keep at bottom)
- */
-
-const StatCard = ({ icon, label, value }: StatCardProps) => (
-  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-    <div className="text-primary-foreground/80 mb-2">{icon}</div>
-    <p className="text-2xl font-bold">{value}</p>
-    <p className="text-xs opacity-80 uppercase tracking-wider font-medium">
-      {label}
-    </p>
-  </div>
-);
-
-const ToggleButton = ({ active, onClick, icon, label }: ToggleButtonProps) => (
-  <button
-    onClick={onClick}
-    className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${active ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-  >
-    {icon} {label}
-  </button>
-);
-
-const MealCard = ({ icon, color, label, count, pct }: MealCardProps) => (
-  <div className="bg-card border border-border rounded-2xl p-6">
-    <div className="flex justify-between items-start mb-4">
-      <div
-        className={`w-12 h-12 rounded-xl bg-${color}-500/10 flex items-center justify-center text-${color}-500`}
-      >
-        {icon}
-      </div>
-      <div className="text-right">
-        <p className="text-2xl font-bold">{count}</p>
-        <p className="text-xs text-muted-foreground">meals</p>
-      </div>
-    </div>
-    <p className="text-sm font-medium mb-3">{label}</p>
-    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-      <div
-        className={`h-full bg-${color}-500 transition-all duration-500`}
-        style={{ width: `${pct}% `, backgroundColor: "red" }}
-      />
-    </div>
-    <p className="text-[10px] mt-2 text-right font-bold text-muted-foreground">
-      {pct.toFixed(1)}% of total
-    </p>
-  </div>
-);
-
-const CostRow = ({ label, amount, icon }: CostRowProps) => (
-  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-    <div className="flex items-center gap-3">
-      {icon}
-      <span className="text-sm font-medium">{label} Cost</span>
-    </div>
-    <span className="font-bold">${amount.toLocaleString()}</span>
-  </div>
-);
-
-const MiniStat = ({ icon, count, label, color }: MiniStatProps) => (
-  <div
-    className={`text-center p-3 rounded-xl bg-${color}-500/10 border border-${color}-500/20`}
-  >
-    <div className={`text-${color}-500 flex justify-center mb-1`}>{icon}</div>
-    <p className="text-lg font-bold">{count}</p>
-    <p className="text-[10px] text-muted-foreground uppercase">{label}</p>
-  </div>
-);
-
-const MemberRow = ({ member, rank, costPerMeal }: MemberRowProps) => (
-  <div className="p-5 hover:bg-accent/50 transition-colors group">
-    <div className="flex items-start gap-4">
-      <div
-        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold ${rank === 0 ? "bg-yellow-500/20 text-yellow-600 border-2 border-yellow-500/30" : rank === 1 ? "bg-gray-400/20 text-gray-600 border-2 border-gray-400/30" : rank === 2 ? "bg-orange-600/20 text-orange-700 border-2 border-orange-600/30" : "bg-muted text-muted-foreground"}`}
-      >
-        {rank === 0
-          ? "🥇"
-          : rank === 1
-            ? "🥈"
-            : rank === 2
-              ? "🥉"
-              : `#${rank + 1}`}
-      </div>
-      <div className="flex-1">
-        <div className="flex justify-between items-start mb-3">
-          <div>
-            <p className="font-semibold">{member.name}</p>
-            <p className="text-xs text-muted-foreground">{member.email}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xl font-bold text-primary">
-              {member.totalMeals}
-            </p>
-            <p className="text-[10px] uppercase text-muted-foreground font-bold">
-              Total Meals
-            </p>
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <MemberMealStat
-            icon={<Coffee />}
-            val={member.breakfast}
-            label="B"
-            color="orange"
-          />
-          <MemberMealStat
-            icon={<Sun />}
-            val={member.lunch}
-            label="L"
-            color="yellow"
-          />
-          <MemberMealStat
-            icon={<Moon />}
-            val={member.dinner}
-            label="D"
-            color="blue"
-          />
-        </div>
-        <div className="mt-3 flex justify-between p-2 rounded-lg bg-muted/30 text-sm">
-          <span className="text-muted-foreground">Daily Bill</span>
-          <span className="font-bold">
-            ${(member.totalMeals * costPerMeal).toLocaleString()}
-          </span>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const MemberMealStat = ({ icon, val, color }: MemberMealStatProps) => (
-  <div
-    className={`bg-${color}-500/5 border border-${color}-500/10 rounded-lg p-2 text-center`}
-  >
-    <div className={`text-${color}-500 flex justify-center scale-75`}>
-      {icon}
-    </div>
-    <p className="text-xs font-bold">{val}</p>
-  </div>
-);

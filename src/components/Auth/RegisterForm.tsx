@@ -114,7 +114,7 @@ export default function RegisterForm() {
 
       if (!loginResult?.ok) {
         toast.error(
-          "Account created, but login failed. Please login manually."
+          "Account created, but login failed. Please login manually.",
         );
         router.push("/auth/login");
         return;
@@ -123,8 +123,10 @@ export default function RegisterForm() {
       // 3️⃣ Success
       toast.success("Account created & logged in 🎉");
       router.replace("/dashboard"); // server decides role
-    } catch (error: any) {
-      toast.error(error.message || "Something went wrong");
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Something went wrong";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

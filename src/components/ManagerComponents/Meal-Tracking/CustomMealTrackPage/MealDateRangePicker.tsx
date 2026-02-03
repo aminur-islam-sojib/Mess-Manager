@@ -1,6 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { Calendar, Search, AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -19,9 +18,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { getMealsByDateRange } from "@/actions/server/Meals";
+import { GetMealsByDateRangeResponse } from "@/types/MealManagementTypes";
 
 interface Props {
-  onData: (data: any) => void;
+  onData: (data: GetMealsByDateRangeResponse) => void;
 }
 
 interface DateRange {
@@ -57,7 +57,7 @@ export default function MealDateRangePicker({ onData }: Props) {
 
       // Simulated API call - replace with your actual function
       const res = await getMealsByDateRange({ from, to });
-      console.log(res);
+
       if (!res.success) {
         setError(res.message || "Failed to load data");
         return;

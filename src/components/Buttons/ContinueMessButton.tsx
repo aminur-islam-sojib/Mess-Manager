@@ -40,8 +40,7 @@ export default function ContinueMessButton({ user }: { user: SessionUser }) {
     setIsCreating(true);
 
     try {
-      const result = await createMess(payload);
-      console.log(result);
+      await createMess(payload);
       setShowSuccess(true);
       setTimeout(() => {
         router.push("/dashboard/manager");

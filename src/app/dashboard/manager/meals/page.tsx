@@ -12,7 +12,7 @@ const MealManagement = async () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-card border-b sticky top-0 z-10 shadow-sm">
         <div className="px-4 py-4">

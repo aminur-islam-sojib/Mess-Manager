@@ -60,7 +60,7 @@ export const createMess = async (payload: CreateMessPayload) => {
         role: "manager",
         updatedAt: new Date(),
       },
-    }
+    },
   );
 
   // 6️⃣ Revalidate cache
@@ -164,32 +164,42 @@ export const getMessMembers = async () => {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
-      return {
-        success: false,
-        message: "Unauthorized",
-      };
+      return { success: false, message: "Unauthorized" };
     }
 
-    const managerId = new ObjectId(session.user.id);
+    const userId = new ObjectId(session.user.id);
 
     const messCollection = dbConnect(collections.MESS);
     const memberCollection = dbConnect(collections.MESS_MEMBERS);
     const userCollection = dbConnect(collections.USERS);
 
-    // 1️⃣ Find manager's mess
+    // 1️⃣ Find user's active mess (manager OR member)
+    const membership = await memberCollection.findOne({
+      userId,
+      status: "active",
+    });
+
+    if (!membership) {
+      return {
+        success: false,
+        message: "User is not part of any active mess",
+      };
+    }
+
+    // 2️⃣ Fetch mess details
     const mess = await messCollection.findOne({
-      managerId,
+      _id: membership.messId,
       status: "active",
     });
 
     if (!mess) {
       return {
         success: false,
-        message: "No active mess found for this manager",
+        message: "Mess not found or inactive",
       };
     }
 
-    // 2️⃣ Get all active members of the mess
+    // 3️⃣ Get all active members of this mess
     const messMembers = await memberCollection
       .find({
         messId: mess._id,
@@ -198,33 +208,27 @@ export const getMessMembers = async () => {
       .toArray();
 
     if (messMembers.length === 0) {
-      return {
-        success: true,
-        members: [],
-      };
+      return { success: true, members: [] };
     }
 
-    // 3️⃣ Get user details
+    // 4️⃣ Get user details
     const userIds = messMembers.map((m) => m.userId);
 
     const users = await userCollection
-      .find(
-        { _id: { $in: userIds } },
-        { projection: { password: 0 } } // 🔐 Never expose password
-      )
+      .find({ _id: { $in: userIds } }, { projection: { password: 0 } })
       .toArray();
 
-    // 4️⃣ Merge member + user data
+    // 5️⃣ Merge data
     const members = messMembers.map((member) => {
       const user = users.find(
-        (u) => u._id.toString() === member.userId.toString()
+        (u) => u._id.toString() === member.userId.toString(),
       );
 
       return {
         userId: member.userId.toString(),
         name: user?.name || "Unknown",
         email: user?.email || "Unknown",
-        role: member.role,
+        role: member.role, // manager | member
         status: member.status,
         joinDate: member.joinDate?.toISOString(),
       };

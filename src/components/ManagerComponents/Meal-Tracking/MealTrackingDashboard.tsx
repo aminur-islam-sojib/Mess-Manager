@@ -1,7 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion, cubicBezier } from "framer-motion";
-import DailyMealAttendance from "./TodaysMealTracking";
 import MonthlyMessReport from "./MonthlyMealTracingDashboard";
 import { CalendarCog, CalendarDaysIcon, Timer } from "lucide-react";
 import DateRangeReport from "./CustomMealTracker";
@@ -9,6 +8,8 @@ import {
   GetTodayMealsResponse,
   GetMonthlyMealsResponse,
 } from "@/types/MealManagementTypes";
+import { getMonthlyExpensesSummary } from "@/actions/server/Expense";
+import TodaysMessReport2 from "@/components/Shared/MealTrack/TodaysMessReport";
 
 const views = [
   { key: "daily", label: "Daily", icon: Timer },
@@ -50,7 +51,21 @@ export default function TabsViewClassic({
   const [selectedView, setSelectedView] = useState<
     "daily" | "monthly" | "custom"
   >("daily");
-  console.log("todaysData", todayData, "monthlyData", monthlyData);
+  const [costPerMeal, setCostPerMeal] = useState<number | undefined>();
+
+  useEffect(() => {
+    if (costPerMeal !== undefined) return;
+
+    const fetchData = async () => {
+      const res = await getMonthlyExpensesSummary();
+      if (!res) return;
+      setCostPerMeal(res.costPerMeal);
+      console.log(res);
+    };
+
+    fetchData();
+  }, [costPerMeal]);
+
   return (
     <div>
       <div className="relative flex items-center gap-1 bg-muted rounded-xl p-1">
@@ -102,7 +117,14 @@ export default function TabsViewClassic({
               animate="animate"
               exit="exit"
             >
-              <DailyMealAttendance attendanceData={todayData} />
+              {/* <DailyMealAttendance
+                attendanceData={todayData}
+                costPerMeal={costPerMeal}
+              /> */}
+              <TodaysMessReport2
+                attendanceData={todayData}
+                costPerMeal={costPerMeal}
+              />
             </motion.div>
           )}
 
