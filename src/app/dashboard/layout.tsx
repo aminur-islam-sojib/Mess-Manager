@@ -26,7 +26,15 @@ export default async function DashboardLayout({
     notFound();
   }
 
-  const messData = await getSingleMessForUser(session.user.id);
+  let messData;
+  try {
+    messData = await getSingleMessForUser(session.user.id);
+  } catch (error) {
+    console.error("❌ Error fetching mess data:", error);
+    // Don't block the UI - let children handle missing mess
+    messData = { success: false, message: "Failed to fetch mess data" };
+  }
+
   const isMessExist =
     !messData || !messData.success
       ? { success: false, message: "No mess found" }

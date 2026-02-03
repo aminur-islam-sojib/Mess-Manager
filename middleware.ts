@@ -22,7 +22,11 @@ export async function middleware(req: NextRequest) {
   const role = token.role as string | undefined;
   const { pathname } = req.nextUrl;
 
+  // Debug log (remove in production)
+  console.log("🔐 Middleware - Token:", { role, pathname });
+
   if (!role) {
+    console.warn("⚠️ Middleware - No role found in token");
     return NextResponse.redirect(new URL("/auth/login", req.url));
   }
 
@@ -30,6 +34,7 @@ export async function middleware(req: NextRequest) {
   const isAllowed = allowedRoutes.some((route) => pathname.startsWith(route));
 
   if (!isAllowed) {
+    console.warn(`⚠️ Middleware - Role '${role}' not allowed for ${pathname}`);
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
 
