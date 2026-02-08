@@ -100,7 +100,7 @@ export default function TodaysMessReport({
     !Array.isArray(attendanceData.data)
   ) {
     return (
-      <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-background lg:p-8 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center mx-auto">
             <Utensils className="w-8 h-8 text-muted-foreground" />
@@ -146,7 +146,7 @@ export default function TodaysMessReport({
   const dinnerPct = getPct(summary.dinner);
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-background lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* --- HEADER SECTION --- */}
         <header className="relative overflow-hidden bg-linear-to-br from-primary via-primary/90 to-primary/80 rounded-3xl p-6 md:p-8 shadow-2xl text-primary-foreground">

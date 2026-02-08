@@ -92,7 +92,7 @@ export default function MealDateRangePicker({ onData }: Props) {
   const isValidRange = dateRange.from && dateRange.to;
 
   return (
-    <Card className=" bg-background p-4 md:p-6 lg:p-2 max-w-7xl mx-auto">
+    <Card className=" bg-background lg:p-2 max-w-7xl mx-auto">
       <CardHeader className="space-y-1 pb-4">
         <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight">
           Select Date Range

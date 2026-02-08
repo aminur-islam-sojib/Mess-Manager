@@ -24,7 +24,7 @@ export default async function InviteMember() {
   const messData = await getSingleMessForUser(session.user.id);
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="min-h-screen bg-background ">
       <div className="  mx-auto">
         {/* Header */}
         <div className="mb-8">

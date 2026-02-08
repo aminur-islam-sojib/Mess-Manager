@@ -1,3 +1,4 @@
 {
-    "terminal.integrated.mouseWheelZoom": true
+  "terminal.integrated.mouseWheelZoom": true,
+  "cSpell.words": ["bkash", "nagad"]
 }

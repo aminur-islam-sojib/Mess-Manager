@@ -171,7 +171,7 @@ export default function DashboardNotFound() {
           </div>
         )}
 
-        <main className="min-h-screen flex items-center justify-center p-4 md:p-6">
+        <main className="min-h-screen flex items-center justify-center p-4 ">
           <div className="max-w-lg w-full text-center">
             <div className="mb-8 flex justify-center">
               <div className="relative">

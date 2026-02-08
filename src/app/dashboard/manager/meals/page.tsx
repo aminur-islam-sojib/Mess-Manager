@@ -14,8 +14,8 @@ const MealManagement = async () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-card border-b sticky top-0 z-10 shadow-sm">
-        <div className="px-4 py-4">
+      <div className="bg-card ">
+        <div className=" ">
           <h1 className="text-xl font-bold text-foreground">
             {messData.messName}
           </h1>

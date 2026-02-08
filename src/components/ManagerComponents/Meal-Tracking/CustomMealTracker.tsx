@@ -9,7 +9,7 @@ export default function DateRangeReportPage() {
   const [reportData, setReportData] = useState<any>(null);
 
   return (
-    <div className="bg-background p-4 md:p-6 lg:p-8 max-w-7xl   mx-auto gap-5">
+    <div className="bg-background my-5 mx-auto gap-5">
       {/* Date Picker */}
       <MealDateRangePicker onData={setReportData} />
 

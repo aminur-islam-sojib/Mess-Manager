@@ -50,7 +50,7 @@ export default async function DashboardLayout({
           <ManagerSidebar user={session.user} isMessExist={isMessExist} />
         )}
 
-        <div className="lg:ml-72 pb-20 lg:pb-0">{children}</div>
+        <div className=" p-4 md:p-6 lg:ml-72 pb-20 lg:pb-0">{children}</div>
 
         {/* Bottom Navigation - Mobile Only */}
         {role === "user" && <UserBottomNav role={role} />}

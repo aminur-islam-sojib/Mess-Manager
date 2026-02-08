@@ -5,7 +5,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left Side - Form */}
-      <div className="w-full  lg:w-1/2 flex items-center justify-center p-4 md:p-6">
+      <div className="w-full  lg:w-1/2 flex items-center justify-center ">
         <div className="w-full max-w-md">
           {/* Header Section */}
           <div className="text-center mb-8">

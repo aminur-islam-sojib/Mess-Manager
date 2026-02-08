@@ -5,7 +5,7 @@ export default async function page() {
   const res = await getTodayMeals();
   const monthlyData = await getMonthlyMeals({ month: 1, year: 2026 });
   return (
-    <div className="p-2">
+    <div>
       <TabsViewClassic todayData={res} monthlyData={monthlyData} />
     </div>
   );
