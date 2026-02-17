@@ -187,19 +187,24 @@ export default function MessExpenseManagement({
           </motion.div>
 
           {/* DON'T TOUCH: Add Expenses Logic Trigger */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
-            <Button
-              size="lg"
-              onClick={() => setIsAddModalOpen(true)}
-              className="rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all gap-2"
+
+          {role === "manager" ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
             >
-              <Plus className="w-5 h-5" />
-              New Expense
-            </Button>
-          </motion.div>
+              <Button
+                size="lg"
+                onClick={() => setIsAddModalOpen(true)}
+                className="rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                New Expense
+              </Button>
+            </motion.div>
+          ) : (
+            " "
+          )}
         </div>
 
         {/* STATS GRID */}

@@ -5,8 +5,10 @@ export type AddExpensePayload = {
   description?: string;
   amount: number;
   category: "grocery" | "utility" | "rent" | "others";
-  expenseDate: string; // YYYY-MM-DD
-  paidBy?: string; // userId (optional)
+  expenseDate: string;
+  paidBy?: string;
+  paidFromAccountId?: string;
+  paymentSource: "personal" | "mess_pool";
 };
 
 export type ExpenseDocument = {
@@ -18,7 +20,7 @@ export type ExpenseDocument = {
   amount: number;
   category: AddExpensePayload["category"];
   expenseDate: string;
-
+  paymentSource: string;
   status: "pending" | "approved";
 
   createdAt: Date;
@@ -67,6 +69,7 @@ export type ExpenseDocumentSerialized = {
   createdAt: string;
   updatedAt: string;
   id: string;
+  paymentSource: string;
 };
 
 export type GetExpensesResponse =
@@ -81,3 +84,18 @@ export type GetExpensesSerializedResponse =
       to: string;
     }
   | { success: false; message: string };
+
+export type TodaysExpenseSummaryResponse = {
+  success: boolean;
+  data?: {
+    messId: string;
+    date: string;
+    totalAmount: number;
+    totalCount: number;
+    byCategory: {
+      category: string;
+      amount: number;
+    }[];
+  };
+  message?: string;
+};

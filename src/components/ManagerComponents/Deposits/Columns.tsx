@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export type UserLedger = {
   userId: string;
@@ -47,24 +48,7 @@ export const columns: ColumnDef<UserLedger>[] = [
     accessorKey: "email",
     header: "Email",
   },
-  {
-    accessorKey: "totalCost",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Total Cost
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("totalCost"));
-      return (
-        <div className="pl-4 font-mono">{currencyFormatter.format(amount)}</div>
-      );
-    },
-  },
+
   {
     accessorKey: "totalDeposit",
     header: ({ column }) => (
@@ -129,7 +113,11 @@ export const columns: ColumnDef<UserLedger>[] = [
               <Edit className="mr-2 h-4 w-4" /> Edit User
             </DropdownMenuItem>
             <DropdownMenuItem>
-              <Eye className="mr-2 h-4 w-4" /> View Ledger
+              <Link href={`/dashboard/profile/${user.userId}`}>
+                <div className=" flex justify-center items-center gap-2">
+                  <Eye className="mr-2 h-4 w-4" /> View Ledger
+                </div>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive focus:bg-destructive focus:text-destructive-foreground">

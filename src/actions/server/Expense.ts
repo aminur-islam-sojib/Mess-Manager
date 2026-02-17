@@ -11,15 +11,19 @@ import type {
   AddExpenseResponse,
   ExpenseDocument,
   GetExpensesSerializedResponse,
+  TodaysExpenseSummaryResponse,
 } from "@/types/ExpenseType";
 
 /* ===========================
    ADD EXPENSE
 =========================== */
+
 export async function addExpense(
   payload: AddExpensePayload,
 ): Promise<AddExpenseResponse> {
   try {
+    console.log(payload);
+    /* ---------- AUTH ---------- */
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -28,68 +32,103 @@ export async function addExpense(
 
     const userId = new ObjectId(session.user.id);
 
-    // Basic validation
-    if (!payload.title.trim() || payload.amount <= 0) {
-      return { success: false, message: "Invalid expense data" };
+    /* ---------- VALIDATION ---------- */
+    if (!payload.title?.trim()) {
+      return { success: false, message: "Expense title is required" };
     }
 
-    /* 1️⃣ Resolve user's mess */
-    const messMemberCollection = dbConnect(collections.MESS_MEMBERS);
+    if (!payload.amount || payload.amount <= 0) {
+      return {
+        success: false,
+        message: "Expense amount must be greater than 0",
+      };
+    }
 
-    const messMember = await messMemberCollection.findOne({
-      userId,
-    });
+    if (!payload.expenseDate) {
+      return { success: false, message: "Expense date is required" };
+    }
 
-    if (!messMember) {
+    if (!payload.paymentSource) {
+      console.error("Payment source is missing:", { payload });
+      return { success: false, message: "Please add the payment source" };
+    }
+
+    if (!["personal", "mess_pool"].includes(payload.paymentSource)) {
+      return {
+        success: false,
+        message: "Invalid payment source. Choose 'personal' or 'mess_pool'",
+      };
+    }
+
+    const expenseDate = new Date(payload.expenseDate);
+    expenseDate.setHours(0, 0, 0, 0);
+    const expenseDateStr = expenseDate.toISOString().split("T")[0];
+
+    /* ---------- RESOLVE USER'S MESS ---------- */
+    const messMembers = dbConnect(collections.MESS_MEMBERS);
+
+    const member = await messMembers.findOne({ userId });
+
+    if (!member) {
       return { success: false, message: "User is not part of any mess" };
     }
 
-    /* 2️⃣ Validate paidBy user belongs to same mess (manager only) */
-    let paidByUserId: ObjectId;
-
-    if (messMember.role === "manager") {
-      paidByUserId = new ObjectId(payload.paidBy ?? userId.toString());
-
-      const paidByMember = await messMemberCollection.findOne({
-        userId: paidByUserId,
-        messId: messMember.messId,
-      });
-
-      if (!paidByMember) {
-        return {
-          success: false,
-          message: "Paid by user is not part of this mess",
-        };
-      }
-    } else {
-      // 👤 Normal user → paidBy is always himself
-      paidByUserId = userId;
+    /* ---------- PAYMENT SOURCE RULE ---------- */
+    if (payload.paymentSource === "mess_pool" && member.role !== "manager") {
+      return {
+        success: false,
+        message: "Only manager can use mess pool balance",
+      };
     }
 
-    /* 3️⃣ Build expense document */
+    /* ---------- PAID BY LOGIC ---------- */
+    let paidByUserId = userId;
+
+    if (member.role === "manager" && payload.paidBy) {
+      const candidate = new ObjectId(payload.paidBy);
+
+      const validMember = await messMembers.findOne({
+        userId: candidate,
+        messId: member.messId,
+      });
+
+      if (!validMember) {
+        return {
+          success: false,
+          message: "Paid-by user is not part of this mess",
+        };
+      }
+
+      paidByUserId = candidate;
+    }
+
+    /* ---------- EXPENSE DOCUMENT ---------- */
     const expenseDoc: ExpenseDocument = {
-      messId: messMember.messId,
-      addedBy: userId,
-      paidBy: paidByUserId,
+      messId: member.messId,
 
       title: payload.title.trim(),
       description: payload.description?.trim() ?? "",
 
       amount: payload.amount,
-      category: payload.category,
-      expenseDate: payload.expenseDate,
+      category: payload.category ?? "general",
 
-      status: messMember.role === "manager" ? "approved" : "pending",
+      expenseDate: expenseDateStr,
+      paymentSource: payload.paymentSource,
+
+      paidBy: paidByUserId,
+      addedBy: userId,
+
+      status: member.role === "manager" ? "approved" : "pending",
 
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
-    /* 4️⃣ Insert expense */
-    const expensesCollection = dbConnect(collections.EXPENSES);
+    /* ---------- INSERT ---------- */
+    const expenses = dbConnect(collections.EXPENSES);
 
     const result: InsertOneResult<ExpenseDocument> =
-      await expensesCollection.insertOne(expenseDoc);
+      await expenses.insertOne(expenseDoc);
 
     return {
       success: true,
@@ -192,6 +231,7 @@ export async function getAllExpenses(
       category: expense.category,
       expenseDate: expense.expenseDate,
       status: expense.status,
+      paymentSource: expense.paymentSource,
       paidBy: expense.paidBy.toString(),
       addedBy: expense.addedBy.toString(),
       createdAt: expense.createdAt.toISOString(),
@@ -368,21 +408,6 @@ export const approveExpense = async (expenseId: string) => {
   } catch (error) {
     return { success: false, message: "Approval failed" };
   }
-};
-
-type TodaysExpenseSummaryResponse = {
-  success: boolean;
-  data?: {
-    messId: string;
-    date: string;
-    totalAmount: number;
-    totalCount: number;
-    byCategory: {
-      category: string;
-      amount: number;
-    }[];
-  };
-  message?: string;
 };
 
 export async function getTodaysExpenseSummary(): Promise<TodaysExpenseSummaryResponse> {

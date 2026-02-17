@@ -122,7 +122,7 @@ export default function AddDeposit({ messData }: AddDepositProps) {
   return (
     <>
       {/* 🔘 Trigger Button */}
-      <Button onClick={() => setIsOpen(true)} className="gap-2">
+      <Button onClick={() => setIsOpen(true)} className="gap-2 cursor-pointer">
         <Plus className="h-4 w-4" />
         Add Deposit
       </Button>

@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { format } from "date-fns";
 import { getAllExpenses, addExpense } from "@/actions/server/Expense";
-import IndividualMemberSelector from "@/components/Shared/IndividualMemberSelector";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -34,6 +34,7 @@ import { CalendarIcon, DollarSign, Loader2 } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface ExpenseFormData {
   title: string;
@@ -42,6 +43,7 @@ interface ExpenseFormData {
   category: string;
   date: string;
   paidBy: string;
+  paymentSource: string;
 }
 
 type AddExpenseProps = {
@@ -49,12 +51,9 @@ type AddExpenseProps = {
   setIsAddModalOpen: (value: boolean) => void;
 };
 
-export default function AddExpense({
-  setIsAddModalOpen,
-  messData,
-}: AddExpenseProps) {
+export default function AddExpense({ setIsAddModalOpen }: AddExpenseProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<ExpenseFormData>>({});
   const [formData, setFormData] = useState<ExpenseFormData>({
@@ -64,6 +63,7 @@ export default function AddExpense({
     category: "",
     date: "",
     paidBy: "",
+    paymentSource: "mess_pool",
   });
   const categories = [
     "Groceries",
@@ -91,11 +91,6 @@ export default function AddExpense({
     loadExpenses();
   }, []);
 
-  // 🔹 Sync selected member from selector
-  const getSelectedId = (userId: string) => {
-    setFormData((prev) => ({ ...prev, paidBy: userId }));
-  };
-
   // 🔹 Validate form
   const validateForm = (): boolean => {
     const newErrors: Partial<ExpenseFormData> = {};
@@ -105,7 +100,10 @@ export default function AddExpense({
       newErrors.amount = "Valid amount is required";
     if (!formData.category) newErrors.category = "Category is required";
     if (!formData.date) newErrors.date = "Date is required";
-    if (!formData.paidBy) newErrors.paidBy = "Paid by is required";
+    // `paidBy` selector is optional in this modal (selector may be commented out),
+    // backend accepts optional `paidBy` so we don't require it here.
+    if (!formData.paymentSource)
+      newErrors.paymentSource = "Payment source is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -128,11 +126,13 @@ export default function AddExpense({
         | "others", // match backend category type
       expenseDate: formData.date,
       paidBy: formData.paidBy,
+      paymentSource: formData.paymentSource as "personal" | "mess_pool",
     };
 
-    startTransition(async () => {
+    try {
+      setIsLoading(true);
       const res = await addExpense(payload);
-
+      console.log(res);
       if (res.success) {
         setFormData({
           title: "",
@@ -141,6 +141,7 @@ export default function AddExpense({
           category: "",
           date: "",
           paidBy: "",
+          paymentSource: "personal",
         });
         setIsAddModalOpen(false);
         // 🔄 Refresh the page to fetch updated expenses
@@ -148,9 +149,13 @@ export default function AddExpense({
       } else {
         alert(res.message);
       }
-
+    } catch (error) {
+      toast.error("Failed to add expenses");
+    } finally {
       setIsLoading(false);
-    });
+    }
+
+    setIsLoading(false);
   };
 
   return (
@@ -289,7 +294,7 @@ export default function AddExpense({
             </div>
 
             {/* Paid By - Custom Selector */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label className="text-sm font-semibold">
                 Paid By <span className="text-destructive">*</span>
               </Label>
@@ -298,6 +303,38 @@ export default function AddExpense({
                 messData={messData}
                 setSelectedId={getSelectedId}
               />
+              {errors.paidBy && (
+                <p className="text-[11px] font-medium text-destructive">
+                  {errors.paidBy}
+                </p>
+              )}
+            </div> */}
+
+            {/* Payment Source Field */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">
+                Payment Source <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                onValueChange={(value) =>
+                  setFormData({ ...formData, paymentSource: value })
+                }
+                value={formData.paymentSource}
+              >
+                <SelectTrigger
+                  className={errors.paymentSource ? "border-destructive" : ""}
+                >
+                  <SelectValue placeholder="Select payment source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mess_pool">Mess Pool</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.paymentSource && (
+                <p className="text-[11px] font-medium text-destructive">
+                  {errors.paymentSource}
+                </p>
+              )}
             </div>
 
             {/* Description */}
@@ -332,10 +369,10 @@ export default function AddExpense({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isLoading || isPending}
+            disabled={isLoading}
             className="px-8 shadow-lg shadow-primary/20 ml-2 cursor-pointer"
           >
-            {isLoading || isPending ? (
+            {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...

@@ -62,6 +62,7 @@ interface Expense {
   paidBy: string;
   status: "approved" | "pending";
   description?: string;
+  paymentSource: string;
 }
 
 type FinancialRecordsProps = {
@@ -124,6 +125,7 @@ export default function FinancialRecords({
         paidBy: e.paidBy,
         status: e.status,
         description: e.description,
+        paymentSource: e.paymentSource,
       }));
     }
     return [];
@@ -388,24 +390,35 @@ export default function FinancialRecords({
                         </TableCell>
 
                         <TableCell>
-                          <div className="flex items-center gap-3">
-                            {/* Avatar Circle */}
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-[11px] font-bold text-primary">
-                              {getInitials(getPayerName(expense.paidBy))}
-                            </div>
+                          {expense.paymentSource === "mess_pool" ? (
+                            <Badge
+                              variant="secondary"
+                              className="bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-100 px-3 py-1"
+                            >
+                              <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                              Official Mess Pool
+                            </Badge>
+                          ) : (
+                            <div className="flex items-center gap-3">
+                              {/* Avatar Circle */}
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-[11px] font-bold text-primary">
+                                {getInitials(getPayerName(expense.paidBy))}
+                              </div>
 
-                            <div className="flex flex-col">
-                              <span className="text-sm font-semibold text-foreground leading-none">
-                                {getPayerName(expense.paidBy)}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground mt-1 lowercase tracking-tighter">
-                                {messData.members?.find(
-                                  (m) => m.userId === expense.paidBy,
-                                )?.email || "User"}
-                              </span>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-semibold text-foreground leading-none">
+                                  {getPayerName(expense.paidBy)}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground mt-1 lowercase tracking-tighter">
+                                  {messData.members?.find(
+                                    (m) => m.userId === expense.paidBy,
+                                  )?.email || "User"}
+                                </span>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </TableCell>
+
                         <TableCell className="text-right font-bold text-primary">
                           ৳{expense.amount.toLocaleString()}
                         </TableCell>

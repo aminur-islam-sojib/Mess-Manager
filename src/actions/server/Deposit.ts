@@ -119,6 +119,10 @@ export const getUsersCostSummary = async (range?: DateRange) => {
         59,
       );
 
+    // Convert dates to YYYY-MM-DD format for string comparison
+    const startDateStr = start.toISOString().split("T")[0];
+    const endDateStr = end.toISOString().split("T")[0];
+
     /* ---------- AGGREGATION ---------- */
     const pipeline = [
       {
@@ -138,24 +142,21 @@ export const getUsersCostSummary = async (range?: DateRange) => {
       },
       { $unwind: "$user" },
 
-      /* MEAL COST */
+      /* TOTAL COST (FROM EXPENSES - Sum of all expenses paid by this user) */
       {
         $lookup: {
-          from: collections.MEAL_ENTRIES,
+          from: collections.EXPENSES,
           let: { uid: "$userId" },
           pipeline: [
             {
               $match: {
                 $expr: {
                   $and: [
-                    { $eq: ["$userId", "$$uid"] },
+                    { $eq: ["$paidBy", "$$uid"] },
                     { $eq: ["$messId", messId] },
-                    {
-                      $gte: [{ $toDate: "$date" }, start],
-                    },
-                    {
-                      $lte: [{ $toDate: "$date" }, end],
-                    },
+                    { $eq: ["$status", "approved"] },
+                    { $gte: ["$expenseDate", startDateStr] },
+                    { $lte: ["$expenseDate", endDateStr] },
                   ],
                 },
               },
@@ -163,11 +164,11 @@ export const getUsersCostSummary = async (range?: DateRange) => {
             {
               $group: {
                 _id: null,
-                totalCost: { $sum: "$totalCost" },
+                totalCost: { $sum: "$amount" },
               },
             },
           ],
-          as: "mealCost",
+          as: "expenseCost",
         },
       },
 
@@ -184,10 +185,10 @@ export const getUsersCostSummary = async (range?: DateRange) => {
                     { $eq: ["$userId", "$$uid"] },
                     { $eq: ["$messId", messId] },
                     {
-                      $gte: [{ $toDate: "$date" }, start],
+                      $gte: ["$date", startDateStr],
                     },
                     {
-                      $lte: [{ $toDate: "$date" }, end],
+                      $lte: ["$date", endDateStr],
                     },
                   ],
                 },
@@ -208,8 +209,9 @@ export const getUsersCostSummary = async (range?: DateRange) => {
       {
         $addFields: {
           totalCost: {
-            $ifNull: [{ $arrayElemAt: ["$mealCost.totalCost", 0] }, 0],
+            $ifNull: [{ $arrayElemAt: ["$expenseCost.totalCost", 0] }, 0],
           },
+
           totalDeposit: {
             $ifNull: [{ $arrayElemAt: ["$deposit.totalDeposit", 0] }, 0],
           },
