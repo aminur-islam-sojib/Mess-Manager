@@ -1,19 +1,31 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  User,
+  ShieldCheck,
+  PlayCircle,
+} from "lucide-react";
 import React, { useState } from "react";
 import GoogleLoginButton from "./GoogleLoginButton";
 import { toast } from "sonner";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Button } from "../ui/button";
 
 export default function LoginFormPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
   const [errors, setErrors] = useState({
     email: "",
     password: "",
@@ -21,25 +33,14 @@ export default function LoginFormPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    // Clear error when user starts typing
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof typeof errors]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
   const validateForm = () => {
-    const newErrors = {
-      email: "",
-      password: "",
-    };
-
+    const newErrors = { email: "", password: "" };
     let isValid = true;
 
     if (!formData.email.trim()) {
@@ -53,105 +54,136 @@ export default function LoginFormPage() {
     if (!formData.password) {
       newErrors.password = "Password is required";
       isValid = false;
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-      isValid = false;
     }
 
     setErrors(newErrors);
     return isValid;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      // Handle registration logic here
-      // router.push('/role-selection');
-      try {
-        const result = await signIn("credentials", {
-          email: formData.email,
-          password: formData.password,
-          redirect: false,
-        });
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!validateForm()) return;
 
-        if (result?.status == 200) {
-          toast.success("Login Successful!");
-          router.push(`/dashboard`);
-        } else if (result?.status == 401) {
-          toast.error(`${result?.error}`);
-        }
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : "An error occurred";
-        toast.error(errorMessage);
+    setLoading("login");
+    try {
+      const result = await signIn("credentials", {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
+
+      if (result?.ok) {
+        toast.success("Login Successful!");
+        router.push(`/dashboard`);
+      } else {
+        toast.error(result?.error || "Invalid credentials");
       }
+    } catch (error) {
+      toast.error("An error occurred");
+    } finally {
+      setLoading(null);
     }
   };
 
+  // --- UPDATED FUNCTION ---
+  const handleDemoLogin = async (role: "manager" | "member") => {
+    // 1. Define credentials
+    const demoCredentials = {
+      manager: {
+        email: "demo.manager@mail.com",
+        password: "DemoManager.12",
+      },
+      member: {
+        email: "sojibah360@gmail.com",
+        password: "Sojib.12",
+      },
+    };
+
+    const selected = demoCredentials[role];
+
+    // 2. Fill the input fields visually
+    setFormData({
+      email: selected.email,
+      password: selected.password,
+    });
+
+    // 3. Clear any existing validation errors
+    setErrors({ email: "", password: "" });
+
+    // 4. Trigger login after a short delay so user sees the fields fill
+    setLoading(role);
+
+    // We use a small timeout to let React update the UI before calling signIn
+    setTimeout(async () => {
+      try {
+        const result = await signIn("credentials", {
+          ...selected,
+          redirect: false,
+        });
+
+        if (result?.ok) {
+          toast.success(`Welcome to the ${role} demo!`);
+          router.push(`/dashboard`);
+        } else {
+          toast.error("Demo account not found");
+        }
+      } catch (error) {
+        toast.error("Demo login failed");
+      } finally {
+        setLoading(null);
+      }
+    }, 500);
+  };
+
   return (
-    <div>
-      {/* Registration Form */}
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Email Field */}
+    <div className="w-full max-w-md mx-auto space-y-6">
+      <form onSubmit={handleLogin} className="space-y-5">
         <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-foreground mb-2"
-          >
+          <label className="block text-sm font-medium text-foreground mb-2">
             Email Address
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Mail className="w-5 h-5 text-muted-foreground" />
-            </div>
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input
               type="email"
-              id="email"
               name="email"
               value={formData.email}
               onChange={handleInputChange}
               placeholder="you@example.com"
-              className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all ${
+              className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 bg-card transition-all ${
                 errors.email
                   ? "border-destructive"
-                  : "border-input focus:border-primary"
+                  : "border-input focus:border-primary focus:outline-none"
               }`}
             />
           </div>
           {errors.email && (
-            <p className="mt-1.5 text-xs text-destructive">{errors.email}</p>
+            <p className="mt-1 text-xs text-destructive">{errors.email}</p>
           )}
         </div>
 
-        {/* Password Field */}
         <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-foreground mb-2"
-          >
+          <label className="block text-sm font-medium text-foreground mb-2">
             Password
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Lock className="w-5 h-5 text-muted-foreground" />
-            </div>
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input
               type={showPassword ? "text" : "password"}
-              id="password"
               name="password"
               value={formData.password}
               onChange={handleInputChange}
               placeholder="Min. 8 characters"
-              className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all ${
+              className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 bg-card transition-all ${
                 errors.password
                   ? "border-destructive"
-                  : "border-input focus:border-primary"
+                  : "border-input focus:border-primary focus:outline-none"
               }`}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               {showPassword ? (
                 <EyeOff className="w-5 h-5" />
@@ -161,30 +193,57 @@ export default function LoginFormPage() {
             </button>
           </div>
           {errors.password && (
-            <p className="mt-1.5 text-xs text-destructive">{errors.password}</p>
+            <p className="mt-1 text-xs text-destructive">{errors.password}</p>
           )}
         </div>
 
-        {/* Submit Button */}
         <button
           type="submit"
-          className="w-full py-3.5 px-6 rounded-xl font-semibold text-base bg-primary text-primary-foreground hover:opacity-90 shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 mt-6"
+          disabled={loading !== null}
+          className="w-full py-3.5 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
         >
-          Log In
+          {loading === "login" ? "Logging in..." : "Log In"}
         </button>
       </form>
 
-      {/* Divider */}
-      <div className="flex items-center gap-3 my-6">
+      <div className="pt-2">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 h-px bg-border"></div>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1">
+            <PlayCircle className="w-3 h-3" /> Quick Demo Access
+          </span>
+          <div className="flex-1 h-px bg-border"></div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            disabled={loading !== null}
+            onClick={() => handleDemoLogin("manager")}
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border border-input bg-secondary/50 hover:bg-secondary text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <ShieldCheck className="w-4 h-4 text-primary" />
+            {loading === "manager" ? "Wait..." : "Manager Demo"}
+          </button>
+          <button
+            type="button"
+            disabled={loading !== null}
+            onClick={() => handleDemoLogin("member")}
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border border-input bg-secondary/50 hover:bg-secondary text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <User className="w-4 h-4 text-primary" />
+            {loading === "member" ? "Wait..." : "Member Demo"}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 py-2">
         <div className="flex-1 h-px bg-border"></div>
-        <span className="text-xs text-muted-foreground font-medium">
-          OR CONTINUE WITH
-        </span>
+        <span className="text-xs text-muted-foreground">OR</span>
         <div className="flex-1 h-px bg-border"></div>
       </div>
 
-      {/* Google Login Button */}
-      {<GoogleLoginButton />}
+      <GoogleLoginButton />
     </div>
   );
 }

@@ -27,7 +27,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { MessDataResponse } from "@/types/MealManagement";
 import { Label } from "@radix-ui/react-label";
 import { Separator } from "@radix-ui/react-separator";
 import { CalendarIcon, DollarSign, Loader2 } from "lucide-react";
@@ -47,7 +46,6 @@ interface ExpenseFormData {
 }
 
 type AddExpenseProps = {
-  messData: MessDataResponse;
   setIsAddModalOpen: (value: boolean) => void;
 };
 
