@@ -6,6 +6,9 @@ import { createOAuthUser, findUserByEmail } from "@/lib/user.service";
 import { JWT } from "next-auth/jwt";
 import { Account, Session, User } from "next-auth";
 
+const authSecret =
+  process.env.NEXTAUTH_SECRET ?? process.env.NEXT_AUTH_SECRET;
+
 export const authOptions = {
   session: {
     strategy: "jwt" as const,
@@ -129,8 +132,8 @@ export const authOptions = {
   },
 
   pages: {
-    signIn: "/login",
+    signIn: "/auth/login",
   },
 
-  secret: process.env.NEXT_AUTH_SECRET,
+  secret: authSecret,
 };

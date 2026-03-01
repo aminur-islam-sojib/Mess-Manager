@@ -60,7 +60,7 @@ export default function IndividualExpenses({
 
       if (pendingRes.success) {
         setPendingExpenses(
-          pendingRes.expenses.map((expense) => ({
+          (pendingRes.expenses ?? []).map((expense) => ({
             id: expense.id,
             title: expense.title,
             amount: expense.amount,
@@ -158,7 +158,10 @@ export default function IndividualExpenses({
             <TableBody>
               {summary.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-muted-foreground"
+                  >
                     {isLoading ? "Loading..." : "No member summary found"}
                   </TableCell>
                 </TableRow>
@@ -166,10 +169,18 @@ export default function IndividualExpenses({
                 summary.map((member) => (
                   <TableRow key={member.userId}>
                     <TableCell className="font-medium">{member.name}</TableCell>
-                    <TableCell className="text-right">{member.totalMeals}</TableCell>
-                    <TableCell className="text-right">৳{member.approvedExpense}</TableCell>
-                    <TableCell className="text-right">৳{member.pendingExpense}</TableCell>
-                    <TableCell className="text-right">৳{member.totalExpense}</TableCell>
+                    <TableCell className="text-right">
+                      {member.totalMeals}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      ৳{member.approvedExpense}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      ৳{member.pendingExpense}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      ৳{member.totalExpense}
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -197,7 +208,10 @@ export default function IndividualExpenses({
             <TableBody>
               {pendingExpenses.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="text-center text-muted-foreground"
+                  >
                     {isLoading ? "Loading..." : "No pending expenses"}
                   </TableCell>
                 </TableRow>
@@ -207,7 +221,9 @@ export default function IndividualExpenses({
                     <TableCell>{expense.expenseDate}</TableCell>
                     <TableCell>{expense.title}</TableCell>
                     <TableCell>{getPayerName(expense.paidBy)}</TableCell>
-                    <TableCell className="text-right">৳{expense.amount}</TableCell>
+                    <TableCell className="text-right">
+                      ৳{expense.amount}
+                    </TableCell>
                     <TableCell>
                       <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20">
                         pending
@@ -228,7 +244,9 @@ export default function IndividualExpenses({
                           Approve
                         </Button>
                       ) : (
-                        <span className="text-xs text-muted-foreground">Manager only</span>
+                        <span className="text-xs text-muted-foreground">
+                          Manager only
+                        </span>
                       )}
                     </TableCell>
                   </TableRow>

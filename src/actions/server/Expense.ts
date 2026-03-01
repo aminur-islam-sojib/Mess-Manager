@@ -594,13 +594,9 @@ export const verifyExpense = async (
   }
 };
 
-export const approveExpense = async (expenseId: string) => {
-  const result = await verifyExpense(expenseId, "approved");
-  if (!result.success) {
-    return result;
-  }
-  return { success: true, expense: result.expense };
-};
+export const approveExpense = async (
+  expenseId: string,
+): Promise<VerifyExpenseResponse> => verifyExpense(expenseId, "approved");
 
 export const rejectExpense = async (expenseId: string, note?: string) =>
   verifyExpense(expenseId, "rejected", note);
