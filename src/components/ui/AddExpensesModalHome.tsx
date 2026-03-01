@@ -3,8 +3,15 @@
 import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import AddExpense from "../ManagerComponents/Expense/AddExpense";
+import { MessDataResponse } from "@/types/MealManagement";
 
-const AddExpensesModalHome: React.FC = () => {
+type AddExpensesModalHomeProps = {
+  messData: MessDataResponse;
+};
+
+const AddExpensesModalHome: React.FC<AddExpensesModalHomeProps> = ({
+  messData,
+}) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   return (
@@ -19,7 +26,9 @@ const AddExpensesModalHome: React.FC = () => {
       </button>
 
       {/* Add Expense Modal */}
-      {isAddModalOpen && <AddExpense setIsAddModalOpen={setIsAddModalOpen} />}
+      {isAddModalOpen && (
+        <AddExpense setIsAddModalOpen={setIsAddModalOpen} messData={messData} />
+      )}
     </div>
   );
 };

@@ -18,7 +18,7 @@ async function QuickActions() {
           <InviteMemberModal messData={messData} session={session} />
         </div>
         <div>
-          <AddExpensesModalHome />
+          <AddExpensesModalHome messData={messData} />
         </div>
       </div>
     </div>

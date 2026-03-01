@@ -60,7 +60,7 @@ interface Expense {
   category: string;
   amount: number;
   paidBy: string;
-  status: "approved" | "pending";
+  status: "approved" | "pending" | "rejected";
   description?: string;
   paymentSource: string;
 }
@@ -137,11 +137,10 @@ export default function FinancialRecords({
   }, [mappedExpenses]);
 
   const categories = [
-    "Groceries",
-    "Utilities",
-    "Supplies",
-    "Maintenance",
-    "Other",
+    { label: "Grocery", value: "grocery" },
+    { label: "Utility", value: "utility" },
+    { label: "Rent", value: "rent" },
+    { label: "Others", value: "others" },
   ];
 
   // --- Filter Expenses ---
@@ -314,8 +313,8 @@ export default function FinancialRecords({
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   {categories.map((c) => (
-                    <SelectItem key={c} value={c.toLowerCase()}>
-                      {c}
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -330,6 +329,7 @@ export default function FinancialRecords({
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -428,7 +428,9 @@ export default function FinancialRecords({
                               "rounded-md px-2 py-1",
                               expense.status === "approved"
                                 ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
-                                : "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20",
+                                : expense.status === "pending"
+                                  ? "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20"
+                                  : "bg-red-500/10 text-red-600 hover:bg-red-500/20",
                             )}
                           >
                             {expense.status}
@@ -547,7 +549,9 @@ export default function FinancialRecords({
                         "px-3 py-1 text-xs font-semibold uppercase tracking-tight",
                         selectedExpense.status === "approved"
                           ? "bg-emerald-500 hover:bg-emerald-600"
-                          : "bg-amber-500 hover:bg-amber-600",
+                          : selectedExpense.status === "pending"
+                            ? "bg-amber-500 hover:bg-amber-600"
+                            : "bg-red-500 hover:bg-red-600",
                       )}
                     >
                       {selectedExpense.status}

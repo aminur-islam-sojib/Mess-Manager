@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Modal from "./modal";
-import Button from "../button/button";
+import { Button } from "./button";
 
 const SizeVariantsView: React.FC = () => {
   const [isSmallOpen, setIsSmallOpen] = useState(false);

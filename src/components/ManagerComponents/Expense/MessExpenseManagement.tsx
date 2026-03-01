@@ -38,7 +38,7 @@ interface Expense {
   category: string;
   amount: number;
   paidBy: string;
-  status: "approved" | "pending";
+  status: "approved" | "pending" | "rejected";
   description?: string;
 }
 
@@ -127,8 +127,8 @@ export default function MessExpenseManagement({
   const mappedExpenses = useMemo(() => {
     if (allExpenses && allExpenses.success && allExpenses.expenses) {
       return allExpenses.expenses.map(
-        (e: ExpenseDocumentSerialized, index: number) => ({
-          id: `expense-${e.expenseDate}-${index}`,
+        (e: ExpenseDocumentSerialized) => ({
+          id: e.id,
           date: e.expenseDate,
           title: e.title,
           category: e.category,

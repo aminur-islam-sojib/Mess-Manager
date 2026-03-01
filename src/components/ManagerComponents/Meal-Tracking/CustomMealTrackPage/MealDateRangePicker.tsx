@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/popover";
 import { getMealsByDateRange } from "@/actions/server/Meals";
 import { GetMealsByDateRangeResponse } from "@/types/MealManagementTypes";
+import { format } from "date-fns";
 
 interface Props {
   onData: (data: GetMealsByDateRangeResponse) => void;
@@ -51,9 +52,8 @@ export default function MealDateRangePicker({ onData }: Props) {
     setError(null);
 
     try {
-      // Format dates to YYYY-MM-DD
-      const from = dateRange.from.toISOString().split("T")[0];
-      const to = dateRange.to.toISOString().split("T")[0];
+      const from = format(dateRange.from, "yyyy-MM-dd");
+      const to = format(dateRange.to, "yyyy-MM-dd");
 
       // Simulated API call - replace with your actual function
       const res = await getMealsByDateRange({ from, to });

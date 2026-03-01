@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Modal from "./modal";
-import Button from "../button/button";
+import { Button } from "./button";
 
 const AnimationModalView: React.FC = () => {
   const [activeModal, setActiveModal] = useState<string | null>(null);

@@ -3,7 +3,11 @@ import TabsViewClassic from "@/components/ManagerComponents/Meal-Tracking/MealTr
 
 export default async function page() {
   const res = await getTodayMeals();
-  const monthlyData = await getMonthlyMeals({ month: 1, year: 2026 });
+  const now = new Date();
+  const monthlyData = await getMonthlyMeals({
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+  });
   return (
     <div>
       <TabsViewClassic todayData={res} monthlyData={monthlyData} />

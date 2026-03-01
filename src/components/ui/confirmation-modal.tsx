@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Modal from "./modal";
-import Button from "../button/button";
+import { Button } from "./button";
 
 const ConfirmationModalView: React.FC = () => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);

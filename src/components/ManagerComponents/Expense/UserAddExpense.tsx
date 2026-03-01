@@ -1,6 +1,6 @@
 "use client";
 import { format } from "date-fns";
-import { getAllExpenses, addExpense } from "@/actions/server/Expense";
+import { addExpense } from "@/actions/server/Expense";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -29,9 +29,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@radix-ui/react-label";
 import { Separator } from "@radix-ui/react-separator";
 import { CalendarIcon, DollarSign, Loader2 } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface ExpenseFormData {
   title: string;
@@ -59,7 +60,7 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
     category: "",
     date: "",
     paidBy: "",
-    paymentSource: "personal",
+    paymentSource: "individual",
   });
   const categories = [
     { label: "Grocery", value: "grocery" },
@@ -67,24 +68,6 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
     { label: "Rent", value: "rent" },
     { label: "Others", value: "others" },
   ];
-
-  // 🔹 Fetch all expenses
-  const getAllExpensesData = async () => {
-    setIsLoading(true);
-    const res = await getAllExpenses();
-    if (res.success) {
-      // Expenses fetched but not displayed in this modal
-      // They would be displayed in a separate list component
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    const loadExpenses = async () => {
-      await getAllExpensesData();
-    };
-    loadExpenses();
-  }, []);
 
   // 🔹 Validate form
   const validateForm = (): boolean => {
@@ -104,7 +87,6 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
 
   // 🔹 Submit form
   const handleSubmit = async () => {
-    console.log("click");
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -115,15 +97,18 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
       amount: parseFloat(formData.amount),
       category: formData.category as "grocery" | "utility" | "rent" | "others",
       expenseDate: formData.date,
-      paymentSource: formData.paymentSource as "personal" | "mess_pool",
+      paymentSource: "individual" as const,
       // paidBy is not provided - backend will use current user's ID
     };
 
     startTransition(async () => {
-      console.log(payload.paymentSource);
       const res = await addExpense(payload);
-      console.log("res", res);
       if (res.success) {
+        toast.success(
+          res.status === "pending"
+            ? "Expense submitted for manager verification"
+            : "Expense added successfully",
+        );
         setFormData({
           title: "",
           description: "",
@@ -131,13 +116,13 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
           category: "",
           date: "",
           paidBy: "",
-          paymentSource: "personal",
+          paymentSource: "individual",
         });
         setIsAddModalOpen(false);
         // 🔄 Refresh the page to fetch updated expenses
         router.refresh();
       } else {
-        alert(res.message);
+        toast.error(res.message);
       }
 
       setIsLoading(false);
@@ -249,8 +234,7 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
                   <SelectValue placeholder="Select payment source" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="personal">Personal</SelectItem>
-                  <SelectItem value="mess_pool">Mess Pool</SelectItem>
+                  <SelectItem value="individual">Individual</SelectItem>
                 </SelectContent>
               </Select>
               {errors.paymentSource && (
@@ -293,7 +277,7 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
                     onSelect={(date) =>
                       setFormData({
                         ...formData,
-                        date: date ? date.toISOString().split("T")[0] : "",
+                        date: date ? format(date, "yyyy-MM-dd") : "",
                       })
                     }
                     initialFocus
