@@ -13,11 +13,8 @@ import React, { useState } from "react";
 import GoogleLoginButton from "./GoogleLoginButton";
 import { toast } from "sonner";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { Button } from "../ui/button";
 
 export default function LoginFormPage() {
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
 
@@ -70,11 +67,12 @@ export default function LoginFormPage() {
         email: formData.email,
         password: formData.password,
         redirect: false,
+        callbackUrl: "/dashboard",
       });
 
       if (result?.ok) {
         toast.success("Login Successful!");
-        router.push(`/dashboard`);
+        window.location.assign("/dashboard");
       } else {
         toast.error(result?.error || "Invalid credentials");
       }
@@ -119,11 +117,12 @@ export default function LoginFormPage() {
         const result = await signIn("credentials", {
           ...selected,
           redirect: false,
+          callbackUrl: "/dashboard",
         });
 
         if (result?.ok) {
           toast.success(`Welcome to the ${role} demo!`);
-          router.push(`/dashboard`);
+          window.location.assign("/dashboard");
         } else {
           toast.error("Demo account not found");
         }
