@@ -8,6 +8,17 @@ import { Account, Session, User } from "next-auth";
 
 const authSecret =
   process.env.NEXTAUTH_SECRET ?? process.env.NEXT_AUTH_SECRET;
+const authUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_AUTH_URL;
+
+if (!process.env.NEXTAUTH_URL && authUrl) {
+  process.env.NEXTAUTH_URL = authUrl;
+}
+
+if (process.env.NODE_ENV === "production" && !authSecret) {
+  throw new Error(
+    "Missing NEXTAUTH_SECRET (or NEXT_AUTH_SECRET) in production environment.",
+  );
+}
 
 export const authOptions = {
   session: {

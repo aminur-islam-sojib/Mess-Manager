@@ -5,7 +5,7 @@ import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import GoogleLoginButton from "./GoogleLoginButton";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { FormDataType } from "@/types/Model";
 import { signIn } from "next-auth/react";
 
@@ -30,7 +30,6 @@ export default function RegisterForm() {
     confirmPassword: "",
   });
   const [loading, setLoading] = useState<boolean>(false);
-  const router = useRouter();
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -116,13 +115,13 @@ export default function RegisterForm() {
         toast.error(
           "Account created, but login failed. Please login manually.",
         );
-        router.push("/auth/login");
+        window.location.assign("/auth/login");
         return;
       }
 
       // 3️⃣ Success
       toast.success("Account created & logged in 🎉");
-      router.replace("/dashboard"); // server decides role
+      window.location.assign("/dashboard"); // server decides role
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Something went wrong";

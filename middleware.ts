@@ -25,11 +25,28 @@ const ROLE_BASED_ROUTES: Record<string, string[]> = {
 export async function middleware(req: NextRequest) {
   const authSecret =
     process.env.NEXTAUTH_SECRET ?? process.env.NEXT_AUTH_SECRET;
+  const authUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_AUTH_URL;
+  const isHttps =
+    authUrl?.startsWith("https://") ?? req.nextUrl.protocol === "https:";
 
-  const token = await getToken({
-    req,
-    secret: authSecret,
-  });
+  // Try default + explicit secure/non-secure cookie modes.
+  // This prevents production redirects if NEXTAUTH_URL is misnamed or missing.
+  const token =
+    (await getToken({
+      req,
+      secret: authSecret,
+      secureCookie: isHttps,
+    })) ??
+    (await getToken({
+      req,
+      secret: authSecret,
+      secureCookie: true,
+    })) ??
+    (await getToken({
+      req,
+      secret: authSecret,
+      secureCookie: false,
+    }));
 
   // 🔒 Not logged in
   if (!token) {
