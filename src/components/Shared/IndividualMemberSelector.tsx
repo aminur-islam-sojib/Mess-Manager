@@ -1,6 +1,6 @@
 "use client";
 import { ChevronDown } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "../ui/card";
 import { MessDataResponse } from "@/types/MealManagement";
 
@@ -15,12 +15,6 @@ export default function IndividualMemberSelector({
 }) {
   const [selectedMember, setSelectedMember] = useState("");
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
-
-  useEffect(() => {
-    if (selectedMember) {
-      setSelectedId(selectedMember);
-    }
-  }, [selectedMember, setSelectedId]);
   return (
     <div>
       <label className="block text-sm font-medium text-foreground mb-2">
@@ -55,6 +49,7 @@ export default function IndividualMemberSelector({
                   key={member.userId}
                   onClick={() => {
                     setSelectedMember(member.userId);
+                    setSelectedId(member.userId);
                     setShowMemberDropdown(false);
                   }}
                   className={`w-full px-4 py-3 text-left hover:bg-accent hover:text-accent-foreground transition-colors ${

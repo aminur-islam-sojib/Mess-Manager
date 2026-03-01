@@ -1,10 +1,14 @@
 "use client";
 import { useState } from "react";
-import { CalendarIcon } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  CalendarIcon,
+  Utensils,
+  ChevronRight,
+  TrendingUp,
+  Clock,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MealCounter } from "@/components/ManagerComponents/Meals/MealContainer";
-
 import { format } from "date-fns";
 import type { MealEntry, MessDataResponse } from "@/types/MealManagement";
 import Swal from "sweetalert2";
@@ -16,20 +20,19 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { addMealEntry } from "@/actions/server/Meals";
+import { MealCounter } from "@/components/ManagerComponents/Meals/MealContainer";
 
-interface MealManagementClientProps {
-  messData: MessDataResponse;
-}
-
-export default function AllMealEntry({}: MealManagementClientProps) {
+export default function AllMealEntry({}: { messData: MessDataResponse }) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-
-  // All members meals
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [allMembersMeals, setAllMembersMeals] = useState<MealEntry>({
     breakfast: 0,
     lunch: 0,
     dinner: 0,
   });
+
+  const totalMeals =
+    allMembersMeals.breakfast + allMembersMeals.lunch + allMembersMeals.dinner;
 
   const handleMealChange = (mealType: string, increment: boolean) => {
     setAllMembersMeals((prev) => ({
@@ -41,61 +44,66 @@ export default function AllMealEntry({}: MealManagementClientProps) {
     }));
   };
 
-  const mealEntry = async () => {
-    const payload = {
-      date: format(selectedDate, "yyyy-MM-dd"),
-      meals: allMembersMeals,
-      mode: "all" as const,
-    };
+  const handleSubmit = async () => {
+    const result = await Swal.fire({
+      title: "Confirm Meal Entry?",
+      text: `Registering ${totalMeals} meals for ${format(selectedDate, "PPP")}`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Confirm & Submit",
+      confirmButtonColor: "hsl(var(--primary))",
+      backdrop: `rgba(0,0,0,0.4) blur(4px)`,
+      customClass: { popup: "rounded-3xl border-none shadow-2xl" },
+    });
 
-    const res = await addMealEntry(payload);
-    if (res.success) {
-      toast.success(res.message);
-    } else {
-      toast.error(res.message);
+    if (result.isConfirmed) {
+      setIsSubmitting(true);
+      try {
+        const res = await addMealEntry({
+          date: format(selectedDate, "yyyy-MM-dd"),
+          meals: allMembersMeals,
+          mode: "all",
+        });
+        if (res.success) toast.success(res.message);
+        else toast.error(res.message);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
-  const handleSubmit = async () => {
-    Swal.fire({
-      title: "Are you sure?",
-      text: "You wanna Add meal!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, Add!",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        await mealEntry();
-      }
-    });
-  };
-
   return (
-    <div className=" space-y-6">
-      {/* Date Selector */}
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-2">
-          Select Date
-        </label>
+    <div className="w-full  mx-auto space-y-8 p-1">
+      {/* Header & Date Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/30 p-4 rounded-2xl border border-border/50">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-primary/10 rounded-xl">
+            <Clock className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Feeding Date
+            </p>
+            <p className="text-sm font-bold text-foreground">
+              {format(selectedDate, "EEEE, MMMM do")}
+            </p>
+          </div>
+        </div>
 
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="w-full justify-between px-4 py-3 font-normal"
+              className="rounded-xl border-dashed border-2 hover:border-primary/50 transition-all h-12 px-6"
             >
-              {selectedDate ? (
-                format(selectedDate, "PPP")
-              ) : (
-                <span className="text-muted-foreground">Pick a date</span>
-              )}
-              <CalendarIcon className="ml-2 h-5 w-5 text-muted-foreground" />
+              <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+              Change Date
             </Button>
           </PopoverTrigger>
-
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent
+            className="w-auto p-0 rounded-2xl shadow-2xl border-border"
+            align="end"
+          >
             <Calendar
               mode="single"
               selected={selectedDate}
@@ -105,66 +113,99 @@ export default function AllMealEntry({}: MealManagementClientProps) {
           </PopoverContent>
         </Popover>
       </div>
-      {/* Meal Counters */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">Add Meals</h2>
 
-        <MealCounter
-          label="Breakfast"
-          value={allMembersMeals.breakfast}
-          onChange={(increment) => handleMealChange("breakfast", increment)}
-          colorClass="text-orange-600"
-        />
+      {/* Main Meal Controls */}
+      <div className="grid gap-4">
+        <h3 className="text-sm font-bold text-muted-foreground flex items-center gap-2 px-1">
+          <Utensils className="w-4 h-4" /> MEAL QUANTITIES (HALF/FULL)
+        </h3>
 
-        <MealCounter
-          label="Lunch"
-          value={allMembersMeals.lunch}
-          onChange={(increment) => handleMealChange("lunch", increment)}
-          colorClass="text-green-600"
-        />
-
-        <MealCounter
-          label="Dinner"
-          value={allMembersMeals.dinner}
-          onChange={(increment) => handleMealChange("dinner", increment)}
-          colorClass="text-blue-600"
-        />
+        <div className="space-y-3">
+          {[
+            {
+              id: "breakfast",
+              label: "Breakfast",
+              color: "text-orange-500",
+              bg: "bg-orange-500/5",
+            },
+            {
+              id: "lunch",
+              label: "Lunch",
+              color: "text-emerald-500",
+              bg: "bg-emerald-500/5",
+            },
+            {
+              id: "dinner",
+              label: "Dinner",
+              color: "text-blue-500",
+              bg: "bg-blue-500/5",
+            },
+          ].map((meal) => (
+            <motion.div
+              key={meal.id}
+              whileHover={{ x: 4 }}
+              className={`p-1 rounded-2xl border border-border/50 ${meal.bg} transition-colors`}
+            >
+              <MealCounter
+                label={meal.label}
+                value={allMembersMeals[meal.id as keyof MealEntry]}
+                onChange={(inc) => handleMealChange(meal.id, inc)}
+                colorClass={meal.color}
+              />
+            </motion.div>
+          ))}
+        </div>
       </div>
-      {/* Summary Card */}
-      <Card className="bg-primary text-primary-foreground">
-        <CardHeader>
-          <CardTitle className="text-base">Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="opacity-90">Date:</span>
-            <span className="font-medium">
-              {selectedDate.toLocaleDateString("en-US", {
-                weekday: "short",
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}
-            </span>
+
+      {/* Modern Live Summary Card */}
+      <div className="relative overflow-hidden group">
+        <div className="absolute inset-0 bg-linear-to-r from-primary to-primary/80" />
+        <div className="relative p-6 text-primary-foreground flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-medium opacity-80 uppercase tracking-widest">
+              Total Daily Consumption
+            </p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-black tracking-tighter">
+                {totalMeals}
+              </span>
+              <span className="text-sm font-medium opacity-80">Meals</span>
+            </div>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="opacity-90">Total Meals:</span>
-            <span className="font-medium">
-              {allMembersMeals.breakfast +
-                allMembersMeals.lunch +
-                allMembersMeals.dinner}
-            </span>
+          <div className="h-16 w-16 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md border border-white/20">
+            <TrendingUp className="w-8 h-8 text-white" />
           </div>
-        </CardContent>
-      </Card>
-      {/* Submit Button */}
+        </div>
+      </div>
+
+      {/* High-Impact Submit Button */}
       <Button
         onClick={handleSubmit}
-        className="w-full py-6 text-base font-semibold"
-        size="lg"
+        disabled={isSubmitting || totalMeals === 0}
+        className="group relative w-full h-16 rounded-2xl overflow-hidden bg-foreground text-background hover:bg-foreground/90 transition-all shadow-xl hover:shadow-primary/20 active:scale-[0.98]"
       >
-        Submit Meal Entry
+        <AnimatePresence mode="wait">
+          {isSubmitting ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center gap-2"
+            >
+              <div className="h-5 w-5 border-2 border-background border-t-transparent rounded-full animate-spin" />
+              Processing...
+            </motion.div>
+          ) : (
+            <div className="flex items-center justify-center gap-2 text-lg font-bold">
+              Confirm & Sync Entries
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          )}
+        </AnimatePresence>
       </Button>
+
+      <p className="text-center text-xs text-muted-foreground">
+        Entries are synced instantly with the central mess database.
+      </p>
     </div>
   );
 }

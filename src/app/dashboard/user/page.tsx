@@ -107,7 +107,7 @@ export default async function UserDashboard() {
       <div className="flex-1 ">
         {/* Main Content */}
         <main className="pb-20 lg:pb-6">
-          <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+          <div className="max-w-7xl mx-auto  space-y-6">
             {/* Desktop Header - Only visible on desktop */}
             <div className="hidden lg:flex items-center justify-between mb-6">
               <div>

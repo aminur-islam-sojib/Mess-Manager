@@ -1,12 +1,20 @@
 import { ObjectId } from "mongodb";
 
+export type ExpenseCategory = "grocery" | "utility" | "rent" | "others";
+export type ExpensePaymentSource = "individual" | "mess_pool";
+export type ExpenseStatus = "pending" | "approved" | "rejected";
+
 export type AddExpensePayload = {
   title: string;
   description?: string;
   amount: number;
-  category: "grocery" | "utility" | "rent" | "others";
-  expenseDate: string; // YYYY-MM-DD
-  paidBy?: string; // userId (optional)
+  category: ExpenseCategory;
+  expenseDate: string;
+  paidBy?: string;
+  paidByIds?: string[];
+  assignToAllMembers?: boolean;
+  paidFromAccountId?: string;
+  paymentSource: ExpensePaymentSource;
 };
 
 export type ExpenseDocument = {
@@ -16,10 +24,13 @@ export type ExpenseDocument = {
   title: string;
   description: string;
   amount: number;
-  category: AddExpensePayload["category"];
+  category: ExpenseCategory;
   expenseDate: string;
-
-  status: "pending" | "approved";
+  paymentSource: ExpensePaymentSource;
+  status: ExpenseStatus;
+  verifiedBy?: ObjectId;
+  verifiedAt?: Date;
+  approvalNote?: string;
 
   createdAt: Date;
   updatedAt: Date;
@@ -34,7 +45,15 @@ export type MessMemberDocument = {
 };
 
 export type AddExpenseResponse =
-  | { success: true; expenseId: string }
+  | {
+      success: true;
+      expenseId: string;
+      status: ExpenseStatus;
+      paymentSource: ExpensePaymentSource;
+      createdCount?: number;
+      requiresManagerVerification: boolean;
+      expenses: ExpenseDocumentSerialized[];
+    }
   | { success: false; message: string };
 
 // types/ExpenseType.ts
@@ -47,9 +66,13 @@ export type ExpenseDocumentResponse = {
   title: string;
   description: string;
   amount: number;
-  category: "grocery" | "utility" | "rent" | "others";
+  category: ExpenseCategory;
   expenseDate: string; // YYYY-MM-DD
-  status: "pending" | "approved";
+  status: ExpenseStatus;
+  paymentSource: ExpensePaymentSource;
+  verifiedBy?: ObjectId;
+  verifiedAt?: Date;
+  approvalNote?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -61,12 +84,16 @@ export type ExpenseDocumentSerialized = {
   title: string;
   description: string;
   amount: number;
-  category: "grocery" | "utility" | "rent" | "others";
+  category: ExpenseCategory;
   expenseDate: string;
-  status: "pending" | "approved";
+  status: ExpenseStatus;
   createdAt: string;
   updatedAt: string;
   id: string;
+  paymentSource: ExpensePaymentSource;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  approvalNote?: string;
 };
 
 export type GetExpensesResponse =
@@ -81,3 +108,30 @@ export type GetExpensesSerializedResponse =
       to: string;
     }
   | { success: false; message: string };
+
+export type TodaysExpenseSummaryResponse = {
+  success: boolean;
+  data?: {
+    messId: string;
+    date: string;
+    totalAmount: number;
+    totalCount: number;
+    byCategory: {
+      category: string;
+      amount: number;
+    }[];
+  };
+  message?: string;
+};
+
+export type VerifyExpenseDecision = "approved" | "rejected";
+
+export type VerifyExpenseResponse =
+  | {
+      success: true;
+      expense: ExpenseDocumentSerialized;
+    }
+  | {
+      success: false;
+      message: string;
+    };

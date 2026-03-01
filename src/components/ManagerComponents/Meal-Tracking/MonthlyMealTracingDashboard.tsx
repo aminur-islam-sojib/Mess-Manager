@@ -37,7 +37,7 @@ export default function MonthlyMessReport({
     !Array.isArray(reportData.data)
   ) {
     return (
-      <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8">
+      <div className="min-h-screen bg-background ">
         <div className="max-w-7xl mx-auto text-center py-16">
           <p className="text-muted-foreground">No meal data available</p>
         </div>
@@ -96,7 +96,7 @@ export default function MonthlyMessReport({
   const sortedMembers = [...data].sort((a, b) => b.totalMeals - a.totalMeals);
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-background my-5">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="relative overflow-hidden bg-linear-to-br from-primary via-primary/90 to-primary/80 rounded-3xl p-6 md:p-8 shadow-2xl">

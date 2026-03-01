@@ -1,107 +1,104 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use server";
 
 import { getServerSession } from "next-auth";
-import { ObjectId, InsertOneResult } from "mongodb";
+import { InsertOneResult, ObjectId } from "mongodb";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import { collections, dbConnect } from "@/lib/dbConnect";
 
 import type {
   AddExpensePayload,
   AddExpenseResponse,
+  ExpenseCategory,
   ExpenseDocument,
+  ExpenseDocumentSerialized,
+  ExpensePaymentSource,
+  ExpenseStatus,
   GetExpensesSerializedResponse,
+  TodaysExpenseSummaryResponse,
+  VerifyExpenseDecision,
+  VerifyExpenseResponse,
 } from "@/types/ExpenseType";
 
-/* ===========================
-   ADD EXPENSE
-=========================== */
-export async function addExpense(
-  payload: AddExpensePayload,
-): Promise<AddExpenseResponse> {
+type ActiveMembership = {
+  _id: ObjectId;
+  messId: ObjectId;
+  userId: ObjectId;
+  role: "manager" | "member";
+  status: "active" | string;
+};
+
+type MongoExpenseDocument = ExpenseDocument & { _id: ObjectId };
+
+const EXPENSE_CATEGORIES = new Set<ExpenseCategory>([
+  "grocery",
+  "utility",
+  "rent",
+  "others",
+]);
+
+const toDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const addDays = (date: Date, days: number) => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+};
+
+const parseObjectId = (value: string | undefined | null): ObjectId | null => {
+  if (!value) return null;
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" };
-    }
-
-    const userId = new ObjectId(session.user.id);
-
-    // Basic validation
-    if (!payload.title.trim() || payload.amount <= 0) {
-      return { success: false, message: "Invalid expense data" };
-    }
-
-    /* 1️⃣ Resolve user's mess */
-    const messMemberCollection = dbConnect(collections.MESS_MEMBERS);
-
-    const messMember = await messMemberCollection.findOne({
-      userId,
-    });
-
-    if (!messMember) {
-      return { success: false, message: "User is not part of any mess" };
-    }
-
-    /* 2️⃣ Validate paidBy user belongs to same mess (manager only) */
-    let paidByUserId: ObjectId;
-
-    if (messMember.role === "manager") {
-      paidByUserId = new ObjectId(payload.paidBy ?? userId.toString());
-
-      const paidByMember = await messMemberCollection.findOne({
-        userId: paidByUserId,
-        messId: messMember.messId,
-      });
-
-      if (!paidByMember) {
-        return {
-          success: false,
-          message: "Paid by user is not part of this mess",
-        };
-      }
-    } else {
-      // 👤 Normal user → paidBy is always himself
-      paidByUserId = userId;
-    }
-
-    /* 3️⃣ Build expense document */
-    const expenseDoc: ExpenseDocument = {
-      messId: messMember.messId,
-      addedBy: userId,
-      paidBy: paidByUserId,
-
-      title: payload.title.trim(),
-      description: payload.description?.trim() ?? "",
-
-      amount: payload.amount,
-      category: payload.category,
-      expenseDate: payload.expenseDate,
-
-      status: messMember.role === "manager" ? "approved" : "pending",
-
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    /* 4️⃣ Insert expense */
-    const expensesCollection = dbConnect(collections.EXPENSES);
-
-    const result: InsertOneResult<ExpenseDocument> =
-      await expensesCollection.insertOne(expenseDoc);
-
-    return {
-      success: true,
-      expenseId: result.insertedId.toString(),
-    };
-  } catch (error) {
-    console.error("Add expense error:", error);
-    return { success: false, message: "Failed to add expense" };
+    return new ObjectId(value);
+  } catch {
+    return null;
   }
-}
+};
 
-async function resolveActiveMess(userId: ObjectId) {
+const normalizePaymentSource = (
+  value: AddExpensePayload["paymentSource"],
+): ExpensePaymentSource => (value === "mess_pool" ? "mess_pool" : "individual");
+
+const normalizeExpenseDateString = (dateValue: string): string | null => {
+  const trimmed = dateValue.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return null;
+  }
+
+  const parsed = new Date(`${trimmed}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return trimmed;
+};
+
+const serializeExpense = (
+  expense: MongoExpenseDocument,
+): ExpenseDocumentSerialized => ({
+  id: expense._id.toString(),
+  messId: expense.messId.toString(),
+  title: expense.title,
+  description: expense.description,
+  amount: expense.amount,
+  category: expense.category,
+  expenseDate: expense.expenseDate,
+  status: expense.status,
+  paymentSource:
+    expense.paymentSource === "mess_pool" ? "mess_pool" : "individual",
+  paidBy: expense.paidBy.toString(),
+  addedBy: expense.addedBy.toString(),
+  createdAt: expense.createdAt.toISOString(),
+  updatedAt: expense.updatedAt.toISOString(),
+  verifiedBy: expense.verifiedBy?.toString(),
+  verifiedAt: expense.verifiedAt?.toISOString(),
+  approvalNote: expense.approvalNote,
+});
+
+async function resolveActiveMess(userId: ObjectId): Promise<ActiveMembership> {
   const memberCollection = dbConnect(collections.MESS_MEMBERS);
 
   const membership = await memberCollection.findOne({
@@ -113,12 +110,216 @@ async function resolveActiveMess(userId: ObjectId) {
     throw new Error("User is not part of any active mess");
   }
 
-  return membership; // contains messId + role
+  return membership as ActiveMembership;
 }
 
-/* ===========================
-   GET ALL EXPENSES (MESS BASED)
-=========================== */
+const resolveInitialStatus = (
+  paymentSource: ExpensePaymentSource,
+  role: ActiveMembership["role"],
+): ExpenseStatus => {
+  if (paymentSource === "mess_pool") return "approved";
+  if (role === "manager") return "approved";
+  return "pending";
+};
+
+async function resolvePaidByTargets(
+  payload: AddExpensePayload,
+  membership: ActiveMembership,
+  userId: ObjectId,
+): Promise<{ success: true; userIds: ObjectId[] } | { success: false; message: string }> {
+  const messMembers = dbConnect(collections.MESS_MEMBERS);
+  const isManager = membership.role === "manager";
+
+  if (!isManager) {
+    if (payload.assignToAllMembers || (payload.paidByIds?.length ?? 0) > 0) {
+      return {
+        success: false,
+        message: "Only manager can submit expenses for multiple members",
+      };
+    }
+
+    if (payload.paidBy) {
+      const paidById = parseObjectId(payload.paidBy);
+      if (!paidById) {
+        return { success: false, message: "Invalid paid-by user ID" };
+      }
+
+      if (paidById.toString() !== userId.toString()) {
+        return {
+          success: false,
+          message: "Members can only submit expenses for themselves",
+        };
+      }
+    }
+
+    return { success: true, userIds: [userId] };
+  }
+
+  if (payload.assignToAllMembers) {
+    const allActiveMembers = await messMembers
+      .find({
+        messId: membership.messId,
+        status: "active",
+      })
+      .toArray();
+
+    if (!allActiveMembers.length) {
+      return { success: false, message: "No active members found in this mess" };
+    }
+
+    return { success: true, userIds: allActiveMembers.map((m) => m.userId) };
+  }
+
+  const rawTargets = [...(payload.paidByIds ?? []), ...(payload.paidBy ? [payload.paidBy] : [])]
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const uniqueTargets = Array.from(new Set(rawTargets));
+
+  if (!uniqueTargets.length) {
+    return { success: true, userIds: [userId] };
+  }
+
+  const requestedIds: ObjectId[] = [];
+  for (const target of uniqueTargets) {
+    const objectId = parseObjectId(target);
+    if (!objectId) {
+      return { success: false, message: "One or more selected members are invalid" };
+    }
+    requestedIds.push(objectId);
+  }
+
+  const validMembers = await messMembers
+    .find({
+      userId: { $in: requestedIds },
+      messId: membership.messId,
+      status: "active",
+    })
+    .toArray();
+
+  if (validMembers.length !== requestedIds.length) {
+    return {
+      success: false,
+      message: "One or more selected members are not part of this mess",
+    };
+  }
+
+  return { success: true, userIds: requestedIds };
+}
+
+export async function addExpense(
+  payload: AddExpensePayload,
+): Promise<AddExpenseResponse> {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+
+    const userId = new ObjectId(session.user.id);
+
+    if (!payload.title?.trim()) {
+      return { success: false, message: "Expense title is required" };
+    }
+
+    if (!payload.amount || payload.amount <= 0) {
+      return {
+        success: false,
+        message: "Expense amount must be greater than 0",
+      };
+    }
+
+    if (!payload.expenseDate) {
+      return { success: false, message: "Expense date is required" };
+    }
+
+    if (!payload.paymentSource) {
+      return { success: false, message: "Payment source is required" };
+    }
+
+    if (!EXPENSE_CATEGORIES.has(payload.category)) {
+      return { success: false, message: "Invalid expense category" };
+    }
+
+    const paymentSource = normalizePaymentSource(payload.paymentSource);
+    const expenseDateStr = normalizeExpenseDateString(payload.expenseDate);
+    if (!expenseDateStr) {
+      return { success: false, message: "Invalid expense date format (YYYY-MM-DD)" };
+    }
+
+    const membership = await resolveActiveMess(userId);
+
+    if (paymentSource === "mess_pool" && membership.role !== "manager") {
+      return {
+        success: false,
+        message: "Only manager can use mess pool payment source",
+      };
+    }
+
+    const targetResult = await resolvePaidByTargets(payload, membership, userId);
+    if (!targetResult.success) {
+      return { success: false, message: targetResult.message };
+    }
+
+    if (!targetResult.userIds.length) {
+      return { success: false, message: "Please select at least one member" };
+    }
+
+    const status = resolveInitialStatus(paymentSource, membership.role);
+    const now = new Date();
+    const autoVerified = status === "approved";
+
+    const expenseDocs: ExpenseDocument[] = targetResult.userIds.map((paidByUserId) => ({
+      messId: membership.messId,
+      title: payload.title.trim(),
+      description: payload.description?.trim() ?? "",
+      amount: payload.amount,
+      category: payload.category,
+      expenseDate: expenseDateStr,
+      paymentSource,
+      paidBy: paidByUserId,
+      addedBy: userId,
+      status,
+      verifiedBy: autoVerified ? userId : undefined,
+      verifiedAt: autoVerified ? now : undefined,
+      approvalNote: autoVerified
+        ? paymentSource === "mess_pool"
+          ? "Auto-approved as manager mess-pool expense"
+          : "Auto-approved by manager"
+        : undefined,
+      createdAt: now,
+      updatedAt: now,
+    }));
+
+    const expenses = dbConnect(collections.EXPENSES);
+
+    let insertedIds: ObjectId[] = [];
+    if (expenseDocs.length === 1) {
+      const result: InsertOneResult<ExpenseDocument> = await expenses.insertOne(expenseDocs[0]);
+      insertedIds = [result.insertedId];
+    } else {
+      const result = await expenses.insertMany(expenseDocs);
+      insertedIds = Object.values(result.insertedIds);
+    }
+
+    const serializedExpenses = expenseDocs.map((doc, index) =>
+      serializeExpense({ ...doc, _id: insertedIds[index] }),
+    );
+
+    return {
+      success: true,
+      expenseId: insertedIds[0].toString(),
+      status,
+      paymentSource,
+      createdCount: expenseDocs.length,
+      requiresManagerVerification: status === "pending",
+      expenses: serializedExpenses,
+    };
+  } catch (error) {
+    console.error("Add expense error:", error);
+    return { success: false, message: "Failed to add expense" };
+  }
+}
+
 export async function getAllExpenses(
   fromDate?: Date,
   toDate?: Date,
@@ -130,79 +331,67 @@ export async function getAllExpenses(
     }
 
     const userId = new ObjectId(session.user.id);
-
-    // 🔐 Resolve mess + role
     const membership = await resolveActiveMess(userId);
     const { messId, role } = membership;
 
     const expensesCollection = dbConnect(collections.EXPENSES);
 
-    // 📅 DEFAULT → CURRENT MONTH (UTC)
-    let startDate: Date;
-    let endDate: Date;
+    const hasDateFilter = Boolean(fromDate || toDate);
+    let startDate: Date | undefined;
+    let toDateInclusive: Date | undefined;
 
-    if (fromDate && toDate) {
-      // 🔹 Custom date range
-      startDate = new Date(fromDate);
-      endDate = new Date(toDate);
-    } else {
-      // 🔹 Current month
-      const now = new Date();
-      startDate = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0),
-      );
-      endDate = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0),
-      );
+    if (hasDateFilter) {
+      if (fromDate && toDate) {
+        startDate = new Date(fromDate);
+        toDateInclusive = new Date(toDate);
+      } else if (fromDate) {
+        startDate = new Date(fromDate);
+        toDateInclusive = new Date(fromDate);
+      } else if (toDate) {
+        startDate = new Date(toDate);
+        toDateInclusive = new Date(toDate);
+      }
     }
 
-    // 👤 Role-based visibility
     const baseQuery =
       role === "manager"
         ? { messId }
         : {
             messId,
-            $or: [{ status: "approved" }, { addedBy: userId }],
+            $or: [
+              { status: { $in: ["approved", "pending"] } },
+              { addedBy: userId },
+            ],
           };
 
-    // 🔥 Convert dates to YYYY-MM-DD string format for comparison
-    const startDateStr = startDate.toISOString().split("T")[0];
-    const endDateStr = endDate.toISOString().split("T")[0];
+    const query =
+      startDate && toDateInclusive
+        ? {
+            ...baseQuery,
+            expenseDate: {
+              $gte: toDateKey(startDate),
+              $lt: toDateKey(addDays(toDateInclusive, 1)),
+            },
+          }
+        : baseQuery;
 
-    // 🔥 FINAL QUERY - Compare string to string since expenseDate is stored as "YYYY-MM-DD"
-    const query = {
-      ...baseQuery,
-      expenseDate: {
-        $gte: startDateStr,
-        $lt: endDateStr,
-      },
-    };
-
-    const expenses = await expensesCollection
+    const expenses = (await expensesCollection
       .find(query)
-      .sort({ expenseDate: -1 })
-      .toArray();
+      .sort({ expenseDate: -1, createdAt: -1 })
+      .toArray()) as MongoExpenseDocument[];
 
-    const serializedExpenses = expenses.map((expense) => ({
-      id: expense._id.toString(),
-      messId: expense.messId.toString(),
-      title: expense.title,
-      description: expense.description,
-      amount: expense.amount,
-      category: expense.category,
-      expenseDate: expense.expenseDate,
-      status: expense.status,
-      paidBy: expense.paidBy.toString(),
-      addedBy: expense.addedBy.toString(),
-      createdAt: expense.createdAt.toISOString(),
-      updatedAt: expense.updatedAt.toISOString(),
-    }));
+    const from = expenses.length
+      ? expenses[expenses.length - 1].expenseDate
+      : toDateKey(new Date());
+    const to = expenses.length
+      ? expenses[0].expenseDate
+      : toDateKey(new Date());
 
     return {
       success: true,
-      from: startDate.toISOString(),
-      to: endDate.toISOString(),
-      expenses: serializedExpenses,
+      from,
+      to,
+      expenses: expenses.map(serializeExpense),
     };
   } catch (error) {
     console.error("Get expenses error:", error);
@@ -236,7 +425,7 @@ async function getMonthlyTotalMeals(
       {
         $group: {
           _id: null,
-          totalMeals: { $sum: "$meals" }, // ✅ THIS IS THE FIX
+          totalMeals: { $sum: "$meals" },
         },
       },
     ])
@@ -264,7 +453,6 @@ export async function getMonthlyExpensesSummary(year?: number, month?: number) {
     const startDate = new Date(targetYear, targetMonth, 1);
     const endDate = new Date(targetYear, targetMonth + 1, 1);
 
-    // 💰 EXPENSE SUMMARY
     const expenseResult = await expenseCollection
       .aggregate([
         {
@@ -307,13 +495,9 @@ export async function getMonthlyExpensesSummary(year?: number, month?: number) {
 
     const totalCost = expenseResult[0]?.totalCost ?? 0;
     const categories = expenseResult[0]?.categories ?? [];
-
-    // 🍽️ TOTAL MEALS (REAL DATA)
     const totalMeals = await getMonthlyTotalMeals(messId, startDate, endDate);
 
-    // 🧮 COST PER MEAL
-    const costPerMeal =
-      totalMeals > 0 ? Number((totalCost / totalMeals).toFixed(2)) : 0;
+    const costPerMeal = totalMeals > 0 ? Number((totalCost / totalMeals).toFixed(2)) : 0;
 
     return {
       success: true,
@@ -330,7 +514,94 @@ export async function getMonthlyExpensesSummary(year?: number, month?: number) {
   }
 }
 
-export const approveExpense = async (expenseId: string) => {
+export const verifyExpense = async (
+  expenseId: string,
+  decision: VerifyExpenseDecision,
+  note?: string,
+): Promise<VerifyExpenseResponse> => {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+
+    const managerUserId = new ObjectId(session.user.id);
+    const membership = await resolveActiveMess(managerUserId);
+
+    if (membership.role !== "manager") {
+      return { success: false, message: "Only manager can verify expenses" };
+    }
+
+    const expenseObjectId = parseObjectId(expenseId);
+    if (!expenseObjectId) {
+      return { success: false, message: "Invalid expense ID" };
+    }
+
+    const expenseCollection = dbConnect(collections.EXPENSES);
+    const existing = (await expenseCollection.findOne({
+      _id: expenseObjectId,
+      messId: membership.messId,
+    })) as MongoExpenseDocument | null;
+
+    if (!existing) {
+      return { success: false, message: "Expense not found" };
+    }
+
+    if (existing.paymentSource === "mess_pool") {
+      return {
+        success: false,
+        message: "Mess-pool expenses are auto-approved and cannot be re-verified",
+      };
+    }
+
+    if (existing.status !== "pending") {
+      return {
+        success: false,
+        message: `Expense is already ${existing.status}`,
+      };
+    }
+
+    const verifiedAt = new Date();
+    await expenseCollection.updateOne(
+      { _id: expenseObjectId, messId: membership.messId, status: "pending" },
+      {
+        $set: {
+          status: decision,
+          verifiedBy: managerUserId,
+          verifiedAt,
+          approvalNote: note?.trim() || undefined,
+          updatedAt: verifiedAt,
+        },
+      },
+    );
+
+    const updatedExpense = (await expenseCollection.findOne({
+      _id: expenseObjectId,
+      messId: membership.messId,
+    })) as MongoExpenseDocument | null;
+
+    if (!updatedExpense) {
+      return { success: false, message: "Expense update failed" };
+    }
+
+    return {
+      success: true,
+      expense: serializeExpense(updatedExpense),
+    };
+  } catch (error) {
+    console.error("Verify expense error:", error);
+    return { success: false, message: "Expense verification failed" };
+  }
+};
+
+export const approveExpense = async (
+  expenseId: string,
+): Promise<VerifyExpenseResponse> => verifyExpense(expenseId, "approved");
+
+export const rejectExpense = async (expenseId: string, note?: string) =>
+  verifyExpense(expenseId, "rejected", note);
+
+export async function getPendingIndividualExpenses() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -341,129 +612,57 @@ export const approveExpense = async (expenseId: string) => {
     const membership = await resolveActiveMess(userId);
 
     if (membership.role !== "manager") {
-      return { success: false, message: "Only manager can approve expenses" };
+      return { success: false, message: "Only manager can view pending expenses" };
     }
 
     const expenseCollection = dbConnect(collections.EXPENSES);
 
-    const result = await expenseCollection.updateOne(
-      {
-        _id: new ObjectId(expenseId),
-        messId: membership.messId, // 🔥 CRITICAL
+    const expenses = (await expenseCollection
+      .find({
+        messId: membership.messId,
+        paymentSource: "individual",
         status: "pending",
-      },
-      {
-        $set: {
-          status: "approved",
-          updatedAt: new Date(),
-        },
-      },
-    );
+      })
+      .sort({ expenseDate: -1, createdAt: -1 })
+      .toArray()) as MongoExpenseDocument[];
 
-    if (!result.matchedCount) {
-      return { success: false, message: "Expense not found" };
-    }
-
-    return { success: true };
+    return {
+      success: true,
+      total: expenses.length,
+      expenses: expenses.map(serializeExpense),
+    };
   } catch (error) {
-    return { success: false, message: "Approval failed" };
+    console.error("Get pending individual expenses error:", error);
+    return { success: false, message: "Failed to fetch pending expenses" };
   }
-};
-
-type TodaysExpenseSummaryResponse = {
-  success: boolean;
-  data?: {
-    messId: string;
-    date: string;
-    totalAmount: number;
-    totalCount: number;
-    byCategory: {
-      category: string;
-      amount: number;
-    }[];
-  };
-  message?: string;
-};
+}
 
 export async function getTodaysExpenseSummary(): Promise<TodaysExpenseSummaryResponse> {
   try {
-    // 🔐 Auth
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return { success: false, message: "Unauthorized" };
     }
 
     const userId = new ObjectId(session.user.id);
-
-    // 🏠 Resolve mess & role
     const { messId, role } = await resolveActiveMess(userId);
-
     const expensesCollection = dbConnect(collections.EXPENSES);
 
-    // 📅 Today range (convert to YYYY-MM-DD string format)
     const today = new Date();
-    const todayStr = today.toISOString().split("T")[0]; // "2026-01-26"
-    const tomorrowStr = new Date(today.getTime() + 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0]; // "2026-01-27"
+    const todayStr = toDateKey(today);
+    const tomorrowStr = toDateKey(addDays(today, 1));
 
-    console.log("🔍 getTodaysExpenseSummary Debug:", {
-      userId: userId.toString(),
-      messId: messId.toString(),
-      role,
-      todayStr,
-      tomorrowStr,
-    });
-
-    // 👤 Role-based visibility
     const baseMatch =
       role === "manager"
         ? { messId }
         : {
             messId,
-            $or: [{ status: "approved" }, { addedBy: userId }],
+            $or: [
+              { status: { $in: ["approved", "pending"] } },
+              { addedBy: userId },
+            ],
           };
 
-    // 🔥 Debug: Check if there are ANY expenses for this mess
-    const allExpensesCount = await expensesCollection.countDocuments({
-      messId,
-    });
-    console.log(`📊 Total expenses for this mess: ${allExpensesCount}`);
-
-    // 🔥 Debug: Check sample expenses
-    const sampleExpenses = await expensesCollection
-      .find({ messId })
-      .limit(5)
-      .toArray();
-    console.log("📊 Sample expenses:", JSON.stringify(sampleExpenses, null, 2));
-
-    // 🔥 Debug: Check if there are expenses for today
-    const todayExpensesCount = await expensesCollection.countDocuments({
-      messId,
-      expenseDate: {
-        $gte: todayStr,
-        $lt: tomorrowStr,
-      },
-    });
-    console.log(`📊 Today's expenses: ${todayExpensesCount}`);
-
-    // 🔥 Debug: Check sample today expenses
-    const sampleTodayExpenses = await expensesCollection
-      .find({
-        messId,
-        expenseDate: {
-          $gte: todayStr,
-          $lt: tomorrowStr,
-        },
-      })
-      .limit(5)
-      .toArray();
-    console.log(
-      "📊 Sample today expenses:",
-      JSON.stringify(sampleTodayExpenses, null, 2),
-    );
-
-    // 🔥 Aggregation
     const result = await expensesCollection
       .aggregate([
         {
@@ -506,8 +705,6 @@ export async function getTodaysExpenseSummary(): Promise<TodaysExpenseSummaryRes
       ])
       .toArray();
 
-    console.log("📊 Aggregation result:", result);
-
     const summary = result[0]?.summary[0] ?? {
       totalAmount: 0,
       totalCount: 0,
@@ -534,7 +731,7 @@ export async function getTodaysExpenseSummary(): Promise<TodaysExpenseSummaryRes
 
 export async function getMonthlyTotalExpenses(
   year?: number,
-  month?: number, // 0 = Jan
+  month?: number,
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -547,7 +744,6 @@ export async function getMonthlyTotalExpenses(
 
     const expenseCollection = dbConnect(collections.EXPENSES);
 
-    // 📅 Default → current month
     const now = new Date();
     const targetYear = year ?? now.getFullYear();
     const targetMonth = month ?? now.getMonth();
@@ -557,7 +753,6 @@ export async function getMonthlyTotalExpenses(
 
     const result = await expenseCollection
       .aggregate([
-        // 🔥 Convert string → Date
         {
           $addFields: {
             expenseDateObj: { $toDate: "$expenseDate" },

@@ -7,6 +7,8 @@ import {
   UtensilsCrossed,
   BarChartHorizontalBig,
   TrendingDown,
+  UsersIcon,
+  WalletMinimalIcon,
 } from "lucide-react";
 
 export type Role = "manager" | "user" | "admin";
@@ -26,6 +28,18 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       icon: Home,
     },
     {
+      label: "Members",
+      href: "/dashboard/manager/members",
+      icon: UsersIcon,
+      requiresMess: true,
+    },
+    {
+      label: "Deposits",
+      href: "/dashboard/manager/deposits",
+      icon: WalletMinimalIcon,
+      requiresMess: true,
+    },
+    {
       label: "Add Meals",
       href: "/dashboard/manager/meals",
       icon: UtensilsCrossed,
@@ -43,12 +57,14 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       icon: UserPlus,
       requiresMess: true,
     },
+
     {
       label: "Expenses",
       href: "/dashboard/manager/expenses",
       icon: Receipt,
       requiresMess: true,
     },
+
     {
       label: "Settings",
       href: "/dashboard/manager/settings",
@@ -62,6 +78,12 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       label: "Home",
       href: "/dashboard/user",
       icon: Home,
+    },
+    {
+      label: "Members",
+      href: "/dashboard/user/members",
+      icon: UsersIcon,
+      requiresMess: true,
     },
     {
       label: "Meal Report",
@@ -102,6 +124,12 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       label: "Settings",
       href: "/dashboard/admin/settings",
       icon: Settings,
+    },
+    {
+      label: "Members",
+      href: "/dashboard/admin/members",
+      icon: UsersIcon,
+      requiresMess: true,
     },
   ],
 };

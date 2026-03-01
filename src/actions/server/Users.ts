@@ -41,7 +41,7 @@ export const getUser = async (email: string) => {
    CREATE USER
 ---------------------------------------- */
 export const createUser = async (payload: InputUser) => {
-  const { fullName, email, confirmPassword, role } = payload;
+  const { fullName, email, confirmPassword, role = "user" } = payload;
 
   const hashedPassword = await bcrypt.hash(confirmPassword, 10);
 

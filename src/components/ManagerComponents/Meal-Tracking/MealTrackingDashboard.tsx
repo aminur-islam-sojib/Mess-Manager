@@ -117,10 +117,6 @@ export default function TabsViewClassic({
               animate="animate"
               exit="exit"
             >
-              {/* <DailyMealAttendance
-                attendanceData={todayData}
-                costPerMeal={costPerMeal}
-              /> */}
               <TodaysMessReport2
                 attendanceData={todayData}
                 costPerMeal={costPerMeal}

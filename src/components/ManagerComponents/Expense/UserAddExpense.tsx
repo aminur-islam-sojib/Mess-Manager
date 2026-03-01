@@ -1,6 +1,6 @@
 "use client";
 import { format } from "date-fns";
-import { getAllExpenses, addExpense } from "@/actions/server/Expense";
+import { addExpense } from "@/actions/server/Expense";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -29,9 +29,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@radix-ui/react-label";
 import { Separator } from "@radix-ui/react-separator";
 import { CalendarIcon, DollarSign, Loader2 } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface ExpenseFormData {
   title: string;
@@ -40,6 +41,7 @@ interface ExpenseFormData {
   category: string;
   date: string;
   paidBy: string;
+  paymentSource: string;
 }
 
 type AddExpenseProps = {
@@ -58,6 +60,7 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
     category: "",
     date: "",
     paidBy: "",
+    paymentSource: "individual",
   });
   const categories = [
     { label: "Grocery", value: "grocery" },
@@ -65,24 +68,6 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
     { label: "Rent", value: "rent" },
     { label: "Others", value: "others" },
   ];
-
-  // 🔹 Fetch all expenses
-  const getAllExpensesData = async () => {
-    setIsLoading(true);
-    const res = await getAllExpenses();
-    if (res.success) {
-      // Expenses fetched but not displayed in this modal
-      // They would be displayed in a separate list component
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    const loadExpenses = async () => {
-      await getAllExpensesData();
-    };
-    loadExpenses();
-  }, []);
 
   // 🔹 Validate form
   const validateForm = (): boolean => {
@@ -93,6 +78,8 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
       newErrors.amount = "Valid amount is required";
     if (!formData.category) newErrors.category = "Category is required";
     if (!formData.date) newErrors.date = "Date is required";
+    if (!formData.paymentSource)
+      newErrors.paymentSource = "Payment source is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -100,7 +87,6 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
 
   // 🔹 Submit form
   const handleSubmit = async () => {
-    console.log("click");
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -111,13 +97,18 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
       amount: parseFloat(formData.amount),
       category: formData.category as "grocery" | "utility" | "rent" | "others",
       expenseDate: formData.date,
+      paymentSource: "individual" as const,
       // paidBy is not provided - backend will use current user's ID
     };
 
     startTransition(async () => {
       const res = await addExpense(payload);
-
       if (res.success) {
+        toast.success(
+          res.status === "pending"
+            ? "Expense submitted for manager verification"
+            : "Expense added successfully",
+        );
         setFormData({
           title: "",
           description: "",
@@ -125,12 +116,13 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
           category: "",
           date: "",
           paidBy: "",
+          paymentSource: "individual",
         });
         setIsAddModalOpen(false);
         // 🔄 Refresh the page to fetch updated expenses
         router.refresh();
       } else {
-        alert(res.message);
+        toast.error(res.message);
       }
 
       setIsLoading(false);
@@ -224,6 +216,34 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
                 </Select>
               </div>
             </div>
+
+            {/* Payment Source Field */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">
+                Payment Source <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                onValueChange={(value) =>
+                  setFormData({ ...formData, paymentSource: value })
+                }
+                value={formData.paymentSource}
+              >
+                <SelectTrigger
+                  className={errors.paymentSource ? "border-destructive" : ""}
+                >
+                  <SelectValue placeholder="Select payment source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="individual">Individual</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.paymentSource && (
+                <p className="text-[11px] font-medium text-destructive">
+                  {errors.paymentSource}
+                </p>
+              )}
+            </div>
+
             {/* Date Field */}
             <div className="space-y-2 flex flex-col">
               <Label htmlFor="date" className="text-sm font-semibold">
@@ -257,7 +277,7 @@ export default function UserAddExpense({ setIsAddModalOpen }: AddExpenseProps) {
                     onSelect={(date) =>
                       setFormData({
                         ...formData,
-                        date: date ? date.toISOString().split("T")[0] : "",
+                        date: date ? format(date, "yyyy-MM-dd") : "",
                       })
                     }
                     initialFocus

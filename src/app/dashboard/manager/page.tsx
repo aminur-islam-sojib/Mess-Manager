@@ -2,16 +2,9 @@ import { getManagerDashboardOverview } from "@/actions/server/Admin";
 import { getSingleMessForUser } from "@/actions/server/Mess";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import ManagerHeader from "@/components/ManagerComponents/ManagerHeader";
+import QuickActions from "@/components/Shared/Managers/Overview";
 import CreateMessButton from "@/components/Shared/NoMess";
-import {
-  Users,
-  Receipt,
-  Plus,
-  Clock,
-  CheckCircle,
-  DollarSign,
-  UserPlus,
-} from "lucide-react";
+import { Users, Receipt, Clock, CheckCircle, DollarSign } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 
@@ -47,7 +40,7 @@ export default async function ManagerDashboard() {
     <div className="min-h-screen bg-background lg:flex">
       <div className="flex-1 ">
         <main className="lg:pb-6">
-          <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+          <div className="max-w-7xl mx-auto  space-y-6">
             {messData && <ManagerHeader messData={messData} />}
 
             {/* Stats Cards */}
@@ -118,25 +111,7 @@ export default async function ManagerDashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-card rounded-2xl p-5 border border-border shadow-sm">
-              <h3 className="font-semibold text-foreground mb-4">
-                Quick Actions
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                <button className="flex flex-col items-center gap-2 p-4 rounded-xl bg-primary/5 border border-primary/20 hover:bg-primary/10 transition-colors">
-                  <UserPlus className="w-6 h-6 text-primary" />
-                  <span className="text-sm font-medium text-foreground">
-                    Invite Member
-                  </span>
-                </button>
-                <button className="flex flex-col items-center gap-2 p-4 rounded-xl bg-primary/5 border border-primary/20 hover:bg-primary/10 transition-colors">
-                  <Plus className="w-6 h-6 text-primary" />
-                  <span className="text-sm font-medium text-foreground">
-                    Add Expense
-                  </span>
-                </button>
-              </div>
-            </div>
+            <QuickActions />
 
             {/* Recent Expenses - Mapping from real Array(3) */}
             <div className="bg-card rounded-2xl p-5 border border-border shadow-sm">

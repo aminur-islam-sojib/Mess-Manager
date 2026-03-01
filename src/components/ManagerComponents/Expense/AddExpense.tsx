@@ -1,6 +1,6 @@
 "use client";
-import { format } from "date-fns";
-import { getAllExpenses, addExpense } from "@/actions/server/Expense";
+
+import { addExpense } from "@/actions/server/Expense";
 import IndividualMemberSelector from "@/components/Shared/IndividualMemberSelector";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -26,167 +26,192 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { MessDataResponse } from "@/types/MealManagement";
-import { Label } from "@radix-ui/react-label";
-import { Separator } from "@radix-ui/react-separator";
-import { CalendarIcon, DollarSign, Loader2 } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { MessDataResponse } from "@/types/MealManagement";
+import { CalendarIcon, DollarSign, Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-interface ExpenseFormData {
+type FormData = {
   title: string;
   description: string;
   amount: string;
-  category: string;
+  category: "" | "grocery" | "utility" | "rent" | "others";
   date: string;
+  paymentSource: "mess_pool" | "individual";
   paidBy: string;
-}
+  assignToAllMembers: boolean;
+};
 
 type AddExpenseProps = {
-  messData: MessDataResponse;
   setIsAddModalOpen: (value: boolean) => void;
+  messData?: MessDataResponse;
 };
+
+const CATEGORY_OPTIONS = [
+  { label: "Grocery", value: "grocery" },
+  { label: "Utility", value: "utility" },
+  { label: "Rent", value: "rent" },
+  { label: "Others", value: "others" },
+] as const;
 
 export default function AddExpense({
   setIsAddModalOpen,
   messData,
 }: AddExpenseProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<Partial<ExpenseFormData>>({});
-  const [formData, setFormData] = useState<ExpenseFormData>({
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
+    {},
+  );
+  const [formData, setFormData] = useState<FormData>({
     title: "",
     description: "",
     amount: "",
     category: "",
     date: "",
+    paymentSource: "mess_pool",
     paidBy: "",
+    assignToAllMembers: false,
   });
-  const categories = [
-    "Groceries",
-    "Utilities",
-    "Supplies",
-    "Maintenance",
-    "Other",
-  ];
 
-  // 🔹 Fetch all expenses
-  const getAllExpensesData = async () => {
-    setIsLoading(true);
-    const res = await getAllExpenses();
-    if (res.success) {
-      // Expenses fetched but not displayed in this modal
-      // They would be displayed in a separate list component
+  const memberOptions = useMemo(
+    () => (messData?.members ?? []).filter((m) => m.role === "member"),
+    [messData],
+  );
+
+  const selectorData = useMemo<MessDataResponse>(
+    () => ({
+      success: true,
+      members: memberOptions,
+    }),
+    [memberOptions],
+  );
+
+  const isIndividual = formData.paymentSource === "individual";
+
+  const validate = () => {
+    const nextErrors: Partial<Record<keyof FormData, string>> = {};
+
+    if (!formData.title.trim()) nextErrors.title = "Title is required";
+    if (!formData.amount || Number(formData.amount) <= 0) {
+      nextErrors.amount = "Amount must be greater than 0";
     }
-    setIsLoading(false);
+    if (!formData.category) nextErrors.category = "Category is required";
+    if (!formData.date) nextErrors.date = "Date is required";
+
+    if (isIndividual && !formData.assignToAllMembers && !formData.paidBy) {
+      nextErrors.paidBy = "Select a member or apply to all members";
+    }
+
+    if (isIndividual && memberOptions.length === 0) {
+      nextErrors.paidBy = "No active members available";
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  useEffect(() => {
-    const loadExpenses = async () => {
-      await getAllExpensesData();
-    };
-    loadExpenses();
-  }, []);
-
-  // 🔹 Sync selected member from selector
-  const getSelectedId = (userId: string) => {
-    setFormData((prev) => ({ ...prev, paidBy: userId }));
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      amount: "",
+      category: "",
+      date: "",
+      paymentSource: "mess_pool",
+      paidBy: "",
+      assignToAllMembers: false,
+    });
+    setErrors({});
   };
 
-  // 🔹 Validate form
-  const validateForm = (): boolean => {
-    const newErrors: Partial<ExpenseFormData> = {};
-
-    if (!formData.title.trim()) newErrors.title = "Title is required";
-    if (!formData.amount || parseFloat(formData.amount) <= 0)
-      newErrors.amount = "Valid amount is required";
-    if (!formData.category) newErrors.category = "Category is required";
-    if (!formData.date) newErrors.date = "Date is required";
-    if (!formData.paidBy) newErrors.paidBy = "Paid by is required";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // 🔹 Submit form
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    if (!validate()) return;
 
     setIsLoading(true);
+    try {
+      const res = await addExpense({
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        amount: Number(formData.amount),
+        category: formData.category as
+          | "grocery"
+          | "utility"
+          | "rent"
+          | "others",
+        expenseDate: formData.date,
+        paymentSource: formData.paymentSource,
+        paidBy:
+          formData.paymentSource === "individual" &&
+          !formData.assignToAllMembers
+            ? formData.paidBy
+            : undefined,
+        assignToAllMembers:
+          formData.paymentSource === "individual"
+            ? formData.assignToAllMembers
+            : undefined,
+      });
 
-    const payload = {
-      title: formData.title,
-      description: formData.description,
-      amount: parseFloat(formData.amount),
-      category: formData.category.toLowerCase() as
-        | "grocery"
-        | "utility"
-        | "rent"
-        | "others", // match backend category type
-      expenseDate: formData.date,
-      paidBy: formData.paidBy,
-    };
-
-    startTransition(async () => {
-      const res = await addExpense(payload);
-
-      if (res.success) {
-        setFormData({
-          title: "",
-          description: "",
-          amount: "",
-          category: "",
-          date: "",
-          paidBy: "",
-        });
-        setIsAddModalOpen(false);
-        // 🔄 Refresh the page to fetch updated expenses
-        router.refresh();
-      } else {
-        alert(res.message);
+      if (!res.success) {
+        toast.error(res.message);
+        return;
       }
 
+      if (res.status === "pending") {
+        toast.success("Expense submitted for manager approval");
+      } else if ((res.createdCount ?? 1) > 1) {
+        toast.success(`${res.createdCount} expenses created successfully`);
+      } else {
+        toast.success("Expense added successfully");
+      }
+
+      resetForm();
+      setIsAddModalOpen(false);
+      router.refresh();
+    } catch {
+      toast.error("Failed to add expense");
+    } finally {
       setIsLoading(false);
-    });
+    }
   };
 
   return (
-    <Dialog open={true} onOpenChange={() => setIsAddModalOpen(false)}>
+    <Dialog open onOpenChange={() => setIsAddModalOpen(false)}>
       <DialogContent className="sm:max-w-112.5 p-0 overflow-hidden border-none shadow-2xl">
         <DialogHeader className="px-6 pt-6 pb-0 bg-muted/30">
           <DialogTitle className="text-2xl font-bold tracking-tight">
             Add Expense
           </DialogTitle>
-
           <DialogDescription className="text-sm text-muted-foreground">
-            Record a new expense for your mess members.
+            `Mess Pool` is manager-only. `Individual` expenses can be tracked
+            per member.
           </DialogDescription>
         </DialogHeader>
+
         <ScrollArea className="max-h-[calc(90vh-180px)]">
           <div className="p-6 space-y-5">
-            {/* Title Field */}
             <div className="space-y-2">
-              <Label htmlFor="title" className="text-sm font-semibold">
+              <label htmlFor="title" className="text-sm font-semibold">
                 Title <span className="text-destructive">*</span>
-              </Label>
-              <div className="relative">
-                <Input
-                  id="title"
-                  placeholder="e.g. Grocery Shopping"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  className={
-                    errors.title
-                      ? "border-destructive focus-visible:ring-destructive"
-                      : ""
-                  }
-                />
-              </div>
+              </label>
+              <Input
+                id="title"
+                value={formData.title}
+                placeholder="e.g. Grocery shopping"
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, title: e.target.value }))
+                }
+                className={
+                  errors.title
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
+              />
               {errors.title && (
                 <p className="text-[11px] font-medium text-destructive">
                   {errors.title}
@@ -195,11 +220,10 @@ export default function AddExpense({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Amount Field */}
               <div className="space-y-2">
-                <Label htmlFor="amount" className="text-sm font-semibold">
+                <label htmlFor="amount" className="text-sm font-semibold">
                   Amount <span className="text-destructive">*</span>
-                </Label>
+                </label>
                 <div className="relative">
                   <span className="absolute left-3 top-2.5 text-muted-foreground">
                     <DollarSign className="w-4 h-4" />
@@ -208,22 +232,35 @@ export default function AddExpense({
                     id="amount"
                     type="number"
                     placeholder="0.00"
-                    className={`pl-8 ${errors.amount ? "border-destructive" : ""}`}
                     value={formData.amount}
+                    className={`pl-8 ${errors.amount ? "border-destructive" : ""}`}
                     onChange={(e) =>
-                      setFormData({ ...formData, amount: e.target.value })
+                      setFormData((prev) => ({
+                        ...prev,
+                        amount: e.target.value,
+                      }))
                     }
                   />
                 </div>
+                {errors.amount && (
+                  <p className="text-[11px] font-medium text-destructive">
+                    {errors.amount}
+                  </p>
+                )}
               </div>
-              {/* Category Selector */}
-              <div className="space-y-2 w-full">
-                <Label className="text-sm font-semibold">Category</Label>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">
+                  Category <span className="text-destructive">*</span>
+                </label>
                 <Select
+                  value={formData.category}
                   onValueChange={(value) =>
-                    setFormData({ ...formData, category: value })
+                    setFormData((prev) => ({
+                      ...prev,
+                      category: value as FormData["category"],
+                    }))
                   }
-                  defaultValue={formData.category}
                 >
                   <SelectTrigger
                     className={errors.category ? "border-destructive" : ""}
@@ -231,24 +268,92 @@ export default function AddExpense({
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
+                    {CATEGORY_OPTIONS.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.category && (
+                  <p className="text-[11px] font-medium text-destructive">
+                    {errors.category}
+                  </p>
+                )}
               </div>
             </div>
-            {/* Date Field */}
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">
+                Payment Type <span className="text-destructive">*</span>
+              </label>
+              <Select
+                value={formData.paymentSource}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    paymentSource: value as FormData["paymentSource"],
+                    paidBy: "",
+                    assignToAllMembers: false,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mess_pool">Mess Pool (Manager)</SelectItem>
+                  <SelectItem value="individual">Individual Member</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {isIndividual && (
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">
+                  Member Assignment <span className="text-destructive">*</span>
+                </label>
+                <div className="rounded-lg border p-3 space-y-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={formData.assignToAllMembers}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          assignToAllMembers: e.target.checked,
+                          paidBy: e.target.checked ? "" : prev.paidBy,
+                        }))
+                      }
+                    />
+                    Apply this expense to all active members
+                  </label>
+
+                  {!formData.assignToAllMembers && (
+                    <IndividualMemberSelector
+                      messData={selectorData}
+                      setSelectedId={(id) =>
+                        setFormData((prev) => ({ ...prev, paidBy: id }))
+                      }
+                    />
+                  )}
+                </div>
+                {errors.paidBy && (
+                  <p className="text-[11px] font-medium text-destructive">
+                    {errors.paidBy}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2 flex flex-col">
-              <Label htmlFor="date" className="text-sm font-semibold">
+              <label htmlFor="date" className="text-sm font-semibold">
                 Date <span className="text-destructive">*</span>
-              </Label>
+              </label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
+                    variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal h-10 px-3",
                       !formData.date && "text-muted-foreground",
@@ -271,10 +376,10 @@ export default function AddExpense({
                       formData.date ? new Date(formData.date) : undefined
                     }
                     onSelect={(date) =>
-                      setFormData({
-                        ...formData,
-                        date: date ? date.toISOString().split("T")[0] : "",
-                      })
+                      setFormData((prev) => ({
+                        ...prev,
+                        date: date ? format(date, "yyyy-MM-dd") : "",
+                      }))
                     }
                     initialFocus
                     className="rounded-md border shadow-md bg-popover"
@@ -288,54 +393,40 @@ export default function AddExpense({
               )}
             </div>
 
-            {/* Paid By - Custom Selector */}
             <div className="space-y-2">
-              <Label className="text-sm font-semibold">
-                Paid By <span className="text-destructive">*</span>
-              </Label>
-
-              <IndividualMemberSelector
-                messData={messData}
-                setSelectedId={getSelectedId}
-              />
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="desc"
+              <label
+                htmlFor="description"
                 className="text-sm font-semibold text-muted-foreground"
               >
                 Description (Optional)
-              </Label>
+              </label>
               <Textarea
-                id="desc"
-                placeholder="Add some notes..."
-                className="resize-none min-h-20"
+                id="description"
                 value={formData.description}
+                placeholder="Add a note..."
+                className="resize-none min-h-20"
                 onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
                 }
               />
             </div>
           </div>
         </ScrollArea>
+
         <Separator />
-        <DialogFooter className=" flex px-6 py-4 bg-muted/30 gap-2 sm:gap-0">
+        <DialogFooter className="flex px-6 py-4 bg-muted/30 gap-2 sm:gap-0">
           <Button
-            className=" cursor-pointer"
             variant="secondary"
             onClick={() => setIsAddModalOpen(false)}
             disabled={isLoading}
           >
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isLoading || isPending}
-            className="px-8 shadow-lg shadow-primary/20 ml-2 cursor-pointer"
-          >
-            {isLoading || isPending ? (
+          <Button onClick={handleSubmit} disabled={isLoading} className="ml-2">
+            {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...

@@ -1,9 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { createOAuthUser, findUserByEmail } from "@/lib/user.service";
 import { JWT } from "next-auth/jwt";
 import { Account, Session, User } from "next-auth";
+
+const authSecret =
+  process.env.NEXTAUTH_SECRET ?? process.env.NEXT_AUTH_SECRET;
 
 export const authOptions = {
   session: {
@@ -35,13 +39,13 @@ export const authOptions = {
         if (!user.password) {
           // here code changes
           throw new Error(
-            "This account was created using Google. Please sign in with Google"
+            "This account was created using Google. Please sign in with Google",
           );
         }
 
         const isValid = await bcrypt.compare(
           credentials.password,
-          user.password
+          user.password,
         );
 
         if (!isValid) {
@@ -67,16 +71,27 @@ export const authOptions = {
 
   callbacks: {
     // 🔑 Always sync JWT with DB
-    async jwt({ token }: { token: JWT }) {
+    async jwt({ token, user }: { token: JWT; user?: User }) {
+      // On initial sign in, the user object is provided
+      if (user) {
+        token.id = user.id;
+        token.role = (user as any).role;
+        token.name = user.name;
+        token.image = user.image;
+        return token;
+      }
+
+      // On subsequent calls, verify user still exists
       if (!token.email) return null;
 
       const dbUser = await findUserByEmail(token.email);
 
-      // here code changes — HARD INVALIDATION
+      // User deleted from DB - force logout
       if (!dbUser) {
-        return null; // 🔥 force logout
+        return null;
       }
 
+      // Keep token in sync with DB
       token.id = dbUser._id.toString();
       token.role = dbUser.role;
       token.name = dbUser.name;
@@ -87,7 +102,7 @@ export const authOptions = {
 
     // 🧾 Session is derived from JWT only
     async session({ session, token }: { session: Session; token: JWT }) {
-      if (session.user) {
+      if (session.user && token) {
         session.user.id = token.id;
         session.user.role = token.role;
       }
@@ -117,8 +132,8 @@ export const authOptions = {
   },
 
   pages: {
-    signIn: "/login",
+    signIn: "/auth/login",
   },
 
-  secret: process.env.NEXT_AUTH_SECRET,
+  secret: authSecret,
 };

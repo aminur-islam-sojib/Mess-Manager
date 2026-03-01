@@ -28,7 +28,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "src/components/Shared/Managers/UserList.jsx"
   ],
   "exclude": ["node_modules"]
 }
