@@ -13,6 +13,8 @@ export type MemberSummary = {
   userId: string;
   name: string;
   totalMeals: number;
+  approvedExpense: number;
+  pendingExpense: number;
   totalExpense: number;
 };
 
@@ -96,25 +98,44 @@ export async function getMemberMealAndCostSummary(
       ])
       .toArray();
 
-    /* 4️⃣ Aggregate approved expenses per member */
+    /* 4️⃣ Aggregate approved + pending expenses per member */
     const expenseCol = dbConnect(collections.EXPENSES);
 
     const expenseAgg = await expenseCol
       .aggregate<{
         _id: ObjectId;
+        approvedExpense: number;
+        pendingExpense: number;
         totalExpense: number;
       }>([
         {
           $match: {
             messId,
-            status: "approved",
-            expenseDate: { $gte: from, $lte: to },
+            status: { $in: ["approved", "pending"] },
+            expenseDate: {
+              $gte: from.toISOString().slice(0, 10),
+              $lte: to.toISOString().slice(0, 10),
+            },
           },
         },
         {
           $group: {
             _id: "$paidBy",
-            totalExpense: { $sum: "$amount" },
+            approvedExpense: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "approved"] }, "$amount", 0],
+              },
+            },
+            pendingExpense: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "pending"] }, "$amount", 0],
+              },
+            },
+          },
+        },
+        {
+          $addFields: {
+            totalExpense: { $add: ["$approvedExpense", "$pendingExpense"] },
           },
         },
       ])
@@ -151,14 +172,23 @@ export async function getMemberMealAndCostSummary(
     );
 
     const expenseMap = new Map(
-      expenseAgg.map((e) => [e._id.toString(), e.totalExpense]),
+      expenseAgg.map((e) => [
+        e._id.toString(),
+        {
+          approvedExpense: e.approvedExpense ?? 0,
+          pendingExpense: e.pendingExpense ?? 0,
+          totalExpense: e.totalExpense ?? 0,
+        },
+      ]),
     );
 
     const result: MemberSummary[] = members.map((m) => ({
       userId: m.userId.toString(),
       name: m.name,
       totalMeals: mealMap.get(m.userId.toString()) ?? 0,
-      totalExpense: expenseMap.get(m.userId.toString()) ?? 0,
+      approvedExpense: expenseMap.get(m.userId.toString())?.approvedExpense ?? 0,
+      pendingExpense: expenseMap.get(m.userId.toString())?.pendingExpense ?? 0,
+      totalExpense: expenseMap.get(m.userId.toString())?.totalExpense ?? 0,
     }));
 
     return { success: true, data: result };

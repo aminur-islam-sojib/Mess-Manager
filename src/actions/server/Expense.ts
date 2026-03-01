@@ -336,19 +336,21 @@ export async function getAllExpenses(
 
     const expensesCollection = dbConnect(collections.EXPENSES);
 
-    let startDate: Date;
-    let toDateInclusive: Date;
+    const hasDateFilter = Boolean(fromDate || toDate);
+    let startDate: Date | undefined;
+    let toDateInclusive: Date | undefined;
 
-    if (fromDate && toDate) {
-      startDate = new Date(fromDate);
-      toDateInclusive = new Date(toDate);
-    } else if (fromDate) {
-      startDate = new Date(fromDate);
-      toDateInclusive = new Date(fromDate);
-    } else {
-      const now = new Date();
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      toDateInclusive = new Date(now);
+    if (hasDateFilter) {
+      if (fromDate && toDate) {
+        startDate = new Date(fromDate);
+        toDateInclusive = new Date(toDate);
+      } else if (fromDate) {
+        startDate = new Date(fromDate);
+        toDateInclusive = new Date(fromDate);
+      } else if (toDate) {
+        startDate = new Date(toDate);
+        toDateInclusive = new Date(toDate);
+      }
     }
 
     const baseQuery =
@@ -356,29 +358,39 @@ export async function getAllExpenses(
         ? { messId }
         : {
             messId,
-            $or: [{ status: "approved" }, { addedBy: userId }],
+            $or: [
+              { status: { $in: ["approved", "pending"] } },
+              { addedBy: userId },
+            ],
           };
 
-    const startDateStr = toDateKey(startDate);
-    const endExclusiveStr = toDateKey(addDays(toDateInclusive, 1));
-
-    const query = {
-      ...baseQuery,
-      expenseDate: {
-        $gte: startDateStr,
-        $lt: endExclusiveStr,
-      },
-    };
+    const query =
+      startDate && toDateInclusive
+        ? {
+            ...baseQuery,
+            expenseDate: {
+              $gte: toDateKey(startDate),
+              $lt: toDateKey(addDays(toDateInclusive, 1)),
+            },
+          }
+        : baseQuery;
 
     const expenses = (await expensesCollection
       .find(query)
       .sort({ expenseDate: -1, createdAt: -1 })
       .toArray()) as MongoExpenseDocument[];
 
+    const from = expenses.length
+      ? expenses[expenses.length - 1].expenseDate
+      : toDateKey(new Date());
+    const to = expenses.length
+      ? expenses[0].expenseDate
+      : toDateKey(new Date());
+
     return {
       success: true,
-      from: startDateStr,
-      to: toDateKey(toDateInclusive),
+      from,
+      to,
       expenses: expenses.map(serializeExpense),
     };
   } catch (error) {
@@ -649,7 +661,10 @@ export async function getTodaysExpenseSummary(): Promise<TodaysExpenseSummaryRes
         ? { messId }
         : {
             messId,
-            $or: [{ status: "approved" }, { addedBy: userId }],
+            $or: [
+              { status: { $in: ["approved", "pending"] } },
+              { addedBy: userId },
+            ],
           };
 
     const result = await expensesCollection

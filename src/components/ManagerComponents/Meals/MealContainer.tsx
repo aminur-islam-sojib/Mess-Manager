@@ -64,7 +64,7 @@ export const MealCounter = ({
             <Minus className="w-4 h-4" />
           </Button>
 
-          <div className="w-[1px] h-4 bg-border/60 mx-1" />
+          <div className="w-px h-4 bg-border/60 mx-1" />
 
           <Button
             variant="ghost"
@@ -78,7 +78,7 @@ export const MealCounter = ({
 
         {/* Refined Indicator: A subtle side-bar instead of a full fill */}
         <motion.div
-          className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-8 rounded-r-full ${colorClass.replace("text-", "bg-")}`}
+          className={`absolute left-0 top-1/2 -translate-y-1/2 w-0.75 h-8 rounded-r-full ${colorClass.replace("text-", "bg-")}`}
           initial={{ opacity: 0, scaleY: 0 }}
           animate={{ opacity: value > 0 ? 1 : 0, scaleY: value > 0 ? 1 : 0 }}
         />

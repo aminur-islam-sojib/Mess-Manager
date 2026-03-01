@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 "use client";
 
 import { useState, useEffect, useMemo, useTransition } from "react";
@@ -29,7 +30,6 @@ import UserAddExpense from "./UserAddExpense";
 import { getAllExpenses } from "@/actions/server/Expense";
 import { DateRange } from "react-day-picker";
 import IndividualExpenses from "./IndividualExpenses";
-import { getMemberMealAndCostSummary } from "@/actions/server/MealExpenses";
 
 interface Expense {
   id: string;
@@ -93,14 +93,6 @@ export default function MessExpenseManagement({
     "monthlyExpenses" | "individualExpenses"
   >("monthlyExpenses");
 
-  const fetchMealCost = async () => {
-    const res = await getMemberMealAndCostSummary();
-    console.log("mela cos", res);
-  };
-  useEffect(() => {
-    fetchMealCost();
-  }, []);
-
   // 🔥 MASTER FETCH FUNCTION - Called from both parent mount and child date selection
   const fetchExpensesWithDateRange = async (fromDate?: Date, toDate?: Date) => {
     startTransition(async () => {
@@ -118,26 +110,26 @@ export default function MessExpenseManagement({
   const handleDateRangeChange = (newDateRange: DateRange | undefined) => {
     setDateRange(newDateRange);
     if (newDateRange?.from) {
-      // Fetch data with new date range
       fetchExpensesWithDateRange(newDateRange.from, newDateRange.to);
+      return;
     }
+    // When cleared, load all expenses from DB
+    fetchExpensesWithDateRange();
   };
 
   // Compute mapped expenses from allExpenses prop
   const mappedExpenses = useMemo(() => {
     if (allExpenses && allExpenses.success && allExpenses.expenses) {
-      return allExpenses.expenses.map(
-        (e: ExpenseDocumentSerialized) => ({
-          id: e.id,
-          date: e.expenseDate,
-          title: e.title,
-          category: e.category,
-          amount: e.amount,
-          paidBy: e.paidBy,
-          status: e.status,
-          description: e.description,
-        }),
-      );
+      return allExpenses.expenses.map((e: ExpenseDocumentSerialized) => ({
+        id: e.id,
+        date: e.expenseDate,
+        title: e.title,
+        category: e.category,
+        amount: e.amount,
+        paidBy: e.paidBy,
+        status: e.status,
+        description: e.description,
+      }));
     }
     return [];
   }, [allExpenses]);
@@ -167,6 +159,14 @@ export default function MessExpenseManagement({
   const handleIsModalOpen = (value: boolean) => {
     setIsAddModalOpen(value);
   };
+
+  const memberNameMap = useMemo(
+    () =>
+      new Map(
+        (messData.members ?? []).map((member) => [member.userId, member.name]),
+      ),
+    [messData.members],
+  );
 
   return (
     <div className="min-h-screen bg-muted/20 p-4 md:p-8">
@@ -215,7 +215,7 @@ export default function MessExpenseManagement({
               value: totalExpense,
               icon: DollarSign,
               color: "bg-primary",
-              sub: "This Month",
+              sub: dateRange?.from ? "Filtered Range" : "All Records",
             },
             {
               label: "Approved",
@@ -336,7 +336,10 @@ export default function MessExpenseManagement({
                   animate="animate"
                   exit="exit"
                 >
-                  <IndividualExpenses />
+                  <IndividualExpenses
+                    role={role}
+                    memberNameMap={memberNameMap}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>

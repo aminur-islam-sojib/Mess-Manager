@@ -6,7 +6,11 @@ import { getServerSession } from "next-auth";
 export default async function ExpensePage() {
   const messData = await getMessMembers();
   const session = await getServerSession(authOptions);
-  const role = session?.user.role;
+  const currentUserId = session?.user.id;
+  const membershipRole = messData.members?.find(
+    (member) => member.userId === currentUserId,
+  )?.role;
+  const role = membershipRole === "manager" ? "manager" : "user";
 
   // Serialize data to ensure no ObjectId or other non-serializable objects are passed
   const serializedMessData = {
@@ -19,7 +23,7 @@ export default async function ExpensePage() {
     message: messData.message || undefined,
   };
 
-  if (!role) {
+  if (!session?.user?.id) {
     return (
       <div>
         <h1>User role needed</h1>
