@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import type { MealEntry, MessDataResponse } from "@/types/MealManagement";
-import Swal from "sweetalert2";
 import { toast } from "sonner";
 import {
   Popover,
@@ -21,10 +20,12 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { addMealEntry } from "@/actions/server/Meals";
 import { MealCounter } from "@/components/ManagerComponents/Meals/MealContainer";
+import ConfirmModal from "@/components/ui/confirmation-modal";
 
 export default function AllMealEntry({}: { messData: MessDataResponse }) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [allMembersMeals, setAllMembersMeals] = useState<MealEntry>({
     breakfast: 0,
     lunch: 0,
@@ -45,30 +46,27 @@ export default function AllMealEntry({}: { messData: MessDataResponse }) {
   };
 
   const handleSubmit = async () => {
-    const result = await Swal.fire({
-      title: "Confirm Meal Entry?",
-      text: `Registering ${totalMeals} meals for ${format(selectedDate, "PPP")}`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Confirm & Submit",
-      confirmButtonColor: "hsl(var(--primary))",
-      backdrop: `rgba(0,0,0,0.4) blur(4px)`,
-      customClass: { popup: "rounded-3xl border-none shadow-2xl" },
-    });
+    if (totalMeals === 0) {
+      toast.error("Please add at least one meal");
+      return;
+    }
 
-    if (result.isConfirmed) {
-      setIsSubmitting(true);
-      try {
-        const res = await addMealEntry({
-          date: format(selectedDate, "yyyy-MM-dd"),
-          meals: allMembersMeals,
-          mode: "all",
-        });
-        if (res.success) toast.success(res.message);
-        else toast.error(res.message);
-      } finally {
-        setIsSubmitting(false);
-      }
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    setConfirmOpen(false);
+    setIsSubmitting(true);
+    try {
+      const res = await addMealEntry({
+        date: format(selectedDate, "yyyy-MM-dd"),
+        meals: allMembersMeals,
+        mode: "all",
+      });
+      if (res.success) toast.success(res.message);
+      else toast.error(res.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -206,6 +204,17 @@ export default function AllMealEntry({}: { messData: MessDataResponse }) {
       <p className="text-center text-xs text-muted-foreground">
         Entries are synced instantly with the central mess database.
       </p>
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirmSubmit}
+        title="Submit meal entries for all members?"
+        description={`Register ${totalMeals} meals for ${format(selectedDate, "PPP")} across the mess.`}
+        confirmText="Confirm & Submit"
+        cancelText="Cancel"
+        variant="default"
+      />
     </div>
   );
 }

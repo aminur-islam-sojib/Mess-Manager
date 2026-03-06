@@ -3,7 +3,11 @@
 import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AppRole, getVisibleNavItems } from "@/config/nav.config";
+import {
+  AppRole,
+  getVisibleNavItems,
+  isNavItemActive,
+} from "@/config/nav.config";
 import { MessResponseType } from "@/types/MessTypes";
 
 type AppBottomNavProps = {
@@ -16,15 +20,12 @@ export default function AppBottomNav({ role, isMessExist }: AppBottomNavProps) {
   const reduceMotion = useReducedMotion();
   const navItems = getVisibleNavItems(role, isMessExist?.success).slice(0, 4);
 
-  const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(`${href}/`);
-
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 px-3 pb-3 pt-2 lg:hidden">
       <div className="mx-auto grid max-w-md grid-cols-4 gap-1 rounded-[1.75rem] border border-border/70 bg-card/92 p-2 shadow-[0_14px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const active = isActive(item.href);
+          const active = isNavItemActive(pathname, item.href);
 
           return (
             <Link
