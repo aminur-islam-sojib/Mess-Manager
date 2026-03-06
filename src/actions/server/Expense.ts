@@ -113,6 +113,13 @@ async function resolveActiveMess(userId: ObjectId): Promise<ActiveMembership> {
   return membership as ActiveMembership;
 }
 
+async function getMessExpenseAccessRule(messId: ObjectId) {
+  const mess = await dbConnect(collections.MESS).findOne({ _id: messId });
+  return mess?.settings?.expenseRules?.whoCanAddExpenses === "membersAllowed"
+    ? "membersAllowed"
+    : "managerOnly";
+}
+
 const resolveInitialStatus = (
   paymentSource: ExpensePaymentSource,
   role: ActiveMembership["role"],
@@ -261,6 +268,16 @@ export async function addExpense(
     }
 
     const membership = await resolveActiveMess(userId);
+
+    if (membership.role !== "manager") {
+      const expenseAccessRule = await getMessExpenseAccessRule(membership.messId);
+      if (expenseAccessRule === "managerOnly") {
+        return {
+          success: false,
+          message: "Only manager can add expenses for this mess",
+        };
+      }
+    }
 
     if (paymentSource === "mess_pool" && membership.role !== "manager") {
       return {
