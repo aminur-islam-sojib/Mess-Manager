@@ -1,5 +1,5 @@
 import { getMessMembers } from "@/actions/server/Mess";
-import UserList from "@/components/Shared/Managers/UserList";
+import MessMembersDashboard from "@/components/Shared/Managers/MessMembersDashboard";
 
 export default async function page() {
   const messMembers = await getMessMembers();
@@ -10,7 +10,7 @@ export default async function page() {
 
   return (
     <div>
-      {members && messName && <UserList data={members} messName={messName} />}
+      <MessMembersDashboard members={members} messName={messName} />
     </div>
   );
 }

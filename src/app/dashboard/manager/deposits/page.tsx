@@ -17,15 +17,17 @@ export default async function page() {
   console.log("costSummery", costSummery);
   const data = costSummery.data as UserLedger[];
 
-  const serializedMessData = {
-    success: messData.success,
-    messId: messData.messId || undefined,
-    messName: messData.messName || undefined,
-    members: messData.members
-      ? JSON.parse(JSON.stringify(messData.members))
-      : undefined,
-    message: messData.message || undefined,
-  };
+  const serializedMessData = messData.success
+    ? {
+        success: true as const,
+        messId: messData.messId,
+        messName: messData.messName,
+        members: JSON.parse(JSON.stringify(messData.members)),
+      }
+    : {
+        success: false as const,
+        message: messData.message,
+      };
 
   if (!role) {
     return (

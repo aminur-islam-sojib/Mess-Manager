@@ -53,6 +53,7 @@ const UserList = ({ data, messName }) => {
                 <th className="px-6 py-5">Member Details</th>
                 <th className="px-6 py-5">Role</th>
                 <th className="px-6 py-5">Status</th>
+                <th className="px-6 py-5">Balance</th>
                 <th className="px-6 py-5 text-right">Actions</th>
               </tr>
             </thead>
@@ -106,6 +107,13 @@ const UserList = ({ data, messName }) => {
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                       </span>
                       {user.status || "ACTIVE"}
+                    </div>
+                  </td>
+
+                  {/* Status Indicator */}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2 text-[11px] font-bold text-foreground/80">
+                      Something...
                     </div>
                   </td>
 
