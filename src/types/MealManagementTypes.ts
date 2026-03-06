@@ -85,3 +85,14 @@ export interface MonthlyMealTracingDashboardProps {
 export interface DateRangeReportProps {
   reportData?: GetMealsByDateRangeResponse;
 }
+
+interface CurrentMonthMealCost {
+  totalMeals: number;
+  totalExpenses: number;
+  costPerMeal: number;
+}
+
+export interface CurrentMonthMealCostDetails {
+  success?: boolean;
+  data?: CurrentMonthMealCost;
+}

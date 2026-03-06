@@ -1,3 +1,4 @@
+import { getCurrentMonthCostPerMeal } from "@/actions/server/Expense";
 import { getMonthlyMeals, getTodayMeals } from "@/actions/server/Meals";
 import TabsViewClassic from "@/components/ManagerComponents/Meal-Tracking/MealTrackingDashboard";
 
@@ -8,9 +9,14 @@ export default async function page() {
     month: now.getMonth() + 1,
     year: now.getFullYear(),
   });
+  const currentMonthMealCostDetails = await getCurrentMonthCostPerMeal();
   return (
     <div>
-      <TabsViewClassic todayData={res} monthlyData={monthlyData} />
+      <TabsViewClassic
+        todayData={res}
+        monthlyData={monthlyData}
+        currentMonthMealCostDetails={currentMonthMealCostDetails}
+      />
     </div>
   );
 }

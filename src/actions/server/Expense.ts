@@ -126,7 +126,9 @@ async function resolvePaidByTargets(
   payload: AddExpensePayload,
   membership: ActiveMembership,
   userId: ObjectId,
-): Promise<{ success: true; userIds: ObjectId[] } | { success: false; message: string }> {
+): Promise<
+  { success: true; userIds: ObjectId[] } | { success: false; message: string }
+> {
   const messMembers = dbConnect(collections.MESS_MEMBERS);
   const isManager = membership.role === "manager";
 
@@ -164,13 +166,19 @@ async function resolvePaidByTargets(
       .toArray();
 
     if (!allActiveMembers.length) {
-      return { success: false, message: "No active members found in this mess" };
+      return {
+        success: false,
+        message: "No active members found in this mess",
+      };
     }
 
     return { success: true, userIds: allActiveMembers.map((m) => m.userId) };
   }
 
-  const rawTargets = [...(payload.paidByIds ?? []), ...(payload.paidBy ? [payload.paidBy] : [])]
+  const rawTargets = [
+    ...(payload.paidByIds ?? []),
+    ...(payload.paidBy ? [payload.paidBy] : []),
+  ]
     .map((value) => value.trim())
     .filter(Boolean);
   const uniqueTargets = Array.from(new Set(rawTargets));
@@ -183,7 +191,10 @@ async function resolvePaidByTargets(
   for (const target of uniqueTargets) {
     const objectId = parseObjectId(target);
     if (!objectId) {
-      return { success: false, message: "One or more selected members are invalid" };
+      return {
+        success: false,
+        message: "One or more selected members are invalid",
+      };
     }
     requestedIds.push(objectId);
   }
@@ -243,7 +254,10 @@ export async function addExpense(
     const paymentSource = normalizePaymentSource(payload.paymentSource);
     const expenseDateStr = normalizeExpenseDateString(payload.expenseDate);
     if (!expenseDateStr) {
-      return { success: false, message: "Invalid expense date format (YYYY-MM-DD)" };
+      return {
+        success: false,
+        message: "Invalid expense date format (YYYY-MM-DD)",
+      };
     }
 
     const membership = await resolveActiveMess(userId);
@@ -255,7 +269,11 @@ export async function addExpense(
       };
     }
 
-    const targetResult = await resolvePaidByTargets(payload, membership, userId);
+    const targetResult = await resolvePaidByTargets(
+      payload,
+      membership,
+      userId,
+    );
     if (!targetResult.success) {
       return { success: false, message: targetResult.message };
     }
@@ -268,33 +286,37 @@ export async function addExpense(
     const now = new Date();
     const autoVerified = status === "approved";
 
-    const expenseDocs: ExpenseDocument[] = targetResult.userIds.map((paidByUserId) => ({
-      messId: membership.messId,
-      title: payload.title.trim(),
-      description: payload.description?.trim() ?? "",
-      amount: payload.amount,
-      category: payload.category,
-      expenseDate: expenseDateStr,
-      paymentSource,
-      paidBy: paidByUserId,
-      addedBy: userId,
-      status,
-      verifiedBy: autoVerified ? userId : undefined,
-      verifiedAt: autoVerified ? now : undefined,
-      approvalNote: autoVerified
-        ? paymentSource === "mess_pool"
-          ? "Auto-approved as manager mess-pool expense"
-          : "Auto-approved by manager"
-        : undefined,
-      createdAt: now,
-      updatedAt: now,
-    }));
+    const expenseDocs: ExpenseDocument[] = targetResult.userIds.map(
+      (paidByUserId) => ({
+        messId: membership.messId,
+        title: payload.title.trim(),
+        description: payload.description?.trim() ?? "",
+        amount: payload.amount,
+        category: payload.category,
+        expenseDate: expenseDateStr,
+        paymentSource,
+        paidBy: paidByUserId,
+        addedBy: userId,
+        status,
+        verifiedBy: autoVerified ? userId : undefined,
+        verifiedAt: autoVerified ? now : undefined,
+        approvalNote: autoVerified
+          ? paymentSource === "mess_pool"
+            ? "Auto-approved as manager mess-pool expense"
+            : "Auto-approved by manager"
+          : undefined,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    );
 
     const expenses = dbConnect(collections.EXPENSES);
 
     let insertedIds: ObjectId[] = [];
     if (expenseDocs.length === 1) {
-      const result: InsertOneResult<ExpenseDocument> = await expenses.insertOne(expenseDocs[0]);
+      const result: InsertOneResult<ExpenseDocument> = await expenses.insertOne(
+        expenseDocs[0],
+      );
       insertedIds = [result.insertedId];
     } else {
       const result = await expenses.insertMany(expenseDocs);
@@ -399,41 +421,6 @@ export async function getAllExpenses(
   }
 }
 
-async function getMonthlyTotalMeals(
-  messId: ObjectId,
-  startDate: Date,
-  endDate: Date,
-) {
-  const mealCollection = dbConnect(collections.MEAL_ENTRIES);
-
-  const result = await mealCollection
-    .aggregate([
-      {
-        $addFields: {
-          mealDateObj: { $toDate: "$date" },
-        },
-      },
-      {
-        $match: {
-          messId,
-          mealDateObj: {
-            $gte: startDate,
-            $lt: endDate,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalMeals: { $sum: "$meals" },
-        },
-      },
-    ])
-    .toArray();
-
-  return result[0]?.totalMeals ?? 0;
-}
-
 export async function getMonthlyExpensesSummary(year?: number, month?: number) {
   try {
     const session = await getServerSession(authOptions);
@@ -480,7 +467,6 @@ export async function getMonthlyExpensesSummary(year?: number, month?: number) {
         {
           $group: {
             _id: null,
-            totalCost: { $sum: "$totalAmount" },
             categories: {
               $push: {
                 category: "$_id",
@@ -493,17 +479,24 @@ export async function getMonthlyExpensesSummary(year?: number, month?: number) {
       ])
       .toArray();
 
-    const totalCost = expenseResult[0]?.totalCost ?? 0;
     const categories = expenseResult[0]?.categories ?? [];
-    const totalMeals = await getMonthlyTotalMeals(messId, startDate, endDate);
 
-    const costPerMeal = totalMeals > 0 ? Number((totalCost / totalMeals).toFixed(2)) : 0;
+    /**
+     * Reuse CPM logic
+     */
+    const cpmResult = await getCurrentMonthCostPerMeal();
+
+    if (!cpmResult.success || !cpmResult.data) {
+      return { success: false, message: "Failed to calculate CPM" };
+    }
+
+    const { totalMeals, totalExpenses, costPerMeal } = cpmResult.data;
 
     return {
       success: true,
       month: targetMonth + 1,
       year: targetYear,
-      totalCost,
+      totalCost: totalExpenses,
       totalMeals,
       costPerMeal,
       categories,
@@ -511,6 +504,93 @@ export async function getMonthlyExpensesSummary(year?: number, month?: number) {
   } catch (error) {
     console.error("Monthly summary error:", error);
     return { success: false, message: "Failed to fetch monthly summary" };
+  }
+}
+
+export async function getCurrentMonthCostPerMeal() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+
+    const userId = new ObjectId(session.user.id);
+    const { messId } = await resolveActiveMess(userId);
+
+    const mealCollection = dbConnect(collections.MEAL_ENTRIES);
+    const expenseCollection = dbConnect(collections.EXPENSES);
+
+    const now = new Date();
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfCurrentMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+    );
+
+    const startDateKey = toDateKey(startOfCurrentMonth);
+    const endDateKey = toDateKey(endOfCurrentMonth);
+
+    const [mealAgg, expenseAgg] = await Promise.all([
+      mealCollection
+        .aggregate<{ totalMeals: number }>([
+          {
+            $match: {
+              messId,
+              date: {
+                $gte: startDateKey,
+                $lte: endDateKey,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              totalMeals: { $sum: "$meals" },
+            },
+          },
+          { $project: { _id: 0, totalMeals: 1 } },
+        ])
+        .toArray(),
+      expenseCollection
+        .aggregate<{ totalExpenses: number }>([
+          {
+            $match: {
+              messId,
+              status: "approved",
+              expenseDate: {
+                $gte: startDateKey,
+                $lte: endDateKey,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              totalExpenses: { $sum: "$amount" },
+            },
+          },
+          { $project: { _id: 0, totalExpenses: 1 } },
+        ])
+        .toArray(),
+    ]);
+
+    const totalMeals = mealAgg[0]?.totalMeals ?? 0;
+    const totalExpenses = expenseAgg[0]?.totalExpenses ?? 0;
+    const costPerMeal =
+      totalMeals > 0 ? Number((totalExpenses / totalMeals).toFixed(2)) : 0;
+
+    return {
+      success: true,
+      data: {
+        totalMeals,
+        totalExpenses,
+        costPerMeal,
+      },
+    };
+  } catch (error) {
+    console.error("Current month CPM error:", error);
+    return { success: false, message: "Failed to fetch current month CPM" };
   }
 }
 
@@ -550,7 +630,8 @@ export const verifyExpense = async (
     if (existing.paymentSource === "mess_pool") {
       return {
         success: false,
-        message: "Mess-pool expenses are auto-approved and cannot be re-verified",
+        message:
+          "Mess-pool expenses are auto-approved and cannot be re-verified",
       };
     }
 
@@ -612,7 +693,10 @@ export async function getPendingIndividualExpenses() {
     const membership = await resolveActiveMess(userId);
 
     if (membership.role !== "manager") {
-      return { success: false, message: "Only manager can view pending expenses" };
+      return {
+        success: false,
+        message: "Only manager can view pending expenses",
+      };
     }
 
     const expenseCollection = dbConnect(collections.EXPENSES);
@@ -729,10 +813,7 @@ export async function getTodaysExpenseSummary(): Promise<TodaysExpenseSummaryRes
   }
 }
 
-export async function getMonthlyTotalExpenses(
-  year?: number,
-  month?: number,
-) {
+export async function getMonthlyTotalExpenses(year?: number, month?: number) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
