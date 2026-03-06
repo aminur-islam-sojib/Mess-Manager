@@ -4,5 +4,5 @@ import AppSidebar from "../Shared/AppSidebar";
 import { SidebarProps } from "@/types/MessTypes";
 
 export default function UserSidebar(props: SidebarProps) {
-  return <AppSidebar {...props} role="user" alertCount={1} />;
+  return <AppSidebar {...props} role="user" />;
 }

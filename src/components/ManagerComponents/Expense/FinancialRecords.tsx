@@ -478,7 +478,11 @@ export default function FinancialRecords({
       <ConfirmModal
         isOpen={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
-        onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+        onConfirm={() => {
+          if (deleteConfirmId) {
+            return handleDelete(deleteConfirmId);
+          }
+        }}
         title="Delete this expense entry?"
         description="This will permanently remove the expense from the mess records. This action cannot be undone."
         confirmText="Delete Entry"

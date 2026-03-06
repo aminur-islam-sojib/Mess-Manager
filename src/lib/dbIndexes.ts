@@ -50,3 +50,24 @@ export const ensureDepositIndexes = async () => {
 
   console.log("✅ Deposit indexes ensured");
 };
+
+export const ensureNotificationIndexes = async () => {
+  const notificationCollection = dbConnect(collections.NOTIFICATIONS);
+  const pushSubscriptionCollection = dbConnect(collections.PUSH_SUBSCRIPTIONS);
+
+  await notificationCollection.createIndex({ userId: 1, createdAt: -1 });
+  await notificationCollection.createIndex({
+    userId: 1,
+    isRead: 1,
+    createdAt: -1,
+  });
+  await notificationCollection.createIndex({ messId: 1, createdAt: -1 });
+
+  await pushSubscriptionCollection.createIndex(
+    { userId: 1, endpoint: 1 },
+    { unique: true },
+  );
+  await pushSubscriptionCollection.createIndex({ userId: 1, isActive: 1 });
+
+  console.log("✅ Notification indexes ensured");
+};

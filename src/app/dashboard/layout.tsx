@@ -2,6 +2,8 @@ import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/options";
 import { getSingleMessForUser } from "@/actions/server/Mess";
+import DesktopTopBar from "@/components/Navbar/DesktopTopBar";
+import NotificationProvider from "@/components/Notifications/NotificationProvider";
 import AppSidebar from "@/components/Shared/AppSidebar";
 import AppBottomNav from "@/components/Shared/AppBottomNav";
 import DashboardPageTransition from "@/components/Shared/DashboardPageTransition";
@@ -41,33 +43,27 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background lg:flex">
-      <div className="flex-1">
-        {role === "user" && (
-          <AppSidebar
-            user={session.user}
-            isMessExist={isMessExist}
-            role={role}
-            alertCount={1}
-          />
-        )}
-        {role === "manager" && (
-          <AppSidebar
-            user={session.user}
-            isMessExist={isMessExist}
-            role={role}
-            alertCount={3}
-          />
-        )}
+      <NotificationProvider>
+        <div className="flex-1">
+          {(role === "user" || role === "manager") && (
+            <AppSidebar
+              user={session.user}
+              isMessExist={isMessExist}
+              role={role}
+            />
+          )}
 
-        <div className="p-4 pb-20 md:p-6 lg:ml-72 lg:pb-0">
-          <DashboardPageTransition>{children}</DashboardPageTransition>
+          <DesktopTopBar user={session.user} />
+
+          <div className="p-4 pb-20 md:p-6 lg:ml-72 lg:pb-0 lg:pt-24">
+            <DashboardPageTransition>{children}</DashboardPageTransition>
+          </div>
+
+          {(role === "user" || role === "manager") && (
+            <AppBottomNav role={role} isMessExist={isMessExist} />
+          )}
         </div>
-
-        {/* Bottom Navigation - Mobile Only */}
-        {(role === "user" || role === "manager") && (
-          <AppBottomNav role={role} isMessExist={isMessExist} />
-        )}
-      </div>
+      </NotificationProvider>
     </div>
   );
 }
