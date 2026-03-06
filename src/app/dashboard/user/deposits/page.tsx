@@ -1,5 +1,5 @@
 import {
-  getDepositRequestsForManager,
+  getDepositRequests,
   getUsersCostSummary,
 } from "@/actions/server/Deposit";
 import { getMessMembers } from "@/actions/server/Mess";
@@ -22,7 +22,7 @@ export default async function Page() {
   const [costSummary, messData, depositRequests] = await Promise.all([
     getUsersCostSummary(),
     getMessMembers(),
-    getDepositRequestsForManager(),
+    getDepositRequests(),
   ]);
 
   if (!messData.success) {
@@ -55,7 +55,6 @@ export default async function Page() {
     messName: messData.messName,
     members: JSON.parse(JSON.stringify(messData.members)),
   };
-
 
   return (
     <DepositsDashboard

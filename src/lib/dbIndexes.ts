@@ -28,3 +28,25 @@ export const ensureExpenseIndexes = async () => {
 
   console.log("✅ Expense indexes ensured");
 };
+
+export const ensureDepositIndexes = async () => {
+  const depositCollection = dbConnect(collections.DEPOSITS);
+  const depositRequestCollection = dbConnect(collections.DEPOSIT_REQUESTS);
+
+  await depositCollection.createIndex({ messId: 1, userId: 1, date: -1 });
+  await depositCollection.createIndex({ messId: 1, addedBy: 1, createdAt: -1 });
+
+  await depositRequestCollection.createIndex({
+    messId: 1,
+    userId: 1,
+    status: 1,
+    createdAt: -1,
+  });
+  await depositRequestCollection.createIndex({
+    messId: 1,
+    requestedBy: 1,
+    createdAt: -1,
+  });
+
+  console.log("✅ Deposit indexes ensured");
+};

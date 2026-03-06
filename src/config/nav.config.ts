@@ -99,7 +99,12 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       icon: UsersIcon,
       requiresMess: true,
     },
-
+    {
+      label: "Deposits",
+      href: "/dashboard/user/deposits",
+      icon: WalletMinimalIcon,
+      requiresMess: true,
+    },
     {
       label: "Invitation",
       href: "/dashboard/user/invite",

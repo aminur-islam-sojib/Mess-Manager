@@ -17,23 +17,32 @@ interface ConfirmModalProps {
   isLoading?: boolean;
 }
 
-const variantStyles = {
+type ConfirmVariantStyle = {
+  iconWrap: string;
+  confirmVariant: "default" | "destructive";
+  confirmClass?: string;
+};
+
+const variantStyles: Record<
+  NonNullable<ConfirmModalProps["variant"]>,
+  ConfirmVariantStyle
+> = {
   default: {
     iconWrap:
       "bg-primary/10 text-primary border-primary/20 dark:bg-primary/15 dark:border-primary/25",
-    confirmVariant: "default" as const,
+    confirmVariant: "default",
   },
   warning: {
     iconWrap:
       "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/25",
-    confirmVariant: "default" as const,
+    confirmVariant: "default",
     confirmClass:
       "bg-amber-500 text-white hover:bg-amber-600 focus-visible:ring-amber-500/30",
   },
   danger: {
     iconWrap:
       "bg-destructive/10 text-destructive border-destructive/20 dark:bg-destructive/15 dark:border-destructive/25",
-    confirmVariant: "destructive" as const,
+    confirmVariant: "destructive",
   },
 };
 
@@ -48,7 +57,7 @@ export default function ConfirmModal({
   variant = "default",
   isLoading = false,
 }: ConfirmModalProps) {
-  const styles = variantStyles[variant];
+  const styles: ConfirmVariantStyle = variantStyles[variant];
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="sm">
