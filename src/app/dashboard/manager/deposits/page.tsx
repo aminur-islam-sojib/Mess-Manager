@@ -14,7 +14,6 @@ export default async function page() {
   const costSummery = await getUsersCostSummary();
   const messData = await getMessMembers();
   const role = session?.user.role;
-  console.log("costSummery", costSummery);
   const data = costSummery.data as UserLedger[];
 
   const serializedMessData = messData.success
