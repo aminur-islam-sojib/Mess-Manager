@@ -75,6 +75,13 @@ export const addMealEntry = async (payload: MealPayload) => {
       return { success: false as const, message: "Mess not found" };
     }
 
+    if (mess.mealSettings?.enabled === false) {
+      return {
+        success: false as const,
+        message: "Meal tracking is currently disabled for this mess",
+      };
+    }
+
     /* =================================
        🔹 INDIVIDUAL MEMBER MODE
     ================================== */

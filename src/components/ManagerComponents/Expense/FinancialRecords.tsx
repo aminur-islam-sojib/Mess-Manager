@@ -12,7 +12,6 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
@@ -44,7 +43,6 @@ import { Badge } from "@/components/ui/badge";
 import { MessDataResponse } from "@/types/MealManagement";
 import { format } from "date-fns";
 import { approveExpense } from "@/actions/server/Expense";
-import Swal from "sweetalert2";
 import {
   Popover,
   PopoverContent,
@@ -52,6 +50,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { DateRange } from "react-day-picker";
+import ConfirmModal from "@/components/ui/confirmation-modal";
 
 interface Expense {
   id: string;
@@ -89,6 +88,7 @@ export default function FinancialRecords({
   // --- STATE (Functional Logic Kept) ---
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [approveConfirmId, setApproveConfirmId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>(selectedDateRange);
@@ -189,24 +189,21 @@ export default function FinancialRecords({
   };
 
   const handleApprove = (id: string) => {
-    Swal.fire({
-      title: "Are you sure?",
-      text: "You wanna accept this expenses!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#88be89",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, Add Expenses!",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        console.log("expenseId", id);
-        startTransition(async () => {
-          const res = await approveExpenses(id);
-          console.log(res);
-          // 🔄 Refresh the page to fetch updated expenses
-          router.refresh();
-        });
-      }
+    setApproveConfirmId(id);
+  };
+
+  const handleApproveConfirm = () => {
+    if (!approveConfirmId) {
+      return;
+    }
+
+    const expenseId = approveConfirmId;
+    setApproveConfirmId(null);
+
+    startTransition(async () => {
+      const res = await approveExpenses(expenseId);
+      console.log(res);
+      router.refresh();
     });
   };
 
@@ -478,36 +475,27 @@ export default function FinancialRecords({
         </CardContent>
       </Card>
 
-      {/* DELETE CONFIRMATION */}
-      <Dialog
-        open={!!deleteConfirmId}
-        onOpenChange={() => setDeleteConfirmId(null)}
-      >
-        <DialogContent className="sm:max-w-md border-none shadow-2xl">
-          <DialogHeader>
-            <DialogTitle>Are you absolutely sure?</DialogTitle>
-            <DialogDescription>
-              This will permanently delete this expense from the mess records.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              className="mr-2 cursor-pointer bg-accent"
-              variant="ghost"
-              onClick={() => setDeleteConfirmId(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="cursor-pointer "
-              variant="destructive"
-              onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
-            >
-              Delete Entry
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmModal
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+        title="Delete this expense entry?"
+        description="This will permanently remove the expense from the mess records. This action cannot be undone."
+        confirmText="Delete Entry"
+        cancelText="Cancel"
+        variant="danger"
+      />
+
+      <ConfirmModal
+        isOpen={!!approveConfirmId}
+        onClose={() => setApproveConfirmId(null)}
+        onConfirm={handleApproveConfirm}
+        title="Approve this expense?"
+        description="This will mark the selected expense as approved and refresh the records."
+        confirmText="Approve Expense"
+        cancelText="Review Again"
+        variant="warning"
+      />
 
       {/* VIEW DETAILS */}
       <Dialog

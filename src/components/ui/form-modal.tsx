@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Modal from "./modal";
-import { Button } from "./button";
+import Button from "../button/button";
 
 const FormModalView: React.FC = () => {
   const [isContactOpen, setIsContactOpen] = useState(false);

@@ -8,7 +8,10 @@ import {
   Edit,
   Trash,
   Eye,
+  CheckCircle,
 } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,24 +22,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { toast } from "sonner";
-import Link from "next/link";
+import type { DepositPageRole, UserLedger } from "@/types/Deposit";
 
-export type UserLedger = {
-  userId: string;
-  name: string;
-  email: string;
-  totalCost: number;
-  totalDeposit: number;
-};
-
-// Currency Formatter Utility
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
 });
 
-export const columns: ColumnDef<UserLedger>[] = [
+export const getColumns = (role: DepositPageRole): ColumnDef<UserLedger>[] => [
   {
     accessorKey: "name",
     header: "User",
@@ -48,7 +41,6 @@ export const columns: ColumnDef<UserLedger>[] = [
     accessorKey: "email",
     header: "Email",
   },
-
   {
     accessorKey: "totalDeposit",
     header: ({ column }) => (
@@ -61,7 +53,7 @@ export const columns: ColumnDef<UserLedger>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      const deposit = parseFloat(row.getValue("totalDeposit"));
+      const deposit = Number(row.getValue("totalDeposit"));
       return (
         <div className="pl-4">
           {deposit > 0 ? (
@@ -84,6 +76,7 @@ export const columns: ColumnDef<UserLedger>[] = [
     id: "actions",
     cell: ({ row }) => {
       const user = row.original;
+      const pendingCount = user.pendingRequestCount ?? 0;
 
       return (
         <DropdownMenu>
@@ -102,6 +95,32 @@ export const columns: ColumnDef<UserLedger>[] = [
             >
               <Copy className="mr-2 h-4 w-4" /> Copy User ID
             </DropdownMenuItem>
+            {role === "manager" ? (
+              <DropdownMenuItem
+                onSelect={() =>
+                  window.dispatchEvent(
+                    new CustomEvent("open-deposit-requests-dialog", {
+                      detail: user,
+                    }),
+                  )
+                }
+                disabled={pendingCount === 0}
+              >
+                <CheckCircle className="mr-2 h-4 w-4" /> Review Requests
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                onSelect={() =>
+                  window.dispatchEvent(
+                    new CustomEvent("open-deposit-requests-dialog", {
+                      detail: user,
+                    }),
+                  )
+                }
+              >
+                <CheckCircle className="mr-2 h-4 w-4" /> View Requests
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() =>
@@ -112,10 +131,10 @@ export const columns: ColumnDef<UserLedger>[] = [
             >
               <Edit className="mr-2 h-4 w-4" /> Edit User
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <Link href={`/dashboard/profile/${user.userId}`}>
-                <div className=" flex justify-center items-center gap-2">
-                  <Eye className="mr-2 h-4 w-4" /> View Ledger
+                <div className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" /> View Ledger
                 </div>
               </Link>
             </DropdownMenuItem>

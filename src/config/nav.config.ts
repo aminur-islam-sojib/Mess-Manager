@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 export type Role = "manager" | "user" | "admin";
+export type AppRole = Extract<Role, "manager" | "user">;
 
 export type NavItem = {
   label: string;
@@ -20,12 +21,24 @@ export type NavItem = {
   requiresMess?: boolean;
 };
 
+export type RoleNavigationMeta = {
+  sidebarTitle: string;
+  sidebarSubtitle: string;
+  mobileTitle: string;
+};
+
 export const NAV_CONFIG: Record<Role, NavItem[]> = {
   manager: [
     {
       label: "Overview",
       href: "/dashboard/manager",
       icon: Home,
+    },
+    {
+      label: "Add Meals",
+      href: "/dashboard/manager/meals",
+      icon: UtensilsCrossed,
+      requiresMess: true,
     },
     {
       label: "Members",
@@ -39,12 +52,7 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       icon: WalletMinimalIcon,
       requiresMess: true,
     },
-    {
-      label: "Add Meals",
-      href: "/dashboard/manager/meals",
-      icon: UtensilsCrossed,
-      requiresMess: true,
-    },
+
     {
       label: "Meals Reports",
       href: "/dashboard/manager/meals-report",
@@ -80,15 +88,21 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       icon: Home,
     },
     {
+      label: "Meal Report",
+      href: "/dashboard/user/meals-report",
+      icon: BarChartHorizontalBig,
+      requiresMess: true,
+    },
+    {
       label: "Members",
       href: "/dashboard/user/members",
       icon: UsersIcon,
       requiresMess: true,
     },
     {
-      label: "Meal Report",
-      href: "/dashboard/user/meals-report",
-      icon: BarChartHorizontalBig,
+      label: "Deposits",
+      href: "/dashboard/user/deposits",
+      icon: WalletMinimalIcon,
       requiresMess: true,
     },
     {
@@ -116,6 +130,12 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       icon: Home,
     },
     {
+      label: "Members",
+      href: "/dashboard/admin/members",
+      icon: UsersIcon,
+      requiresMess: true,
+    },
+    {
       label: "Expenses",
       href: "/dashboard/admin/expenses",
       icon: TrendingDown,
@@ -125,11 +145,41 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       href: "/dashboard/admin/settings",
       icon: Settings,
     },
-    {
-      label: "Members",
-      href: "/dashboard/admin/members",
-      icon: UsersIcon,
-      requiresMess: true,
-    },
   ],
 };
+
+export const ROLE_NAV_META: Record<AppRole, RoleNavigationMeta> = {
+  manager: {
+    sidebarTitle: "Manager",
+    sidebarSubtitle: "Dashboard",
+    mobileTitle: "Manager Dashboard",
+  },
+  user: {
+    sidebarTitle: "Member",
+    sidebarSubtitle: "Dashboard",
+    mobileTitle: "Dashboard",
+  },
+};
+
+export function getVisibleNavItems(
+  role: Role,
+  hasMessAccess?: boolean,
+): NavItem[] {
+  return (NAV_CONFIG[role] ?? []).filter(
+    (item) => !item.requiresMess || hasMessAccess,
+  );
+}
+
+export function isNavItemActive(pathname: string, href: string): boolean {
+  if (pathname === href) {
+    return true;
+  }
+
+  const hrefDepth = href.split("/").filter(Boolean).length;
+
+  if (hrefDepth <= 2) {
+    return false;
+  }
+
+  return pathname.startsWith(`${href}/`);
+}

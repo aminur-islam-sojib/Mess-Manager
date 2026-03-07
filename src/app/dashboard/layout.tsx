@@ -1,11 +1,10 @@
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/options";
-import UserSidebar from "@/components/Navbar/UserSidebar";
-import ManagerSidebar from "@/components/Navbar/ManagerSidebar";
-import UserBottomNav from "@/components/Shared/UserBottomBar";
 import { getSingleMessForUser } from "@/actions/server/Mess";
-import ManagerBottomNav from "@/components/Shared/ManagerBottomNav";
+import AppSidebar from "@/components/Shared/AppSidebar";
+import AppBottomNav from "@/components/Shared/AppBottomNav";
+import DashboardPageTransition from "@/components/Shared/DashboardPageTransition";
 
 export default async function DashboardLayout({
   children,
@@ -44,17 +43,30 @@ export default async function DashboardLayout({
     <div className="min-h-screen bg-background lg:flex">
       <div className="flex-1">
         {role === "user" && (
-          <UserSidebar user={session.user} isMessExist={isMessExist} />
+          <AppSidebar
+            user={session.user}
+            isMessExist={isMessExist}
+            role={role}
+            alertCount={1}
+          />
         )}
         {role === "manager" && (
-          <ManagerSidebar user={session.user} isMessExist={isMessExist} />
+          <AppSidebar
+            user={session.user}
+            isMessExist={isMessExist}
+            role={role}
+            alertCount={3}
+          />
         )}
 
-        <div className=" p-4 md:p-6 lg:ml-72 pb-20 lg:pb-0">{children}</div>
+        <div className="p-4 pb-20 md:p-6 lg:ml-72 lg:pb-0">
+          <DashboardPageTransition>{children}</DashboardPageTransition>
+        </div>
 
         {/* Bottom Navigation - Mobile Only */}
-        {role === "user" && <UserBottomNav role={role} />}
-        {role === "manager" && <ManagerBottomNav role={role} />}
+        {(role === "user" || role === "manager") && (
+          <AppBottomNav role={role} isMessExist={isMessExist} />
+        )}
       </div>
     </div>
   );

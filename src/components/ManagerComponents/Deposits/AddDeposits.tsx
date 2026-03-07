@@ -1,7 +1,13 @@
 "use client";
 
 import { format } from "date-fns";
-import { addUserDeposit } from "@/actions/server/Deposit";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  addUserDeposit,
+  requestDeposit,
+} from "@/actions/server/Deposit";
 import IndividualMemberSelector from "@/components/Shared/IndividualMemberSelector";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -27,14 +33,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { MessDataResponse } from "@/types/MealManagement";
-import { Label } from "@radix-ui/react-label";
-import { Separator } from "@radix-ui/react-separator";
-import { CalendarIcon, DollarSign, Loader2, Plus } from "lucide-react";
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import type { MessDataResponse } from "@/types/MealManagement";
+import type { DepositMethod, DepositPageRole } from "@/types/Deposit";
+import { CalendarIcon, DollarSign, Loader2, Plus } from "lucide-react";
 
 interface DepositFormData {
   userId: string;
@@ -46,108 +50,184 @@ interface DepositFormData {
 
 type AddDepositProps = {
   messData: MessDataResponse;
+  role: DepositPageRole;
+  currentUserId: string;
 };
 
-export default function AddDeposit({ messData }: AddDepositProps) {
+const INITIAL_FORM_STATE: DepositFormData = {
+  userId: "",
+  amount: "",
+  method: "",
+  date: "",
+  note: "",
+};
+
+export default function AddDeposit({
+  messData,
+  role,
+  currentUserId,
+}: AddDepositProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<DepositFormData>>({});
-
   const [formData, setFormData] = useState<DepositFormData>({
-    userId: "",
-    amount: "",
-    method: "",
-    date: "",
-    note: "",
+    ...INITIAL_FORM_STATE,
+    userId: role === "user" ? currentUserId : "",
   });
 
-  /* ---------- VALIDATION ---------- */
+  const memberOptions = useMemo(() => {
+    if (!messData.success || !messData.members) return [];
+
+    if (role === "manager") {
+      return messData.members;
+    }
+
+    return messData.members.filter((member) => member.userId === currentUserId);
+  }, [currentUserId, messData, role]);
+
+  const selectorMessData = useMemo<MessDataResponse>(
+    () => ({
+      success: true,
+      members: memberOptions,
+    }),
+    [memberOptions],
+  );
+
+  const resetForm = () => {
+    setFormData({
+      ...INITIAL_FORM_STATE,
+      userId: role === "user" ? currentUserId : "",
+    });
+    setErrors({});
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Partial<DepositFormData> = {};
+    const amount = Number(formData.amount);
 
-    if (!formData.userId) newErrors.userId = "Member is required";
-    if (!formData.amount || parseFloat(formData.amount) <= 0)
-      newErrors.amount = "Valid amount is required";
+    if (!messData.success || !messData.messId) {
+      toast.error("User must belong to a mess");
+      return false;
+    }
+
+    if (!currentUserId) {
+      toast.error("Unauthorized");
+      return false;
+    }
+
+    if (!formData.userId) {
+      newErrors.userId = "Member is required";
+    }
+
+    if (!formData.amount.trim()) {
+      newErrors.amount = "Amount is required";
+    } else if (!Number.isFinite(amount)) {
+      newErrors.amount = "Amount must be a valid number";
+    } else if (amount <= 0) {
+      newErrors.amount = "Deposit amount must be greater than 0";
+    }
+
     if (!formData.method) newErrors.method = "Payment method is required";
     if (!formData.date) newErrors.date = "Date is required";
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    if (Object.keys(newErrors).length > 0) {
+      const firstError = Object.values(newErrors)[0];
+      if (firstError) {
+        toast.error(firstError);
+      }
+      return false;
+    }
+
+    return true;
   };
 
-  /* ---------- SUBMIT ---------- */
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen && role === "user") {
+      setFormData((prev) => ({ ...prev, userId: currentUserId }));
+    }
+    setIsOpen(nextOpen);
+    if (!nextOpen) {
+      resetForm();
+    }
+  };
 
-    if (!messData?.messId) {
-      alert("Mess ID is missing. Please reload.");
+  const handleSubmit = async () => {
+    if (isLoading || isPending) {
+      toast.error("Please wait for the current submission to finish");
       return;
     }
 
-    setIsLoading(true);
+    if (!validateForm() || !messData.success || !messData.messId) return;
 
+    setIsLoading(true);
     const payload = {
       messId: messData.messId,
       userId: formData.userId,
-      amount: parseFloat(formData.amount),
-      method: formData.method as "cash" | "bkash" | "nagad" | "bank",
+      amount: Number(formData.amount),
+      method: formData.method as DepositMethod,
       note: formData.note,
       date: formData.date,
     };
 
     startTransition(async () => {
-      const res = await addUserDeposit(payload);
+      try {
+        const response =
+          role === "manager"
+            ? await addUserDeposit(payload)
+            : await requestDeposit(payload);
 
-      if (res.success) {
-        setFormData({
-          userId: "",
-          amount: "",
-          method: "",
-          date: "",
-          note: "",
-        });
+        if (!response.success) {
+          toast.error(response.message);
+          return;
+        }
 
-        setIsOpen(false);
+        toast.success(response.message);
+        handleOpenChange(false);
         router.refresh();
-      } else {
-        alert("Failed to add deposit");
+      } catch {
+        toast.error(
+          role === "manager"
+            ? "Failed to add deposit"
+            : "Failed to send deposit request",
+        );
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     });
   };
 
   return (
     <>
-      {/* 🔘 Trigger Button */}
-      <Button onClick={() => setIsOpen(true)} className="gap-2 cursor-pointer">
+      <Button onClick={() => handleOpenChange(true)} className="gap-2 cursor-pointer">
         <Plus className="h-4 w-4" />
-        Add Deposit
+        {role === "manager" ? "Add Deposit" : "Request Deposit"}
       </Button>
 
-      {/* 🪟 Modal */}
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-112.5 p-0 overflow-hidden border-none shadow-2xl">
           <DialogHeader className="px-6 pt-6 pb-0 bg-muted/30">
             <DialogTitle className="text-2xl font-bold tracking-tight">
-              Add Deposit
+              {role === "manager" ? "Add Deposit" : "Request Deposit"}
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
-              Record a member’s deposit. Only managers can add deposits.
+              {role === "manager"
+                ? "Record a member’s deposit. Only managers can add deposits."
+                : "Submit your deposit request for manager approval."}
             </DialogDescription>
           </DialogHeader>
 
           <ScrollArea className="max-h-[calc(90vh-180px)]">
             <div className="p-6 space-y-5">
-              {/* Member */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold">
+                <label className="text-sm font-semibold">
                   Deposited By <span className="text-destructive">*</span>
-                </Label>
+                </label>
                 <IndividualMemberSelector
-                  messData={messData}
+                  messData={selectorMessData}
                   setSelectedId={(id) =>
                     setFormData((prev) => ({ ...prev, userId: id }))
                   }
@@ -160,11 +240,10 @@ export default function AddDeposit({ messData }: AddDepositProps) {
               </div>
 
               <div className="grid grid-cols-2 space-x-4">
-                {/* Amount */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold">
                     Amount <span className="text-destructive">*</span>
-                  </Label>
+                  </label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -176,20 +255,25 @@ export default function AddDeposit({ messData }: AddDepositProps) {
                       )}
                       value={formData.amount}
                       onChange={(e) =>
-                        setFormData({ ...formData, amount: e.target.value })
+                        setFormData((prev) => ({ ...prev, amount: e.target.value }))
                       }
                     />
                   </div>
+                  {errors.amount && (
+                    <p className="text-[11px] font-medium text-destructive">
+                      {errors.amount}
+                    </p>
+                  )}
                 </div>
 
-                {/* Method */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold">
+                  <label className="text-sm font-semibold">
                     Payment Method <span className="text-destructive">*</span>
-                  </Label>
+                  </label>
                   <Select
+                    value={formData.method}
                     onValueChange={(value) =>
-                      setFormData({ ...formData, method: value })
+                      setFormData((prev) => ({ ...prev, method: value }))
                     }
                   >
                     <SelectTrigger
@@ -204,14 +288,18 @@ export default function AddDeposit({ messData }: AddDepositProps) {
                       <SelectItem value="bank">Bank Transfer</SelectItem>
                     </SelectContent>
                   </Select>
+                  {errors.method && (
+                    <p className="text-[11px] font-medium text-destructive">
+                      {errors.method}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {/* Date */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold">
+                <label className="text-sm font-semibold">
                   Deposit Date <span className="text-destructive">*</span>
-                </Label>
+                </label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -231,32 +319,34 @@ export default function AddDeposit({ messData }: AddDepositProps) {
                   <PopoverContent className="w-auto p-0">
                     <Calendar
                       mode="single"
-                      selected={
-                        formData.date ? new Date(formData.date) : undefined
-                      }
+                      selected={formData.date ? new Date(formData.date) : undefined}
                       onSelect={(date) =>
-                        setFormData({
-                          ...formData,
-                          date: date ? date.toISOString().split("T")[0] : "",
-                        })
+                        setFormData((prev) => ({
+                          ...prev,
+                          date: date ? format(date, "yyyy-MM-dd") : "",
+                        }))
                       }
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
+                {errors.date && (
+                  <p className="text-[11px] font-medium text-destructive">
+                    {errors.date}
+                  </p>
+                )}
               </div>
 
-              {/* Note */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-muted-foreground">
+                <label className="text-sm font-semibold text-muted-foreground">
                   Note (Optional)
-                </Label>
+                </label>
                 <Textarea
                   placeholder="e.g. February advance, meal payment"
                   className="resize-none min-h-20"
                   value={formData.note}
                   onChange={(e) =>
-                    setFormData({ ...formData, note: e.target.value })
+                    setFormData((prev) => ({ ...prev, note: e.target.value }))
                   }
                 />
               </div>
@@ -268,9 +358,9 @@ export default function AddDeposit({ messData }: AddDepositProps) {
           <DialogFooter className="px-6 py-4 bg-muted/30 gap-2">
             <Button
               variant="secondary"
-              onClick={() => setIsOpen(false)}
+              onClick={() => handleOpenChange(false)}
               disabled={isLoading}
-              className=" cursor-pointer"
+              className="cursor-pointer"
             >
               Cancel
             </Button>
@@ -284,8 +374,10 @@ export default function AddDeposit({ messData }: AddDepositProps) {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving...
                 </>
-              ) : (
+              ) : role === "manager" ? (
                 "Add Deposit"
+              ) : (
+                "Send Request"
               )}
             </Button>
           </DialogFooter>

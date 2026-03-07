@@ -7,7 +7,6 @@ import {
   Search,
   Check,
   ChevronDown,
-  Info,
   ChevronRight,
   UserCheck,
 } from "lucide-react";
@@ -21,10 +20,10 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import type { MealEntry, MessDataResponse } from "@/types/MealManagement";
-import Swal from "sweetalert2";
 import { toast } from "sonner";
 import { addMealEntry } from "@/actions/server/Meals";
 import { Input } from "@/components/ui/input";
+import ConfirmModal from "@/components/ui/confirmation-modal";
 
 interface MealManagementClientProps {
   messData: MessDataResponse;
@@ -37,6 +36,7 @@ export default function IndividualMealEntry({
   const [selectedMember, setSelectedMember] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const [individualMeals, setIndividualMeals] = useState<MealEntry>({
     breakfast: 0,
@@ -71,32 +71,29 @@ export default function IndividualMealEntry({
       toast.error("Please select a member first");
       return;
     }
+    if (totalMeals === 0) {
+      toast.error("Please add at least one meal");
+      return;
+    }
 
-    const result = await Swal.fire({
-      title: "Confirm Entry",
-      html: `Assigning <b>${totalMeals} meals</b> to <b>${selectedMemberData?.name}</b> for ${format(selectedDate, "PPP")}`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Confirm",
-      // confirmButtonColor: "hsl(var(--primary))",
-      customClass: { popup: "rounded-3xl border-none shadow-xl" },
-    });
+    setConfirmOpen(true);
+  };
 
-    if (result.isConfirmed) {
-      setIsSubmitting(true);
-      try {
-        const res = await addMealEntry({
-          date: format(selectedDate, "yyyy-MM-dd"),
-          meals: individualMeals,
-          mode: "individual",
-          memberId: selectedMember,
-        });
-        console.log(res);
-        if (res.success) toast.success(res.message);
-        else toast.error(res.message);
-      } finally {
-        setIsSubmitting(false);
-      }
+  const handleConfirmSubmit = async () => {
+    setConfirmOpen(false);
+    setIsSubmitting(true);
+    try {
+      const res = await addMealEntry({
+        date: format(selectedDate, "yyyy-MM-dd"),
+        meals: individualMeals,
+        mode: "individual",
+        memberId: selectedMember,
+      });
+      console.log(res);
+      if (res.success) toast.success(res.message);
+      else toast.error(res.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -285,6 +282,17 @@ export default function IndividualMealEntry({
           )}
         </AnimatePresence>
       </Button>
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirmSubmit}
+        title="Confirm meal entry"
+        description={`Assign ${totalMeals} meals to ${selectedMemberData?.name ?? "this member"} for ${format(selectedDate, "PPP")}.`}
+        confirmText="Confirm Entry"
+        cancelText="Review Again"
+        variant="default"
+      />
     </div>
   );
 }

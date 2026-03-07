@@ -24,7 +24,7 @@ import {
 
 export default function MonthlyMessReport({
   reportData,
-  costPerMeal = 50,
+  costPerMeal = 0,
 }: MonthlyMealTracingDashboardProps) {
   const [selectedView, setSelectedView] = useState<"overview" | "members">(
     "overview",

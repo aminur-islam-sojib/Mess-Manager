@@ -115,25 +115,25 @@ export default function IndividualExpenses({
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <Card>
-          <CardContent className="pt-6">
+          <CardContent>
             <p className="text-xs text-muted-foreground">Total Meals</p>
             <p className="text-2xl font-bold">{totals.totalMeals}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent>
             <p className="text-xs text-muted-foreground">Approved</p>
             <p className="text-2xl font-bold">৳{totals.totalApproved}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent>
             <p className="text-xs text-muted-foreground">Pending</p>
             <p className="text-2xl font-bold">৳{totals.totalPending}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent>
             <p className="text-xs text-muted-foreground">Total Expense</p>
             <p className="text-2xl font-bold">৳{totals.totalExpense}</p>
           </CardContent>

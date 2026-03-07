@@ -7,6 +7,7 @@ import DateRangeReport from "./CustomMealTracker";
 import {
   GetTodayMealsResponse,
   GetMonthlyMealsResponse,
+  CurrentMonthMealCostDetails,
 } from "@/types/MealManagementTypes";
 import { getMonthlyExpensesSummary } from "@/actions/server/Expense";
 import TodaysMessReport2 from "@/components/Shared/MealTrack/TodaysMessReport";
@@ -42,11 +43,13 @@ const contentVariants = {
 interface TabsViewClassicProps {
   todayData?: GetTodayMealsResponse | { success: false; message: string };
   monthlyData?: GetMonthlyMealsResponse | { success: false; message: string };
+  currentMonthMealCostDetails: CurrentMonthMealCostDetails;
 }
 
 export default function TabsViewClassic({
   todayData,
   monthlyData,
+  currentMonthMealCostDetails,
 }: TabsViewClassicProps) {
   const [selectedView, setSelectedView] = useState<
     "daily" | "monthly" | "custom"
@@ -66,6 +69,7 @@ export default function TabsViewClassic({
     fetchData();
   }, [costPerMeal]);
 
+  console.log(currentMonthMealCostDetails);
   return (
     <div>
       <div className="relative flex items-center gap-1 bg-muted rounded-xl p-1">
@@ -124,7 +128,7 @@ export default function TabsViewClassic({
             </motion.div>
           )}
 
-          {selectedView === "monthly" && (
+          {selectedView === "monthly" && costPerMeal && (
             <motion.div
               key="monthly"
               variants={contentVariants}
@@ -132,7 +136,10 @@ export default function TabsViewClassic({
               animate="animate"
               exit="exit"
             >
-              <MonthlyMessReport reportData={monthlyData} />
+              <MonthlyMessReport
+                reportData={monthlyData}
+                costPerMeal={costPerMeal}
+              />
             </motion.div>
           )}
 

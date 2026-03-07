@@ -1,4 +1,5 @@
 import { getManagerDashboardOverview } from "@/actions/server/Admin";
+import { getCurrentMonthCostPerMeal } from "@/actions/server/Expense";
 import { getSingleMessForUser } from "@/actions/server/Mess";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import ManagerHeader from "@/components/ManagerComponents/ManagerHeader";
@@ -35,7 +36,8 @@ export default async function ManagerDashboard() {
       <div className="p-10 text-center text-red-500">{managerData.message}</div>
     );
   }
-
+  const currentMonthCostPerMeal = await getCurrentMonthCostPerMeal();
+  console.log(currentMonthCostPerMeal);
   return (
     <div className="min-h-screen bg-background lg:flex">
       <div className="flex-1 ">
