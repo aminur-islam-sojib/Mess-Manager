@@ -5,6 +5,11 @@ import { ObjectId } from "mongodb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import { collections, dbConnect } from "@/lib/dbConnect";
+import {
+  createNotification as createNotificationRecord,
+  createNotificationsForUsers,
+  getMessRecipientUserIds,
+} from "@/lib/notificationService";
 import type {
   AddDepositPayload,
   DepositDocument,
@@ -224,6 +229,14 @@ const revalidateDepositPaths = () => {
   revalidatePath("/dashboard/user/deposits");
 };
 
+const runNotificationSafely = async (work: () => Promise<unknown>) => {
+  try {
+    await work();
+  } catch (error) {
+    console.error("Deposit notification error:", error);
+  }
+};
+
 export async function addUserDeposit(
   payload: AddDepositPayload,
 ): Promise<ActionResponse> {
@@ -259,6 +272,29 @@ export async function addUserDeposit(
     const deposits = dbConnect(collections.DEPOSITS);
     const result = await deposits.insertOne(depositDoc);
     revalidateDepositPaths();
+
+    await runNotificationSafely(() =>
+      createNotificationRecord({
+        userId: validated.targetUserId,
+        messId: validated.messId,
+        type: "deposit_approved",
+        title: `Deposit approved: ${validated.amount} BDT`,
+        message: `${
+          session.user.name ?? "Manager"
+        } recorded a deposit of ${validated.amount} BDT for ${validated.date}.`,
+        metadata: {
+          depositId: result.insertedId.toString(),
+          amount: validated.amount,
+          method: validated.method,
+          date: validated.date,
+          targetPath:
+            validated.targetUserId.toString() === actorId.toString()
+              ? "/dashboard/manager/deposits"
+              : "/dashboard/user/deposits",
+        },
+        sendPush: true,
+      }),
+    );
 
     return {
       success: true,
@@ -317,6 +353,39 @@ export async function requestDeposit(
     const requests = dbConnect(collections.DEPOSIT_REQUESTS);
     const result = await requests.insertOne(requestDoc);
     revalidateDepositPaths();
+
+    await runNotificationSafely(async () => {
+      const managerIds = await getMessRecipientUserIds(validated.messId, {
+        includeManagers: true,
+        includeMembers: false,
+      });
+
+      if (!managerIds.length) {
+        return;
+      }
+
+      await createNotificationsForUsers({
+        userIds: managerIds,
+        messId: validated.messId,
+        type: "deposit_requested",
+        title: `Deposit request: ${validated.amount} BDT`,
+        message: `${
+          session.user.name ?? "A member"
+        } requested a deposit approval for ${validated.amount} BDT on ${
+          validated.date
+        }.`,
+        metadata: {
+          requestId: result.insertedId.toString(),
+          requestedBy: actorId.toString(),
+          requestedByName: session.user.name ?? "Member",
+          amount: validated.amount,
+          method: validated.method,
+          date: validated.date,
+          targetPath: "/dashboard/manager/deposits",
+        },
+        sendPush: true,
+      });
+    });
 
     return {
       success: true,
@@ -518,6 +587,36 @@ async function reviewDepositRequest(
     );
 
     revalidateDepositPaths();
+
+    await runNotificationSafely(() =>
+      createNotificationRecord({
+        userId: existing.requestedBy,
+        messId: existing.messId,
+        type: decision === "approved" ? "deposit_approved" : "deposit_rejected",
+        title: `${
+          decision === "approved" ? "Deposit approved" : "Deposit rejected"
+        }: ${existing.amount} BDT`,
+        message:
+          decision === "approved"
+            ? `${
+                session.user.name ?? "Manager"
+              } approved your deposit request for ${existing.amount} BDT.`
+            : `${
+                session.user.name ?? "Manager"
+              } rejected your deposit request for ${existing.amount} BDT${
+                note?.trim() ? `: ${note.trim()}` : "."
+              }`,
+        metadata: {
+          requestId,
+          amount: existing.amount,
+          method: existing.method,
+          date: existing.date,
+          approvalNote: note?.trim() ?? null,
+          targetPath: "/dashboard/user/deposits",
+        },
+        sendPush: true,
+      }),
+    );
 
     return {
       success: true,
