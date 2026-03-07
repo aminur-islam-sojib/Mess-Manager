@@ -41,7 +41,9 @@ export default function AccountSettingsSection({
   });
   const [notifications, setNotifications] = useState(user.notifications);
 
-  const runAction = (action: () => Promise<{ success: boolean; message: string }>) => {
+  const runAction = (
+    action: () => Promise<{ success: boolean; message: string }>,
+  ) => {
     startTransition(async () => {
       const result = await action();
       if (result.success) {
@@ -285,7 +287,9 @@ export default function AccountSettingsSection({
           />
 
           <Button
-            onClick={() => runAction(() => updateNotificationSettings(notifications))}
+            onClick={() =>
+              runAction(() => updateNotificationSettings(notifications))
+            }
             disabled={isPending}
             className="gap-2"
           >

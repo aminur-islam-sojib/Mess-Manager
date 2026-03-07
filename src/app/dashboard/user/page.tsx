@@ -11,7 +11,6 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Bell,
   Utensils,
   FileText,
 } from "lucide-react";
@@ -82,14 +81,6 @@ export default async function UserDashboard() {
                   Track your meals and expenses at {mess.messName}
                 </p>
               </div>
-              <button className="p-3 rounded-xl hover:bg-accent transition-colors relative">
-                <Bell className="w-6 h-6 text-foreground" />
-                {stats.pendingPayments > 0 && (
-                  <span className="absolute top-1 right-1 w-5 h-5 bg-destructive text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center">
-                    {stats.pendingPayments}
-                  </span>
-                )}
-              </button>
             </div>
 
             {stats.currentBalance < 0 && (

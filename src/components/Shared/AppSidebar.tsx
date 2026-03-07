@@ -2,23 +2,22 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
-import { Bell, Home, Menu, X } from "lucide-react";
+import { Home, Menu, X } from "lucide-react";
 import LogOutButton from "../Buttons/LogOutButton";
 import UserProfile from "./UserProfile";
 import NavigationMenu from "./NavigationMenu";
 import { SidebarProps } from "@/types/MessTypes";
 import { AppRole, ROLE_NAV_META } from "@/config/nav.config";
+import NotificationBell from "@/components/Notifications/NotificationBell";
 
 type AppSidebarProps = SidebarProps & {
   role: AppRole;
-  alertCount?: number;
 };
 
 export default function AppSidebar({
   user,
   isMessExist,
   role,
-  alertCount = 0,
 }: AppSidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const reduceMotion = useReducedMotion();
@@ -51,17 +50,12 @@ export default function AppSidebar({
             {roleMeta.mobileTitle}
           </h1>
 
-          <motion.button
-            whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-            className="relative rounded-xl p-2 -mr-2 transition-colors hover:bg-accent"
-          >
-            <Bell className="h-6 w-6 text-foreground" />
-            {alertCount > 0 && (
-              <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-primary-foreground">
-                {alertCount}
-              </span>
-            )}
-          </motion.button>
+          <motion.div whileTap={reduceMotion ? undefined : { scale: 0.96 }}>
+            <NotificationBell
+              buttonClassName="rounded-xl p-2 -mr-2"
+              iconClassName="h-6 w-6"
+            />
+          </motion.div>
         </div>
       </header>
 

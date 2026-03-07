@@ -5,6 +5,10 @@ import { ObjectId } from "mongodb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import { getUserMess } from "@/lib/getUserMess";
+import {
+  createNotification as createNotificationRecord,
+  createNotificationsForUsers,
+} from "@/lib/notificationService";
 import { MealMember } from "@/types/MealManagementTypes";
 
 type MealPayload = {
@@ -32,6 +36,14 @@ const buildInc = (meals: MealPayload["meals"]) => ({
   "breakdown.lunch": meals.lunch,
   "breakdown.dinner": meals.dinner,
 });
+
+const runNotificationSafely = async (work: () => Promise<unknown>) => {
+  try {
+    await work();
+  } catch (error) {
+    console.error("Meal notification error:", error);
+  }
+};
 
 export const addMealEntry = async (payload: MealPayload) => {
   try {
@@ -127,6 +139,31 @@ export const addMealEntry = async (payload: MealPayload) => {
         { upsert: true },
       );
 
+      await runNotificationSafely(() =>
+        createNotificationRecord({
+          userId: memberObjectId,
+          messId: mess._id,
+          type: "meal_entry_updated",
+          title: `Meal entry updated for ${payload.date}`,
+          message: `${
+            session.user.name ?? "Manager"
+          } updated your meal entry with ${totalMeals} meals.`,
+          metadata: {
+            date: payload.date,
+            mode: payload.mode,
+            totalMeals,
+            breakfast: payload.meals.breakfast,
+            lunch: payload.meals.lunch,
+            dinner: payload.meals.dinner,
+            targetPath:
+              memberObjectId.toString() === managerId.toString()
+                ? "/dashboard/manager/meals-report"
+                : "/dashboard/user/meals-report",
+          },
+          sendPush: true,
+        }),
+      );
+
       return {
         success: true as const,
         message: "Meal updated successfully for member",
@@ -171,6 +208,27 @@ export const addMealEntry = async (payload: MealPayload) => {
     }));
 
     await mealCollection.bulkWrite(operations);
+
+    await runNotificationSafely(() =>
+      createNotificationsForUsers({
+        userIds: members.map((member) => member.userId.toString()),
+        messId: mess._id,
+        type: "meal_entry_updated",
+        title: `Meal entries updated for ${payload.date}`,
+        message: `${
+          session.user.name ?? "Manager"
+        } updated meal entries for the active mess.`,
+        metadata: {
+          date: payload.date,
+          mode: payload.mode,
+          totalMeals,
+          breakfast: payload.meals.breakfast,
+          lunch: payload.meals.lunch,
+          dinner: payload.meals.dinner,
+        },
+        sendPush: true,
+      }),
+    );
 
     return {
       success: true as const,

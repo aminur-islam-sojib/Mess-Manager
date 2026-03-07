@@ -4,6 +4,11 @@ import { getServerSession } from "next-auth";
 import { InsertOneResult, ObjectId } from "mongodb";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import { collections, dbConnect } from "@/lib/dbConnect";
+import {
+  createNotification as createNotificationRecord,
+  createNotificationsForUsers,
+  getMessRecipientUserIds,
+} from "@/lib/notificationService";
 
 import type {
   AddExpensePayload,
@@ -97,6 +102,14 @@ const serializeExpense = (
   verifiedAt: expense.verifiedAt?.toISOString(),
   approvalNote: expense.approvalNote,
 });
+
+const runNotificationSafely = async (work: () => Promise<unknown>) => {
+  try {
+    await work();
+  } catch (error) {
+    console.error("Expense notification error:", error);
+  }
+};
 
 async function resolveActiveMess(userId: ObjectId): Promise<ActiveMembership> {
   const memberCollection = dbConnect(collections.MESS_MEMBERS);
@@ -343,6 +356,78 @@ export async function addExpense(
     const serializedExpenses = expenseDocs.map((doc, index) =>
       serializeExpense({ ...doc, _id: insertedIds[index] }),
     );
+
+    await runNotificationSafely(async () => {
+      if (status === "pending") {
+        const managerIds = await getMessRecipientUserIds(membership.messId, {
+          includeManagers: true,
+          includeMembers: false,
+        });
+
+        if (!managerIds.length) {
+          return;
+        }
+
+        await createNotificationsForUsers({
+          userIds: managerIds,
+          messId: membership.messId,
+          type: "expense_added",
+          title: `Expense awaiting approval: ${payload.title.trim()}`,
+          message: `${
+            session.user.name ?? "A member"
+          } submitted ${payload.title.trim()} for ${payload.amount} BDT.`,
+          metadata: {
+            expenseIds: insertedIds.map((id) => id.toString()),
+            amount: payload.amount,
+            expenseDate: expenseDateStr,
+            category: payload.category,
+            paymentSource,
+            submittedBy: userId.toString(),
+            submittedByName: session.user.name ?? "Member",
+            targetPath: "/dashboard/manager/expenses",
+          },
+          sendPush: true,
+        });
+        return;
+      }
+
+      const recipientIds =
+        paymentSource === "mess_pool"
+          ? await getMessRecipientUserIds(membership.messId)
+          : targetResult.userIds.map((targetUserId) => targetUserId.toString());
+
+      if (!recipientIds.length) {
+        return;
+      }
+
+      await createNotificationsForUsers({
+        userIds: recipientIds,
+        messId: membership.messId,
+        type: "expense_added",
+        title:
+          paymentSource === "mess_pool"
+            ? `New mess expense: ${payload.title.trim()}`
+            : `Expense added: ${payload.title.trim()}`,
+        message:
+          paymentSource === "mess_pool"
+            ? `${
+                session.user.name ?? "Manager"
+              } added a mess-pool expense of ${payload.amount} BDT.`
+            : `${
+                session.user.name ?? "Manager"
+              } added an approved expense of ${payload.amount} BDT for ${
+                expenseDateStr
+              }.`,
+        metadata: {
+          expenseIds: insertedIds.map((id) => id.toString()),
+          amount: payload.amount,
+          expenseDate: expenseDateStr,
+          category: payload.category,
+          paymentSource,
+        },
+        sendPush: true,
+      });
+    });
 
     return {
       success: true,
@@ -681,6 +766,36 @@ export const verifyExpense = async (
     if (!updatedExpense) {
       return { success: false, message: "Expense update failed" };
     }
+
+    await runNotificationSafely(() =>
+      createNotificationRecord({
+        userId: existing.paidBy,
+        messId: existing.messId,
+        type: decision === "approved" ? "expense_approved" : "expense_rejected",
+        title: `Expense ${decision}: ${existing.title}`,
+        message:
+          decision === "approved"
+            ? `${
+                session.user.name ?? "Manager"
+              } approved your expense "${existing.title}" for ${
+                existing.amount
+              } BDT.`
+            : `${
+                session.user.name ?? "Manager"
+              } rejected your expense "${existing.title}" for ${
+                existing.amount
+              } BDT${note?.trim() ? `: ${note.trim()}` : "."}`,
+        metadata: {
+          expenseId: existing._id.toString(),
+          amount: existing.amount,
+          expenseDate: existing.expenseDate,
+          category: existing.category,
+          approvalNote: note?.trim() ?? null,
+          targetPath: "/dashboard/user/expenses",
+        },
+        sendPush: true,
+      }),
+    );
 
     return {
       success: true,

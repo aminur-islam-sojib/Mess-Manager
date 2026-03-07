@@ -6,6 +6,15 @@ import crypto from "crypto";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import { revalidatePath } from "next/cache";
+import { createNotification as createNotificationRecord } from "@/lib/notificationService";
+
+const runNotificationSafely = async (work: () => Promise<unknown>) => {
+  try {
+    await work();
+  } catch (error) {
+    console.error("Invitation notification error:", error);
+  }
+};
 
 export const acceptInvitation = async (token: string, userId: string) => {
   if (!token || !userId) {
@@ -15,6 +24,7 @@ export const acceptInvitation = async (token: string, userId: string) => {
   try {
     const invitationCol = dbConnect(collections.INVITATIONS);
     const messMemberCol = dbConnect(collections.MESS_MEMBERS);
+    const userCollection = dbConnect(collections.USERS);
 
     // 1️⃣ Find valid invitation
     const invitation = await invitationCol.findOne({
@@ -68,6 +78,41 @@ export const acceptInvitation = async (token: string, userId: string) => {
         },
       },
     );
+
+    const joinedUser = await userCollection.findOne({ _id: userObjectId });
+
+    await runNotificationSafely(async () => {
+      await createNotificationRecord({
+        userId: invitation.managerId,
+        messId,
+        type: "member_joined",
+        title: `New member joined: ${joinedUser?.name ?? "A member"}`,
+        message: `${
+          joinedUser?.name ?? "A member"
+        } accepted the invitation and joined ${invitation.messName}.`,
+        metadata: {
+          memberId: userObjectId.toString(),
+          memberName: joinedUser?.name ?? "Unknown",
+          invitedEmail: invitation.invitedEmail,
+          targetPath: "/dashboard/manager/members",
+        },
+        sendPush: true,
+      });
+
+      await createNotificationRecord({
+        userId: userObjectId,
+        messId,
+        type: "invitation_accepted",
+        title: `Welcome to ${invitation.messName}`,
+        message: `Your invitation has been accepted and your membership is now active.`,
+        metadata: {
+          memberId: userObjectId.toString(),
+          messName: invitation.messName,
+          targetPath: "/dashboard/user/members",
+        },
+        sendPush: true,
+      });
+    });
 
     // 🔥 5️⃣ REVALIDATE DASHBOARD CACHE
     revalidatePath("/dashboard");
