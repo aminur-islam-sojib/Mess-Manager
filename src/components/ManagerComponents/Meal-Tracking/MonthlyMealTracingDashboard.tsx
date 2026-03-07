@@ -14,13 +14,16 @@ import {
   DollarSign,
   PieChart,
   BarChart2,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   MonthlyMealTracingDashboardProps,
   MealSummary,
   MealMember,
   GetMonthlyMealsResponseSuccess,
 } from "@/types/MealManagementTypes";
+import { downloadMealReportPdf } from "@/lib/meal-report-pdf";
 
 export default function MonthlyMessReport({
   reportData,
@@ -29,6 +32,7 @@ export default function MonthlyMessReport({
   const [selectedView, setSelectedView] = useState<"overview" | "members">(
     "overview",
   );
+  const [isExporting, setIsExporting] = useState(false);
 
   // Return empty state if no data
   if (
@@ -73,6 +77,7 @@ export default function MonthlyMessReport({
   ];
 
   const currentMonth = monthNames[month - 1];
+  const formatCurrency = (value: number) => `$${value.toLocaleString()}`;
 
   // Calculate costs
   const totalCost = summary.totalMeals * costPerMeal;
@@ -94,6 +99,37 @@ export default function MonthlyMessReport({
 
   // Sort members by total meals
   const sortedMembers = [...data].sort((a, b) => b.totalMeals - a.totalMeals);
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+
+      await downloadMealReportPdf({
+        title: "Monthly Meal Report",
+        periodLabel: `${currentMonth} ${year}`,
+        messName,
+        summary: [
+          { label: "Total Meals", value: String(summary.totalMeals) },
+          { label: "Members", value: String(data.length) },
+          { label: "Total Cost", value: formatCurrency(totalCost) },
+          {
+            label: "Avg per Member",
+            value: formatCurrency(avgCostPerMember),
+          },
+        ],
+        members: sortedMembers,
+        filename: `${messName}-${currentMonth}-${year}-meal-report.pdf`,
+        costPerMeal,
+      });
+
+      toast.success("Monthly meal report downloaded");
+    } catch (error) {
+      console.error("Failed to export monthly meal report", error);
+      toast.error("Failed to export monthly meal report");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background my-5">
@@ -121,9 +157,19 @@ export default function MonthlyMessReport({
                 <p className="text-primary-foreground/90">{messName}</p>
               </div>
 
-              <button className="px-4 py-2 bg-white/20 backdrop-blur-sm text-primary-foreground rounded-xl hover:bg-white/30 transition-all flex items-center gap-2 border border-white/20">
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Export</span>
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="px-4 py-2 bg-white/20 backdrop-blur-sm text-primary-foreground rounded-xl hover:bg-white/30 transition-all flex items-center gap-2 border border-white/20 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isExporting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {isExporting ? "Exporting..." : "Export PDF"}
+                </span>
               </button>
             </div>
 

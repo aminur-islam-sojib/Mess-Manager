@@ -15,13 +15,16 @@ import {
   Target,
   BarChart3,
   Clock,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   DateRangeReportProps,
   MealSummary,
   MealMember,
   GetMealsByDateRangeResponseSuccess,
 } from "@/types/MealManagementTypes";
+import { downloadMealReportPdf } from "@/lib/meal-report-pdf";
 
 export default function DateRangeReport({ reportData }: DateRangeReportProps) {
   const [sortBy, setSortBy] = useState<"meals" | "name">("meals");
@@ -29,6 +32,7 @@ export default function DateRangeReport({ reportData }: DateRangeReportProps) {
     "all" | "breakfast" | "lunch" | "dinner"
   >("all");
   const [viewMode, setViewMode] = useState<"cards" | "compact">("cards");
+  const [isExporting, setIsExporting] = useState(false);
 
   // Return empty state if no data
   if (
@@ -101,6 +105,36 @@ export default function DateRangeReport({ reportData }: DateRangeReportProps) {
       ? [...data].sort((a, b) => b.totalMeals - a.totalMeals)[0]
       : null;
 
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+
+      await downloadMealReportPdf({
+        title: "Date Range Meal Report",
+        periodLabel: `${formatDate(startDate)} - ${formatDate(endDate)}`,
+        messName,
+        summary: [
+          { label: "Total Meals", value: String(summary.totalMeals) },
+          { label: "Members", value: String(data.length) },
+          {
+            label: "Duration",
+            value: `${daysDiff} ${daysDiff === 1 ? "day" : "days"}`,
+          },
+          { label: "Avg per Day", value: avgMealsPerDay.toFixed(1) },
+        ],
+        members: processedData,
+        filename: `${messName}-${from}-to-${to}-meal-report.pdf`,
+      });
+
+      toast.success("Date range meal report downloaded");
+    } catch (error) {
+      console.error("Failed to export date range meal report", error);
+      toast.error("Failed to export date range meal report");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -132,9 +166,19 @@ export default function DateRangeReport({ reportData }: DateRangeReportProps) {
               </div>
             </div>
 
-            <button className="px-4 py-2 bg-white/20 backdrop-blur-sm text-primary-foreground rounded-xl hover:bg-white/30 transition-all flex items-center gap-2 border border-white/20">
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Export</span>
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="px-4 py-2 bg-white/20 backdrop-blur-sm text-primary-foreground rounded-xl hover:bg-white/30 transition-all flex items-center gap-2 border border-white/20 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isExporting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">
+                {isExporting ? "Exporting..." : "Export PDF"}
+              </span>
             </button>
           </div>
 

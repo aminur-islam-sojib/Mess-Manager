@@ -15,6 +15,10 @@ export const collections = {
 
 const uri = process.env.MONGO_URI;
 const dname = process.env.DB_NAME;
+const globalForMongo = globalThis as typeof globalThis & {
+  _mongoClient?: MongoClient;
+  _mongoClientPromise?: Promise<MongoClient>;
+};
 
 // here code changes
 if (!uri) {
@@ -26,14 +30,64 @@ if (!dname) {
   throw new Error("❌ Please add DB_NAME to .env.local");
 }
 
-const client = new MongoClient(uri, {
+const mongoClientOptions = {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
   },
-});
+};
+
+const isClientClosed = (client?: MongoClient) => {
+  if (!client) return true;
+
+  const internalClient = client as MongoClient & {
+    s?: { hasBeenClosed?: boolean };
+    topology?: { isDestroyed?: () => boolean };
+  };
+
+  return (
+    internalClient.s?.hasBeenClosed === true ||
+    internalClient.topology?.isDestroyed?.() === true
+  );
+};
+
+const createClient = () => new MongoClient(uri, mongoClientOptions);
+
+const ensureClientPromise = () => {
+  const client = getMongoClient();
+
+  if (!globalForMongo._mongoClientPromise) {
+    globalForMongo._mongoClientPromise = client.connect().catch((error) => {
+      if (globalForMongo._mongoClient === client) {
+        globalForMongo._mongoClient = undefined;
+        globalForMongo._mongoClientPromise = undefined;
+      }
+
+      throw error;
+    });
+  }
+
+  return globalForMongo._mongoClientPromise;
+};
+
+const getMongoClient = () => {
+  if (!isClientClosed(globalForMongo._mongoClient)) {
+    return globalForMongo._mongoClient as MongoClient;
+  }
+
+  const client = createClient();
+  globalForMongo._mongoClient = client;
+  globalForMongo._mongoClientPromise = undefined;
+
+  return client;
+};
+
+void ensureClientPromise();
 
 export const dbConnect = (cname: string) => {
+  const client = getMongoClient();
+  void ensureClientPromise();
+
   return client.db(dname).collection(cname);
 };

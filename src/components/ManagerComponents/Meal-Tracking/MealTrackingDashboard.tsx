@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion, cubicBezier } from "framer-motion";
 import MonthlyMessReport from "./MonthlyMealTracingDashboard";
 import { CalendarCog, CalendarDaysIcon, Timer } from "lucide-react";
@@ -9,7 +9,6 @@ import {
   GetMonthlyMealsResponse,
   CurrentMonthMealCostDetails,
 } from "@/types/MealManagementTypes";
-import { getMonthlyExpensesSummary } from "@/actions/server/Expense";
 import TodaysMessReport2 from "@/components/Shared/MealTrack/TodaysMessReport";
 
 const views = [
@@ -54,22 +53,8 @@ export default function TabsViewClassic({
   const [selectedView, setSelectedView] = useState<
     "daily" | "monthly" | "custom"
   >("daily");
-  const [costPerMeal, setCostPerMeal] = useState<number | undefined>();
+  const costPerMeal = currentMonthMealCostDetails.data?.costPerMeal;
 
-  useEffect(() => {
-    if (costPerMeal !== undefined) return;
-
-    const fetchData = async () => {
-      const res = await getMonthlyExpensesSummary();
-      if (!res) return;
-      setCostPerMeal(res.costPerMeal);
-      console.log(res);
-    };
-
-    fetchData();
-  }, [costPerMeal]);
-
-  console.log(currentMonthMealCostDetails);
   return (
     <div>
       <div className="relative flex items-center gap-1 bg-muted rounded-xl p-1">
@@ -128,7 +113,7 @@ export default function TabsViewClassic({
             </motion.div>
           )}
 
-          {selectedView === "monthly" && costPerMeal && (
+          {selectedView === "monthly" && (
             <motion.div
               key="monthly"
               variants={contentVariants}

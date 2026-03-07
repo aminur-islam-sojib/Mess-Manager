@@ -78,8 +78,9 @@ export default function NotificationBell({
 
       <PopoverContent
         align={align}
-        className="w-[min(92vw,25rem)] rounded-3xl border border-border/80 p-0 shadow-[0_18px_50px_rgba(15,23,42,0.12)]"
+        className="w-[min(92vw,25rem)] rounded-3xl border border-border/80 p-0 shadow-[0_18px_50px_rgba(15,23,42,0.12)] flex flex-col h-105"
       >
+        {/* Header */}
         <div className="border-b border-border/70 px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -87,6 +88,7 @@ export default function NotificationBell({
                 <h3 className="text-sm font-semibold text-foreground">
                   Notifications
                 </h3>
+
                 <span
                   className={cn(
                     "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
@@ -99,6 +101,7 @@ export default function NotificationBell({
                   {isConnected ? "Live" : "Reconnecting"}
                 </span>
               </div>
+
               <p className="text-xs text-muted-foreground">
                 {unreadCount > 0
                   ? `${unreadCount} unread notifications`
@@ -133,33 +136,37 @@ export default function NotificationBell({
           )}
         </div>
 
-        <ScrollArea className="max-h-96">
-          <div className="space-y-2 p-3">
-            {isLoading && notifications.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-                Loading notifications...
-              </div>
-            )}
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="space-y-2 p-3">
+              {isLoading && notifications.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                  Loading notifications...
+                </div>
+              )}
 
-            {!isLoading && notifications.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-                No notifications yet.
-              </div>
-            )}
+              {!isLoading && notifications.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                  No notifications yet.
+                </div>
+              )}
 
-            {notifications.map((notification) => (
-              <NotificationItem
-                key={notification.id}
-                notification={notification}
-                compact
-                onClick={() => {
-                  void openNotification(notification.id, notification.href);
-                }}
-              />
-            ))}
-          </div>
-        </ScrollArea>
+              {notifications.map((notification) => (
+                <NotificationItem
+                  key={notification.id}
+                  notification={notification}
+                  compact
+                  onClick={() => {
+                    void openNotification(notification.id, notification.href);
+                  }}
+                />
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
 
+        {/* Footer */}
         <div className="border-t border-border/70 px-4 py-3">
           <Link
             href="/dashboard/notifications"

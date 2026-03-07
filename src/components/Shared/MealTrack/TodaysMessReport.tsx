@@ -14,13 +14,16 @@ import {
   DollarSign,
   PieChart,
   BarChart2,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   DailyMealAttendanceProps,
   MealSummary,
   GetTodayMealsResponseSuccess,
 } from "@/types/MealManagementTypes";
 import { getMonthlyExpensesSummary } from "@/actions/server/Expense";
+import { downloadMealReportPdf } from "@/lib/meal-report-pdf";
 import StatCard from "./StatCard";
 import MealCard from "./MealCard";
 import CostRow from "./CostRow";
@@ -35,6 +38,7 @@ export default function TodaysMessReport2({
   const [selectedView, setSelectedView] = useState<"overview" | "members">(
     "overview",
   );
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,6 +92,7 @@ export default function TodaysMessReport2({
   });
 
   const totalCost = summary.totalMeals * costPerMeal;
+  const formatCurrency = (value: number) => `$${value.toLocaleString()}`;
 
   // Sorting logic for Rankings
   const sortedMembers = [...data].sort((a, b) => b.totalMeals - a.totalMeals);
@@ -99,6 +104,34 @@ export default function TodaysMessReport2({
   const breakfastPct = getPct(summary.breakfast);
   const lunchPct = getPct(summary.lunch);
   const dinnerPct = getPct(summary.dinner);
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+
+      await downloadMealReportPdf({
+        title: "Today's Meal Report",
+        periodLabel: formattedDate,
+        messName,
+        summary: [
+          { label: "Total Meals", value: String(summary.totalMeals) },
+          { label: "Members", value: String(data.length) },
+          { label: "Cost per Meal", value: formatCurrency(costPerMeal) },
+          { label: "Total Cost", value: formatCurrency(totalCost) },
+        ],
+        members: sortedMembers,
+        filename: `${messName}-${date}-today-meal-report.pdf`,
+        costPerMeal,
+      });
+
+      toast.success("Today's meal report downloaded");
+    } catch (error) {
+      console.error("Failed to export today's meal report", error);
+      toast.error("Failed to export today's meal report");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background my-5">
@@ -119,9 +152,19 @@ export default function TodaysMessReport2({
                 </h1>
                 <p className="opacity-90">{messName}</p>
               </div>
-              <button className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30 transition-all flex items-center gap-2 border border-white/20">
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Export</span>
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30 transition-all flex items-center gap-2 border border-white/20 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isExporting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {isExporting ? "Exporting..." : "Export PDF"}
+                </span>
               </button>
             </div>
 
