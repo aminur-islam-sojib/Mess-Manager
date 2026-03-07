@@ -95,7 +95,7 @@ export default function NotificationDetailClient({
             {metadataEntries.map(([key, value]) => (
               <div
                 key={key}
-                className="rounded-[1.25rem] border border-border/70 bg-background/70 p-4"
+                className="rounded-4xl border border-border/70 bg-background/70 p-4"
               >
                 <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                   {prettyLabel(key)}

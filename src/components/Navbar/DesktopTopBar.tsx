@@ -14,12 +14,12 @@ export default function DesktopTopBar({ user }: DesktopTopBarProps) {
         <NotificationBell />
 
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-            {user.name?.charAt(0)}
-          </div>
           <div className="text-right">
             <p className="text-sm font-medium leading-tight">{user.name}</p>
             <p className="text-xs text-muted-foreground">{user.email}</p>
+          </div>
+          <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
+            {user.name?.charAt(0)}
           </div>
         </div>
       </div>

@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, Radio } from "lucide-react";
 import { useNotifications } from "@/components/Notifications/NotificationProvider";
 import NotificationItem from "@/components/Notifications/NotificationItem";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
@@ -65,7 +69,7 @@ export default function NotificationBell({
         >
           <Bell className={cn("h-5 w-5 text-foreground", iconClassName)} />
           {unreadCount > 0 && (
-            <span className="absolute right-1 top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-primary-foreground">
+            <span className="absolute right-1 top-1 flex min-h-3 min-w-3 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-primary-foreground">
               {badgeLabel}
             </span>
           )}
