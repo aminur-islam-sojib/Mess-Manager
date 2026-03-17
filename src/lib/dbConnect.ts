@@ -1,4 +1,5 @@
 import { MongoClient, ServerApiVersion } from "mongodb";
+import dns from "node:dns";
 
 export const collections = {
   USERS: "users",
@@ -13,6 +14,20 @@ export const collections = {
 
 const uri = process.env.MONGO_URI;
 const dname = process.env.DB_NAME;
+
+if (process.env.NODE_ENV === "development") {
+  const dnsServers = process.env.MONGO_DNS_SERVERS?.split(",")
+    .map((server) => server.trim())
+    .filter(Boolean);
+
+  try {
+    dns.setServers(
+      dnsServers && dnsServers.length > 0 ? dnsServers : ["8.8.8.8", "1.1.1.1"],
+    );
+  } catch (error) {
+    console.warn("Failed to set custom DNS servers for MongoDB:", error);
+  }
+}
 
 // here code changes
 if (!uri) {
@@ -31,7 +46,17 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
-
+export async function checkMongoConnection() {
+  try {
+    await client.connect();
+    await client.db(dname).command({ ping: 1 });
+    console.log("MongoDB connected");
+    return true;
+  } catch (error) {
+    console.error("MongoDB connection failed:", error);
+    return false;
+  }
+}
 export const dbConnect = (cname: string) => {
   return client.db(dname).collection(cname);
 };
