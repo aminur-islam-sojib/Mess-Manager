@@ -2,12 +2,12 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
-import { Bell, Home, Menu, X } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 import LogOutButton from "../Buttons/LogOutButton";
-import UserProfile from "./UserProfile";
 import NavigationMenu from "./NavigationMenu";
 import { SidebarProps } from "@/types/MessTypes";
 import { AppRole, ROLE_NAV_META } from "@/config/nav.config";
+import SidebarIdentity from "./SidebarIdentity";
 
 type AppSidebarProps = SidebarProps & {
   role: AppRole;
@@ -23,6 +23,7 @@ export default function AppSidebar({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const reduceMotion = useReducedMotion();
   const roleMeta = ROLE_NAV_META[role];
+  const messName = getMessName(isMessExist);
 
   return (
     <>
@@ -33,6 +34,7 @@ export default function AppSidebar({
           role={role}
           title={roleMeta.sidebarTitle}
           subtitle={roleMeta.sidebarSubtitle}
+          messName={messName}
         />
       </aside>
 
@@ -95,6 +97,7 @@ export default function AppSidebar({
                 role={role}
                 title={roleMeta.sidebarTitle}
                 subtitle={roleMeta.sidebarSubtitle}
+                messName={messName}
                 onClose={() => setSidebarOpen(false)}
               />
             </motion.div>
@@ -109,6 +112,7 @@ type SidebarPanelProps = SidebarProps & {
   role: AppRole;
   title: string;
   subtitle: string;
+  messName: string;
   onClose?: () => void;
 };
 
@@ -116,44 +120,29 @@ function SidebarPanel({
   user,
   isMessExist,
   role,
-  title,
   subtitle,
+
   onClose,
 }: SidebarPanelProps) {
   return (
     <div className="flex h-full flex-col border-r border-sidebar-border bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,252,250,0.98))] shadow-[0_18px_50px_rgba(15,23,42,0.08)] dark:bg-[linear-gradient(180deg,rgba(30,36,47,0.98),rgba(23,29,39,0.98))]">
-      <div className="border-b border-sidebar-border/80 px-4 pb-4 pt-5">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/15 bg-primary/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]">
-              <Home className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-sidebar-foreground">
-                {title}
-              </h2>
-              <p className="text-xs font-medium text-muted-foreground">
-                {subtitle}
-              </p>
-            </div>
-          </div>
-
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="rounded-xl p-2 transition-colors hover:bg-sidebar-accent"
-              aria-label="Close navigation menu"
-            >
-              <X className="h-5 w-5 text-sidebar-foreground" />
-            </button>
-          )}
-        </div>
-      </div>
-      <UserProfile user={user} />
+      <SidebarIdentity
+        user={user}
+        role={role}
+        messName={getMessName(isMessExist)}
+        subtitle={subtitle}
+        onClose={onClose}
+      />
 
       <NavigationMenu role={role} isMessExist={isMessExist} />
 
       <LogOutButton />
     </div>
   );
+}
+
+function getMessName(isMessExist?: SidebarProps["isMessExist"]) {
+  const name = isMessExist?.mess?.messName?.trim();
+  if (!name) return "No Mess Assigned";
+  return name;
 }
