@@ -1,186 +1,79 @@
-import { Users, UserCog, CheckCircle2 } from "lucide-react";
-import LandingPageButton from "@/components/Buttons/LandingPageButton";
+import Link from "next/link";
+import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 
-export default function RoleSelection() {
+export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Left Side - Role Selection */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center ">
-        <div className="w-full max-w-md">
-          {/* Header Section */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="w-10 h-10 text-primary"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M8 3V5M16 3V5M4 9H20M6 21H18C19.1046 21 20 20.1046 20 19V7C20 5.89543 19.1046 5 18 5H6C4.89543 5 4 5.89543 4 7V19C4 20.1046 4.89543 21 6 21Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Welcome to Mess Manager
+    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(56,189,248,0.22),transparent_35%),radial-gradient(circle_at_85%_80%,rgba(16,185,129,0.2),transparent_40%),linear-gradient(160deg,#020617_0%,#0b1220_45%,#0f172a_100%)]" />
+
+      <div className="pointer-events-none absolute -left-24 top-24 h-72 w-72 rounded-full border border-cyan-300/20" />
+      <div className="pointer-events-none absolute bottom-10 right-8 h-56 w-56 rounded-full border border-emerald-300/20" />
+
+      <section className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-between px-6 py-8 md:px-10 md:py-10">
+        <header className="flex items-center justify-between">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-sm backdrop-blur">
+            <Sparkles className="h-4 w-4 text-cyan-300" />
+            Mess Manager
+          </div>
+          <Link
+            href="/auth/login"
+            className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10"
+          >
+            Login
+          </Link>
+        </header>
+
+        <div className="grid items-end gap-10 pb-10 pt-16 md:grid-cols-2 md:gap-16 md:py-20">
+          <div>
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-cyan-100">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Operational Clarity
+            </p>
+            <h1 className="max-w-xl text-4xl font-semibold leading-tight text-white md:text-6xl">
+              Built for disciplined, scalable mess operations.
             </h1>
-            <p className="text-muted-foreground text-sm">
-              Choose your role to get started
+            <p className="mt-5 max-w-lg text-sm leading-relaxed text-slate-300 md:text-base">
+              A streamlined platform for tracking meals, shared costs, and
+              day-to-day accountability across teams.
             </p>
-          </div>
 
-          <LandingPageButton />
-
-          {/* Info Text */}
-          <p className="text-center text-xs text-muted-foreground mt-6">
-            You can change your role anytime in settings
-          </p>
-        </div>
-      </div>
-
-      {/* Right Side - Hero Section (Desktop Only) */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary/5 items-start justify-center p-12 relative overflow-hidden overflow-y-auto">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern
-                id="grid"
-                width="40"
-                height="40"
-                patternUnits="userSpaceOnUse"
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/auth/register"
+                className="inline-flex items-center gap-2 rounded-full bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
               >
-                <path
-                  d="M 40 0 L 0 0 0 40"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1"
-                  className="text-primary"
-                />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-        </div>
-
-        {/* Content */}
-        <div className="relative z-10 max-w-lg w-full">
-          <div className="mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="w-10 h-10 text-primary"
-                xmlns="http://www.w3.org/2000/svg"
+                Get Started
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/auth/login"
+                className="rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
               >
-                <path
-                  d="M8 3V5M16 3V5M4 9H20M6 21H18C19.1046 21 20 20.1046 20 19V7C20 5.89543 19.1046 5 18 5H6C4.89543 5 4 5.89543 4 7V19C4 20.1046 4.89543 21 6 21Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <h2 className="text-3xl font-bold text-foreground mb-2">
-              Two Roles, One System
-            </h2>
-            <p className="text-base text-muted-foreground leading-relaxed">
-              Manage or track expenses with features designed for seamless
-              collaboration.
-            </p>
-          </div>
-
-          {/* Role Comparison Cards */}
-          <div className="space-y-4 mb-4">
-            {/* Manager Features */}
-            <div className="bg-card/50 backdrop-blur-sm rounded-xl p-4 border border-border">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <UserCog className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground">
-                  As a Manager
-                </h3>
-              </div>
-              <ul className="space-y-2">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span className="text-sm text-muted-foreground">
-                    Create and configure mess settings
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span className="text-sm text-muted-foreground">
-                    Invite members and approve expenses
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span className="text-sm text-muted-foreground">
-                    Generate reports and settlement bills
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span className="text-sm text-muted-foreground">
-                    Monitor meal attendance patterns
-                  </span>
-                </li>
-              </ul>
-            </div>
-
-            {/* User Features */}
-            <div className="bg-card/50 backdrop-blur-sm rounded-xl p-4 border border-border">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground">As a User</h3>
-              </div>
-              <ul className="space-y-2">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span className="text-sm text-muted-foreground">
-                    Join mess via invitation link
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span className="text-sm text-muted-foreground">
-                    Track daily meals and expenses
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span className="text-sm text-muted-foreground">
-                    View balance and payment history
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span className="text-sm text-muted-foreground">
-                    Get instant payment notifications
-                  </span>
-                </li>
-              </ul>
+                Sign In
+              </Link>
             </div>
           </div>
 
-          {/* Bottom Info */}
-          <div className="bg-primary/10 rounded-lg p-3 border border-primary/20">
-            <p className="text-sm text-foreground text-center">
-              💡 <strong>Pro Tip:</strong> Switch between roles anytime in
-              settings
-            </p>
+          <div className="grid gap-3 rounded-2xl border border-white/15 bg-white/5 p-4 backdrop-blur-md">
+            <div className="rounded-xl border border-white/10 bg-slate-900/70 p-4">
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                Workflow
+              </p>
+              <p className="mt-2 text-lg font-semibold text-white">
+                Create mess, invite members, monitor all shared costs.
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-slate-900/70 p-4">
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                Accuracy
+              </p>
+              <p className="mt-2 text-lg font-semibold text-white">
+                Single source of truth for meals, expenses, and balances.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

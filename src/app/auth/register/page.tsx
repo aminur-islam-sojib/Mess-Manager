@@ -1,12 +1,108 @@
 import React, { Suspense } from "react";
 import RegisterForm from "@/components/Auth/RegisterForm";
+import LandingPageButton from "@/components/Buttons/LandingPageButton";
+import Link from "next/link";
 
-export default function RegisterPage() {
+type RegisterPageProps = {
+  searchParams: Promise<{ role?: string }>;
+};
+
+export default async function RegisterPage({
+  searchParams,
+}: RegisterPageProps) {
+  const params = await searchParams;
+  const selectedRole = params?.role;
+  const hasValidRole = selectedRole === "user" || selectedRole === "manager";
+
+  if (!hasValidRole) {
+    return (
+      <div className="min-h-screen bg-background flex">
+        <div className="w-full lg:w-1/2 flex items-center justify-center px-4">
+          <div className="w-full max-w-md">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="w-10 h-10 text-primary"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M8 3V5M16 3V5M4 9H20M6 21H18C19.1046 21 20 20.1046 20 19V7C20 5.89543 19.1046 5 18 5H6C4.89543 5 4 5.89543 4 7V19C4 20.1046 4.89543 21 6 21Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-3xl font-bold text-foreground mb-2">
+                Choose Role
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Step 1 of 2: Select how you want to use Mess Manager
+              </p>
+            </div>
+
+            <LandingPageButton />
+
+            <p className="text-center text-xs text-muted-foreground mt-6">
+              Next, we will show your registration form.
+            </p>
+          </div>
+        </div>
+
+        <div className="hidden lg:flex lg:w-1/2 bg-primary/5 items-center justify-center p-12 relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10">
+            <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern
+                  id="register-grid"
+                  width="40"
+                  height="40"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <path
+                    d="M 40 0 L 0 0 0 40"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    className="text-primary"
+                  />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#register-grid)" />
+            </svg>
+          </div>
+
+          <div className="relative z-10 max-w-lg">
+            <h2 className="text-4xl font-bold text-foreground mb-3">
+              Start With the Right Access
+            </h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Select your role first so we can personalize your dashboard setup
+              after registration.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left Side - Form */}
       <div className="w-full  lg:w-1/2 flex items-center justify-center ">
         <div className="w-full max-w-md">
+          <div className="mb-4">
+            <Link
+              href="/auth/register"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Change role
+            </Link>
+          </div>
+
           {/* Header Section */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
@@ -29,7 +125,7 @@ export default function RegisterPage() {
               Create Account
             </h1>
             <p className="text-muted-foreground text-sm">
-              Join Mess Manager and start tracking expenses
+              Step 2 of 2: Complete your account setup
             </p>
           </div>
           <Suspense fallback={<div className="py-8">Loading form…</div>}>
