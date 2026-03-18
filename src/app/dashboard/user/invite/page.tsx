@@ -1,7 +1,9 @@
-import { getInvitationByToken } from "@/actions/server/Invitations";
+import { getInvitationByToken } from "@/server/invitations";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
-import InvalidInvitation from "@/components/UserComponents/InvalidInvitations";
-import UserInvitationPageClient from "@/components/UserComponents/UserInvitationPageClient";
+import {
+  InvalidInvitation,
+  UserInvitationPageClient,
+} from "@/components/features/invitations";
 import { getServerSession } from "next-auth";
 
 export default async function UserInvitationPage({

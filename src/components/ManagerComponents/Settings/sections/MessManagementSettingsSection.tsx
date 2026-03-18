@@ -13,11 +13,8 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  cancelInvitation,
-  removeMessMember,
-  sendMessInvitation,
-} from "@/actions/server/ManagerSettings";
+import { removeMessMember } from "@/actions/server/ManagerSettings";
+import { cancelInvitation, sendMessInvitation } from "@/server/invitations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,7 +57,9 @@ export default function MessManagementSettingsSection({
   const [latestInviteLink, setLatestInviteLink] = useState(
     pendingInvitations[0]?.inviteLink ?? "",
   );
-  const [memberToRemove, setMemberToRemove] = useState<SettingsMember | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<SettingsMember | null>(
+    null,
+  );
   const [invitationToCancel, setInvitationToCancel] =
     useState<PendingInvitation | null>(null);
 
@@ -76,7 +75,9 @@ export default function MessManagementSettingsSection({
     [members],
   );
 
-  const withFeedback = (action: () => Promise<{ success: boolean; message: string }>) => {
+  const withFeedback = (
+    action: () => Promise<{ success: boolean; message: string }>,
+  ) => {
     startTransition(async () => {
       const result = await action();
       if (result.success) {
@@ -218,11 +219,17 @@ export default function MessManagementSettingsSection({
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-foreground">{member.name}</p>
-                    <Badge variant={member.role === "manager" ? "default" : "outline"}>
+                    <Badge
+                      variant={
+                        member.role === "manager" ? "default" : "outline"
+                      }
+                    >
                       {member.role}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{member.email}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {member.email}
+                  </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Joined {new Date(member.joinDate).toLocaleDateString()}
                   </p>
@@ -252,7 +259,8 @@ export default function MessManagementSettingsSection({
             <div>
               <CardTitle>Invitations</CardTitle>
               <CardDescription>
-                Send email invites, generate links, and manage pending invitations.
+                Send email invites, generate links, and manage pending
+                invitations.
               </CardDescription>
             </div>
           </div>
@@ -268,7 +276,9 @@ export default function MessManagementSettingsSection({
             <Button
               onClick={() =>
                 startTransition(async () => {
-                  const result = await sendMessInvitation({ email: inviteEmail });
+                  const result = await sendMessInvitation({
+                    email: inviteEmail,
+                  });
                   if (result.success) {
                     toast.success(result.message);
                     setInviteEmail("");
@@ -295,9 +305,12 @@ export default function MessManagementSettingsSection({
           <div className="rounded-2xl border border-border bg-muted/30 p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="font-medium text-foreground">Latest invite link</p>
+                <p className="font-medium text-foreground">
+                  Latest invite link
+                </p>
                 <p className="mt-1 break-all text-sm text-muted-foreground">
-                  {latestInviteLink || "Create an invitation to generate a link."}
+                  {latestInviteLink ||
+                    "Create an invitation to generate a link."}
                 </p>
               </div>
               <Button
@@ -331,7 +344,9 @@ export default function MessManagementSettingsSection({
                   className="flex flex-col gap-4 rounded-2xl border border-border bg-background/70 p-4 md:flex-row md:items-center md:justify-between"
                 >
                   <div>
-                    <p className="font-medium text-foreground">{invitation.email}</p>
+                    <p className="font-medium text-foreground">
+                      {invitation.email}
+                    </p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Created {new Date(invitation.createdAt).toLocaleString()}
                     </p>
@@ -341,7 +356,9 @@ export default function MessManagementSettingsSection({
                       variant="outline"
                       className="gap-2"
                       onClick={async () => {
-                        await navigator.clipboard.writeText(invitation.inviteLink);
+                        await navigator.clipboard.writeText(
+                          invitation.inviteLink,
+                        );
                         toast.success("Invite link copied");
                       }}
                     >

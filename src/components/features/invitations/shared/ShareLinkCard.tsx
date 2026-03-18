@@ -1,4 +1,4 @@
-import { Copy, Check } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 
 export const ShareLinkCard = ({
   link,

@@ -1,7 +1,7 @@
 import { getSingleMessForUser } from "@/actions/server/Mess";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import NotFoundPage from "@/app/not-found";
-import InvitePage from "@/components/ManagerComponents/InvitePage";
+import { InvitePage } from "@/components/features/invitations";
 import { UserPlus } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";

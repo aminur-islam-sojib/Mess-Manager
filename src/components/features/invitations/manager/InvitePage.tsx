@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+
+import { sendInvitationAction } from "@/server/invitations";
 import { useState } from "react";
-import { sendInvitationAction } from "@/actions/server/Invitations";
-import { sendInvitationEmail } from "./SendInvitationMail";
-import { InviteHeader } from "../Shared/Managers/InviteHeader";
-import { EmailInviteCard } from "../Shared/Managers/EmailInviteCard";
-import { ShareLinkCard } from "../Shared/Managers/ShareLinkCard";
+import { EmailInviteCard } from "../shared/EmailInviteCard";
+import { InviteHeader } from "../shared/InviteHeader";
+import { ShareLinkCard } from "../shared/ShareLinkCard";
 
 export default function InvitePage({ session, messData }: any) {
   const [email, setEmail] = useState("");
@@ -24,22 +24,25 @@ export default function InvitePage({ session, messData }: any) {
       setError("Please enter a valid email");
       return;
     }
+
     try {
       setIsInviting(true);
+      setError("");
+
       const result = await sendInvitationAction(email);
+      if (!result.success) {
+        setError(result.message || "Failed to send invitation");
+        return;
+      }
+
       if (result.inviteLink) {
         setInvitedLink(result.inviteLink);
-        await sendInvitationEmail(
-          email,
-          result.inviteLink,
-          messData.mess?.messName,
-          session.name,
-        );
         setInvitedEmails([...invitedEmails, email]);
         setShowSuccess(true);
       }
     } catch (err) {
       console.error(err);
+      setError("Failed to send invitation");
     } finally {
       setIsInviting(false);
       setEmail("");
@@ -60,7 +63,9 @@ export default function InvitePage({ session, messData }: any) {
           onKeyPress={(e) => e.key === "Enter" && handleInvite()}
           invitedEmails={invitedEmails}
           onRemoveEmail={(mail) =>
-            setInvitedEmails(invitedEmails.filter((e) => e !== mail))
+            setInvitedEmails(
+              invitedEmails.filter((invitedEmail) => invitedEmail !== mail),
+            )
           }
         />
 
@@ -75,7 +80,6 @@ export default function InvitePage({ session, messData }: any) {
             copied={copiedLink}
           />
 
-          {/* Info Card - Simplified */}
           <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
               ℹ️ How it works

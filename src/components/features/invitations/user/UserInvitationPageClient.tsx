@@ -1,17 +1,17 @@
 "use client";
 
-import { acceptInvitation } from "@/actions/server/Invitations";
+import { acceptInvitation } from "@/server/invitations";
 import { InvitationType } from "@/types/Invitations";
 import { SessionUser } from "@/types/Model";
 import {
-  CheckCircle,
-  Calendar,
-  Clock,
-  Users,
-  Shield,
-  Loader2,
-  ArrowRight,
   AlertCircle,
+  ArrowRight,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Loader2,
+  Shield,
+  Users,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -33,11 +33,10 @@ export default function UserInvitationPageClient({
 
   const handleAccept = async () => {
     setIsAccepting(true);
-    setError(null); // Clear any previous errors
+    setError(null);
 
     try {
       if (!sessionUser?.id) {
-        console.error("User not authenticated");
         setError("User not authenticated. Please log in and try again.");
         setIsAccepting(false);
         return;
@@ -48,7 +47,6 @@ export default function UserInvitationPageClient({
 
       if (res?.success) {
         setIsAccepted(true);
-        // Redirect after success
         setTimeout(() => {
           router.push("/dashboard");
         }, 2000);
@@ -56,10 +54,8 @@ export default function UserInvitationPageClient({
         setError(
           res?.message || "Failed to accept invitation. Please try again.",
         );
-        console.error("Accept invitation failed", res?.message);
       }
-    } catch (error) {
-      console.log(error);
+    } catch {
       setError("An unexpected error occurred. Please try again.");
       setIsAccepting(false);
     }
@@ -102,22 +98,19 @@ export default function UserInvitationPageClient({
     if (hoursLeft > 0) {
       return `${hoursLeft}h ${minutesLeft}m`;
     }
+
     return `${minutesLeft}m`;
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
       </div>
 
-      {/* Main Content */}
       <div className="relative z-10 w-full">
-        {/* Card Container */}
         <div className="bg-card border border-border rounded-3xl shadow-2xl overflow-hidden">
-          {/* Header Section */}
           <div className="bg-linear-to-br from-primary to-primary/80 p-8 text-center relative">
             <div className="absolute top-0 left-0 w-full h-full opacity-10">
               <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -167,11 +160,7 @@ export default function UserInvitationPageClient({
             </div>
           </div>
 
-          {/* Content Section */}
           <div className="p-8">
-            {/* Error Alert */}
-
-            {/* Mess Details Card */}
             <div className="bg-muted/50 rounded-2xl p-6 mb-6 border border-border">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -198,7 +187,6 @@ export default function UserInvitationPageClient({
               </div>
             </div>
 
-            {/* Info Cards Grid */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-background border border-border rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -225,7 +213,6 @@ export default function UserInvitationPageClient({
               </div>
             </div>
 
-            {/* What You Get Section */}
             <div className="bg-primary/5 rounded-2xl p-6 mb-6 border border-primary/20">
               <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
                 <Shield className="w-5 h-5 text-primary" />
@@ -267,7 +254,6 @@ export default function UserInvitationPageClient({
               </ul>
             </div>
 
-            {/* Accept Button */}
             <button
               onClick={handleAccept}
               disabled={isAccepting}
@@ -285,6 +271,7 @@ export default function UserInvitationPageClient({
                 </>
               )}
             </button>
+
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3 mb-6">
                 <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
@@ -302,7 +289,7 @@ export default function UserInvitationPageClient({
                 </button>
               </div>
             )}
-            {/* Expiry Warning */}
+
             <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 flex items-start gap-3">
               <Clock className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
               <div>
@@ -323,7 +310,6 @@ export default function UserInvitationPageClient({
             </div>
           </div>
 
-          {/* Footer */}
           <div className="bg-muted/30 px-8 py-4 border-t border-border">
             <p className="text-xs text-center text-muted-foreground">
               By accepting, you agree to the mess terms and conditions
@@ -331,7 +317,6 @@ export default function UserInvitationPageClient({
           </div>
         </div>
 
-        {/* Bottom Info */}
         <p className="text-center text-sm text-muted-foreground mt-6">
           Need help?{" "}
           <button className="text-primary font-semibold hover:underline">

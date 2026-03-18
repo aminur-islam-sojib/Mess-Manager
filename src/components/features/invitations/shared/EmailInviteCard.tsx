@@ -1,4 +1,4 @@
-import { Mail, Send, Loader2, X } from "lucide-react";
+import { Loader2, Mail, Send, X } from "lucide-react";
 
 interface EmailInviteCardProps {
   email: string;
@@ -83,14 +83,14 @@ export const EmailInviteCard = ({
           Invited ({invitedEmails.length})
         </h3>
         <div className="space-y-2">
-          {invitedEmails.map((email, idx) => (
+          {invitedEmails.map((invitedEmail, idx) => (
             <div
               key={idx}
               className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border"
             >
-              <span className="text-sm text-foreground">{email}</span>
+              <span className="text-sm text-foreground">{invitedEmail}</span>
               <button
-                onClick={() => onRemoveEmail(email)}
+                onClick={() => onRemoveEmail(invitedEmail)}
                 className="p-1 hover:bg-destructive/10 rounded-lg text-destructive transition-colors"
               >
                 <X className="w-4 h-4" />

@@ -1,11 +1,12 @@
 "use client";
+
 import {
   AlertTriangle,
   Clock,
-  XCircle,
-  ShieldAlert,
   Home,
   Mail,
+  ShieldAlert,
+  XCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -27,6 +28,7 @@ export default function InvalidInvitation({
   errorMessage,
 }: InvalidInvitationProps) {
   const router = useRouter();
+
   const getErrorConfig = () => {
     switch (errorType) {
       case "expired":
@@ -37,12 +39,10 @@ export default function InvalidInvitation({
             "This invitation link has expired and is no longer valid.",
           details:
             "Invitations are valid for 24 hours after being sent. Please request a new invitation from the mess manager.",
-          color: "orange",
           bgColor: "bg-orange-500/10",
           borderColor: "border-orange-500/20",
           iconBg: "bg-orange-500/10",
         };
-
       case "invalid":
         return {
           icon: <XCircle className="w-16 h-16 text-destructive" />,
@@ -51,12 +51,10 @@ export default function InvalidInvitation({
             "This invitation link is not valid or has been corrupted.",
           details:
             "The link you followed appears to be incorrect. Please check the link and try again, or request a new invitation.",
-          color: "destructive",
           bgColor: "bg-destructive/10",
           borderColor: "border-destructive/20",
           iconBg: "bg-destructive/10",
         };
-
       case "used":
         return {
           icon: <ShieldAlert className="w-16 h-16 text-blue-500" />,
@@ -64,12 +62,10 @@ export default function InvalidInvitation({
           description: "This invitation has already been used.",
           details:
             "You've already accepted this invitation. If you're having trouble accessing the mess, please contact the manager.",
-          color: "blue",
           bgColor: "bg-blue-500/10",
           borderColor: "border-blue-500/20",
           iconBg: "bg-blue-500/10",
         };
-
       case "notfound":
         return {
           icon: <AlertTriangle className="w-16 h-16 text-destructive" />,
@@ -77,12 +73,10 @@ export default function InvalidInvitation({
           description: "We couldn't find this invitation in our system.",
           details:
             "The invitation may have been deleted or never existed. Please verify the link with the person who invited you.",
-          color: "destructive",
           bgColor: "bg-destructive/10",
           borderColor: "border-destructive/20",
           iconBg: "bg-destructive/10",
         };
-
       case "unauthorized":
         return {
           icon: <ShieldAlert className="w-16 h-16 text-destructive" />,
@@ -90,12 +84,10 @@ export default function InvalidInvitation({
           description: "You don't have permission to access this invitation.",
           details:
             "This invitation may be intended for a different email address. Make sure you're logged in with the correct account.",
-          color: "destructive",
           bgColor: "bg-destructive/10",
           borderColor: "border-destructive/20",
           iconBg: "bg-destructive/10",
         };
-
       default:
         return {
           icon: <AlertTriangle className="w-16 h-16 text-destructive" />,
@@ -104,7 +96,6 @@ export default function InvalidInvitation({
           details:
             errorMessage ||
             "Please contact the mess manager for a new invitation link.",
-          color: "destructive",
           bgColor: "bg-destructive/10",
           borderColor: "border-destructive/20",
           iconBg: "bg-destructive/10",
@@ -116,16 +107,13 @@ export default function InvalidInvitation({
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-0 w-96 h-96 bg-destructive/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-destructive/5 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
       </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 w-full  ">
+      <div className="relative z-10 w-full">
         <div className="bg-card border border-border rounded-3xl shadow-2xl overflow-hidden">
-          {/* Icon Section */}
           <div className="pt-12 pb-6 text-center">
             <div
               className={`inline-flex items-center justify-center w-24 h-24 rounded-full ${config.iconBg} mb-6 animate-pulse`}
@@ -136,13 +124,11 @@ export default function InvalidInvitation({
             <h1 className="text-3xl font-bold text-foreground mb-3 px-6">
               {config.title}
             </h1>
-
             <p className="text-muted-foreground text-lg px-6">
               {config.description}
             </p>
           </div>
 
-          {/* Details Card */}
           <div className="px-8 pb-8">
             <div
               className={`${config.bgColor} border ${config.borderColor} rounded-2xl p-6 mb-6`}
@@ -156,7 +142,6 @@ export default function InvalidInvitation({
               </p>
             </div>
 
-            {/* Action Buttons */}
             <div className="space-y-3">
               <button
                 onClick={() => router.push("/dashboard")}
@@ -165,23 +150,8 @@ export default function InvalidInvitation({
                 <Home className="w-5 h-5" />
                 Go to Dashboard
               </button>
-
-              {/* TODO: Future Update--> Request New Invitation */}
-              {/* {(errorType === "expired" ||
-                errorType === "invalid" ||
-                errorType === "notfound") && (
-                <button
-                  onClick={() => (window.location.href = "/contact-manager")}
-                  className="w-full py-3.5 px-6 rounded-xl font-semibold text-base bg-card text-foreground border-2 border-input hover:bg-accent hover:border-primary/50 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
-                >
-                  <Mail className="w-5 h-5" />
-                  Request New Invitation
-                </button>
-              )} */}
             </div>
 
-            {/* Help Section */}
-            {/* Help Section */}
             <div className="mt-8 pt-6 border-t border-border">
               <h3 className="font-semibold text-foreground mb-3 text-sm">
                 Common Solutions:
@@ -209,18 +179,17 @@ export default function InvalidInvitation({
                 </li>
               </ul>
 
-              {/* Strong Emphasis Box */}
               <div className="mt-4 p-4 bg-primary/10 border-2 border-primary rounded-xl">
                 <div className="flex items-start gap-3">
-                  <Mail className="w-5 h-5 text-primary mt-0.5  shrink-0" />
+                  <Mail className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-bold text-foreground mb-1">
                       📧 Check Your Email
                     </p>
                     <p className="text-sm text-foreground">
                       Go back to your email inbox and click the invitation link
-                      directly from the email again. Don&apos;t use bookmarked
-                      or copied links.
+                      directly from the email again. Do not use bookmarked or
+                      copied links.
                     </p>
                   </div>
                 </div>
@@ -228,7 +197,6 @@ export default function InvalidInvitation({
             </div>
           </div>
 
-          {/* Footer */}
           <div className="bg-muted/30 px-8 py-4 border-t border-border">
             <p className="text-xs text-center text-muted-foreground">
               Need assistance?{" "}
@@ -242,7 +210,6 @@ export default function InvalidInvitation({
           </div>
         </div>
 
-        {/* Additional Info */}
         <div className="mt-6 text-center">
           <p className="text-sm text-muted-foreground">
             Error Code:{" "}
@@ -254,25 +221,4 @@ export default function InvalidInvitation({
       </div>
     </div>
   );
-}
-
-// Export individual error components for convenience
-export function ExpiredInvitation() {
-  return <InvalidInvitation errorType="expired" />;
-}
-
-export function InvalidToken() {
-  return <InvalidInvitation errorType="invalid" />;
-}
-
-export function UsedInvitation() {
-  return <InvalidInvitation errorType="used" />;
-}
-
-export function NotFoundInvitation() {
-  return <InvalidInvitation errorType="notfound" />;
-}
-
-export function UnauthorizedInvitation() {
-  return <InvalidInvitation errorType="unauthorized" />;
 }

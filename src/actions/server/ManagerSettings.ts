@@ -5,7 +5,7 @@ import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
-import { sendInvitationEmail } from "@/components/ManagerComponents/SendInvitationMail";
+import { sendInvitationEmail } from "@/server/invitations";
 import { collections, dbConnect } from "@/lib/dbConnect";
 import type {
   DepositApprovalMode,
@@ -93,7 +93,8 @@ const parseObjectId = (value: string | null | undefined): ObjectId | null => {
 
 const trimText = (value: string | null | undefined) => value?.trim() ?? "";
 
-const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+const isValidEmail = (value: string) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
 const isValidPhone = (value: string) =>
   value === "" || /^[0-9+()\-\s]{7,20}$/.test(value);
@@ -112,7 +113,9 @@ const isValidImageUrl = (value: string) => {
 const isValidTimeString = (value: string) =>
   /^(0[1-9]|1[0-2]):[0-5][0-9] (AM|PM)$/.test(value);
 
-const serializeInvitation = (invitation: InvitationDocument): PendingInvitation => ({
+const serializeInvitation = (
+  invitation: InvitationDocument,
+): PendingInvitation => ({
   id: invitation._id.toString(),
   email: invitation.email ?? invitation.invitedEmail ?? "",
   status: invitation.status,
@@ -267,8 +270,7 @@ export async function getManagerSettingsData(): Promise<ManagerSettingsData> {
     mess: {
       id: mess._id.toString(),
       messName: typeof mess.messName === "string" ? mess.messName : "",
-      messAddress:
-        typeof mess.messAddress === "string" ? mess.messAddress : "",
+      messAddress: typeof mess.messAddress === "string" ? mess.messAddress : "",
       description: typeof mess.description === "string" ? mess.description : "",
       image: typeof mess.image === "string" ? mess.image : null,
       budget: typeof mess.budget === "number" ? mess.budget : 0,
@@ -312,7 +314,9 @@ export async function getManagerSettingsData(): Promise<ManagerSettingsData> {
       joinDate: new Date(member.joinDate).toISOString(),
       image: member.image ?? null,
     })),
-    pendingInvitations: (invitations as InvitationDocument[]).map(serializeInvitation),
+    pendingInvitations: (invitations as InvitationDocument[]).map(
+      serializeInvitation,
+    ),
   };
 }
 
@@ -396,7 +400,10 @@ export async function updatePassword(payload: {
       };
     }
 
-    const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+    const isValidPassword = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
     if (!isValidPassword) {
       return { success: false, message: "Current password is incorrect" };
     }
@@ -511,12 +518,16 @@ export async function updateMessProfile(payload: {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Failed to update mess profile",
+        error instanceof Error
+          ? error.message
+          : "Failed to update mess profile",
     };
   }
 }
 
-export async function removeMessMember(memberId: string): Promise<ActionResult> {
+export async function removeMessMember(
+  memberId: string,
+): Promise<ActionResult> {
   try {
     const { userId, mess } = await getManagerContext();
     const { membership, memberObjectId } = await getMessMemberOrThrow(
@@ -636,7 +647,8 @@ export async function sendMessInvitation(payload: {
 }
 
 export async function getPendingInvitations(): Promise<
-  { success: true; invitations: PendingInvitation[] } | { success: false; message: string }
+  | { success: true; invitations: PendingInvitation[] }
+  | { success: false; message: string }
 > {
   try {
     const { mess } = await getManagerContext();
@@ -650,7 +662,9 @@ export async function getPendingInvitations(): Promise<
 
     return {
       success: true,
-      invitations: (invitations as InvitationDocument[]).map(serializeInvitation),
+      invitations: (invitations as InvitationDocument[]).map(
+        serializeInvitation,
+      ),
     };
   } catch (error) {
     return {
@@ -742,7 +756,9 @@ export async function updateDepositRules(payload: {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Failed to update deposit rules",
+        error instanceof Error
+          ? error.message
+          : "Failed to update deposit rules",
     };
   }
 }
@@ -753,7 +769,9 @@ export async function updateExpenseRules(payload: {
   try {
     const { mess } = await getManagerContext();
 
-    if (!["managerOnly", "membersAllowed"].includes(payload.whoCanAddExpenses)) {
+    if (
+      !["managerOnly", "membersAllowed"].includes(payload.whoCanAddExpenses)
+    ) {
       return { success: false, message: "Invalid expense rule" };
     }
 
@@ -773,7 +791,9 @@ export async function updateExpenseRules(payload: {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Failed to update expense rules",
+        error instanceof Error
+          ? error.message
+          : "Failed to update expense rules",
     };
   }
 }
@@ -848,7 +868,9 @@ export async function updateMealSettings(payload: {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Failed to update meal settings",
+        error instanceof Error
+          ? error.message
+          : "Failed to update meal settings",
     };
   }
 }
@@ -883,7 +905,9 @@ export async function updateMealDeadline(payload: {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Failed to update meal deadline",
+        error instanceof Error
+          ? error.message
+          : "Failed to update meal deadline",
     };
   }
 }
@@ -912,7 +936,9 @@ const createCsv = (rows: Record<string, unknown>[]) => {
 
   const lines = [
     headers.join(","),
-    ...rows.map((row) => headers.map((header) => escapeCsv(row[header])).join(",")),
+    ...rows.map((row) =>
+      headers.map((header) => escapeCsv(row[header])).join(","),
+    ),
   ];
 
   return lines.join("\n");
@@ -983,7 +1009,9 @@ export async function exportMessReport(payload: {
       message: `${payload.type} report exported successfully`,
       filename: `${payload.type}-report.${payload.format}`,
       mimeType:
-        payload.format === "json" ? "application/json" : "text/csv;charset=utf-8",
+        payload.format === "json"
+          ? "application/json"
+          : "text/csv;charset=utf-8",
       content,
     };
   } catch (error) {
@@ -1055,7 +1083,9 @@ export async function transferManagerRole(
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Failed to transfer manager role",
+        error instanceof Error
+          ? error.message
+          : "Failed to transfer manager role",
     };
   }
 }
@@ -1070,7 +1100,10 @@ export async function deleteMess(): Promise<ActionResult> {
       .toArray();
 
     await Promise.all([
-      dbConnect(collections.MESS).deleteOne({ _id: mess._id, managerId: userId }),
+      dbConnect(collections.MESS).deleteOne({
+        _id: mess._id,
+        managerId: userId,
+      }),
       memberCollection.deleteMany({ messId: mess._id }),
       dbConnect(collections.INVITATIONS).deleteMany({ messId: mess._id }),
       dbConnect(collections.DEPOSITS).deleteMany({ messId: mess._id }),

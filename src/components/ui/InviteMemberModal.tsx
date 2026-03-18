@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import Modal from "./modal";
 import { Button } from "./button";
 import { Plus } from "lucide-react";
-import InvitePage from "../ManagerComponents/InvitePage";
+import { InvitePage } from "@/components/features/invitations";
 import { MessDataResponse } from "@/types/MealManagement";
 
 const InviteMemberModal = ({
