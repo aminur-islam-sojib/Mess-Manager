@@ -3,11 +3,11 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
 import { Bell, Menu } from "lucide-react";
-import LogOutButton from "../Buttons/LogOutButton";
-import NavigationMenu from "./NavigationMenu";
+import LogOutButton from "../../Buttons/LogOutButton";
 import { SidebarProps } from "@/types/MessTypes";
 import { AppRole, ROLE_NAV_META } from "@/config/nav.config";
-import SidebarIdentity from "./SidebarIdentity";
+import NavigationMenu from "@/components/Shared/navigation/NavigationMenu";
+import SidebarIdentity from "@/components/Shared/navigation/SidebarIdentity";
 
 type AppSidebarProps = SidebarProps & {
   role: AppRole;

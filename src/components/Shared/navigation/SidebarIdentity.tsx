@@ -4,8 +4,8 @@ import { X, Settings, Wallet, User } from "lucide-react";
 import { SessionUser } from "@/types/Model";
 import { AppRole } from "@/config/nav.config";
 import Image from "next/image";
-import { Separator } from "../ui/separator";
 import Link from "next/link";
+import { Separator } from "@/components/ui/separator";
 
 interface SidebarIdentityProps {
   user: SessionUser;
@@ -24,7 +24,6 @@ export default function SidebarIdentity({
   return (
     <div>
       <div className="flex flex-col p-4 space-y-3">
-        {/* 1. Workspace / Mess Branding */}
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-3">
             <Link href="/">
@@ -52,10 +51,8 @@ export default function SidebarIdentity({
           )}
         </div>
 
-        {/* 2. User Profile Card - Integrated SaaS Style */}
         <div className="relative group">
           <div className="flex items-center gap-3 rounded-2xl border border-zinc-200/60 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-zinc-700/50 dark:bg-zinc-900/50">
-            {/* Avatar Section */}
             <div className="relative shrink-0">
               <div className="h-10 w-10 overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800 ring-1 ring-zinc-200 dark:ring-zinc-700">
                 {user?.image ? (
@@ -72,13 +69,11 @@ export default function SidebarIdentity({
                   </div>
                 )}
               </div>
-              {/* Minimalist Role Indicator */}
               <div className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#1F6F68] text-[8px] font-bold text-white border-2 border-white dark:border-zinc-900">
                 {role.charAt(0).toUpperCase()}
               </div>
             </div>
 
-            {/* Identity Text */}
             <div className="flex flex-1 flex-col min-w-0">
               <div className="flex items-center justify-between">
                 <p className="truncate text-[13px] font-bold text-zinc-800 dark:text-zinc-200">

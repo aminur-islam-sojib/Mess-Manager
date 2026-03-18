@@ -170,7 +170,7 @@ export default function IndividualMealEntry({
                   />
                 </div>
               </div>
-              <div className="max-h-[250px] overflow-y-auto p-2 space-y-1">
+              <div className="max-h-62.5 overflow-y-auto p-2 space-y-1">
                 {filteredMembers?.map((member) => (
                   <button
                     key={member.userId}

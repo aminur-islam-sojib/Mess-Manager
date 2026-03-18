@@ -2,8 +2,8 @@ import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/options";
 import { getSingleMessForUser } from "@/actions/server/Mess";
-import AppSidebar from "@/components/Shared/AppSidebar";
-import AppBottomNav from "@/components/Shared/AppBottomNav";
+import AppSidebar from "@/components/Shared/layout/AppSidebar";
+import AppBottomNav from "@/components/Shared/layout/AppBottomNav";
 import DashboardPageTransition from "@/components/Shared/DashboardPageTransition";
 
 export default async function DashboardLayout({
