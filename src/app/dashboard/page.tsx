@@ -1,21 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
-
-/* ----------------------------------------
-   TYPES
----------------------------------------- */
-type UserRole = "user" | "manager" | "admin"; // Extend as needed
-
-/* ----------------------------------------
-   ROLE → ROUTE MAP
-   (single source of truth)
----------------------------------------- */
-const DASHBOARD_ROUTE_BY_ROLE: Record<UserRole, string> = {
-  user: "/dashboard/user",
-  manager: "/dashboard/manager",
-  admin: "/dashboard/admin",
-};
+import { ROLE_DASHBOARD_HOME, isGlobalRole } from "@/types/auth";
 
 /* ----------------------------------------
    DASHBOARD PROXY (SERVER)
@@ -31,13 +17,13 @@ export default async function Dashboard(): Promise<never> {
     redirect("/auth/login");
   }
 
-  const role = session.user.role as UserRole | undefined;
+  const role = session.user.role;
 
   /**
    * Valid role → redirect to dashboard
    */
-  if (role && role in DASHBOARD_ROUTE_BY_ROLE) {
-    redirect(DASHBOARD_ROUTE_BY_ROLE[role]);
+  if (isGlobalRole(role)) {
+    redirect(ROLE_DASHBOARD_HOME[role]);
   }
 
   /**

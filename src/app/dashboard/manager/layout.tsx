@@ -9,8 +9,12 @@ export default async function ManagerLayout({
 }) {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "manager") {
-    redirect("/dashboard/user");
+  if (!session || !session.user) {
+    redirect("/auth/login");
+  }
+
+  if (session.user.role !== "manager") {
+    redirect("/unauthorized");
   }
 
   return <>{children}</>;

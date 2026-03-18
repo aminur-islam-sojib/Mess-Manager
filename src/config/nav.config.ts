@@ -10,9 +10,9 @@ import {
   UsersIcon,
   WalletMinimalIcon,
 } from "lucide-react";
+import { type Role, type AppRole } from "@/types/auth";
 
-export type Role = "manager" | "user" | "admin";
-export type AppRole = Extract<Role, "manager" | "user">;
+export type { Role, AppRole };
 
 export type NavItem = {
   label: string;
