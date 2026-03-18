@@ -1,7 +1,7 @@
 export const GLOBAL_ROLES = ["user", "manager", "admin"] as const;
 export type Role = (typeof GLOBAL_ROLES)[number];
 
-export const APP_ROLES = ["user", "manager"] as const;
+export const APP_ROLES = ["user", "manager", "admin"] as const;
 export type AppRole = (typeof APP_ROLES)[number];
 
 export const ROLE_DASHBOARD_HOME: Record<Role, string> = {

@@ -28,6 +28,28 @@ export type RoleNavigationMeta = {
 };
 
 export const NAV_CONFIG: Record<Role, NavItem[]> = {
+  admin: [
+    {
+      label: "Home",
+      href: "/dashboard/admin",
+      icon: Home,
+    },
+    {
+      label: "Members",
+      href: "/dashboard/admin/members",
+      icon: UsersIcon,
+    },
+    {
+      label: "Expenses",
+      href: "/dashboard/admin/expenses",
+      icon: TrendingDown,
+    },
+    {
+      label: "Settings",
+      href: "/dashboard/admin/settings",
+      icon: Settings,
+    },
+  ],
   manager: [
     {
       label: "Overview",
@@ -123,32 +145,14 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       requiresMess: true,
     },
   ],
-  admin: [
-    {
-      label: "Home",
-      href: "/dashboard/admin",
-      icon: Home,
-    },
-    {
-      label: "Members",
-      href: "/dashboard/admin/members",
-      icon: UsersIcon,
-      requiresMess: true,
-    },
-    {
-      label: "Expenses",
-      href: "/dashboard/admin/expenses",
-      icon: TrendingDown,
-    },
-    {
-      label: "Settings",
-      href: "/dashboard/admin/settings",
-      icon: Settings,
-    },
-  ],
 };
 
 export const ROLE_NAV_META: Record<AppRole, RoleNavigationMeta> = {
+  admin: {
+    sidebarTitle: "Admin",
+    sidebarSubtitle: "Dashboard",
+    mobileTitle: "Admin Dashboard",
+  },
   manager: {
     sidebarTitle: "Manager",
     sidebarSubtitle: "Dashboard",

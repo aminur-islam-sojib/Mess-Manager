@@ -42,22 +42,12 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-background lg:flex">
       <div className="flex-1">
-        {role === "user" && (
-          <AppSidebar
-            user={session.user}
-            isMessExist={isMessExist}
-            role={role}
-            alertCount={1}
-          />
-        )}
-        {role === "manager" && (
-          <AppSidebar
-            user={session.user}
-            isMessExist={isMessExist}
-            role={role}
-            alertCount={3}
-          />
-        )}
+        <AppSidebar
+          user={session.user}
+          isMessExist={isMessExist}
+          role={role}
+          alertCount={1}
+        />
 
         <div className="p-4 pb-20 md:p-6 lg:ml-72 lg:pb-0">
           <DashboardPageTransition>{children}</DashboardPageTransition>
