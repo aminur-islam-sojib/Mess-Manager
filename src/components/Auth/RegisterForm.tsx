@@ -1,13 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { createUser } from "@/actions/server/Users";
-import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import GoogleLoginButton from "./GoogleLoginButton";
 import { useSearchParams } from "next/navigation";
 import { FormDataType } from "@/types/Model";
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 
 export default function RegisterForm() {
   const sp = useSearchParams();
@@ -303,6 +303,17 @@ export default function RegisterForm() {
 
       {/* Google Login Button */}
       {<GoogleLoginButton />}
+      {/* --- NEW REGISTER REDIRECT SECTION --- */}
+      <p className="text-center text-sm text-muted-foreground pt-4">
+        Allready have an account?{" "}
+        <Link
+          href="/auth/login"
+          className="font-bold text-primary hover:underline inline-flex items-center gap-1 transition-all group"
+        >
+          Log In
+          <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      </p>
     </div>
   );
 }

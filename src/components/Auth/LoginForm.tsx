@@ -8,11 +8,13 @@ import {
   User,
   ShieldCheck,
   PlayCircle,
+  ArrowRight,
 } from "lucide-react";
 import React, { useState } from "react";
 import GoogleLoginButton from "./GoogleLoginButton";
 import { toast } from "sonner";
 import { signIn } from "next-auth/react";
+import Link from "next/link"; // Import Link for internal routing
 
 export default function LoginFormPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -83,9 +85,7 @@ export default function LoginFormPage() {
     }
   };
 
-  // --- UPDATED FUNCTION ---
   const handleDemoLogin = async (role: "manager" | "member") => {
-    // 1. Define credentials
     const demoCredentials = {
       manager: {
         email: "demo.manager@mail.com",
@@ -98,20 +98,13 @@ export default function LoginFormPage() {
     };
 
     const selected = demoCredentials[role];
-
-    // 2. Fill the input fields visually
     setFormData({
       email: selected.email,
       password: selected.password,
     });
-
-    // 3. Clear any existing validation errors
     setErrors({ email: "", password: "" });
-
-    // 4. Trigger login after a short delay so user sees the fields fill
     setLoading(role);
 
-    // We use a small timeout to let React update the UI before calling signIn
     setTimeout(async () => {
       try {
         const result = await signIn("credentials", {
@@ -135,7 +128,7 @@ export default function LoginFormPage() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-6">
+    <div className="w-full max-w-md mx-auto space-y-6 ">
       <form onSubmit={handleLogin} className="space-y-5">
         <div>
           <label className="block text-sm font-medium text-foreground mb-2">
@@ -222,7 +215,7 @@ export default function LoginFormPage() {
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border border-input bg-secondary/50 hover:bg-secondary text-sm font-medium transition-colors disabled:opacity-50"
           >
             <ShieldCheck className="w-4 h-4 text-primary" />
-            {loading === "manager" ? "Wait..." : "Manager Demo"}
+            {loading === "manager" ? "Wait..." : "Manager"}
           </button>
           <button
             type="button"
@@ -231,7 +224,7 @@ export default function LoginFormPage() {
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border border-input bg-secondary/50 hover:bg-secondary text-sm font-medium transition-colors disabled:opacity-50"
           >
             <User className="w-4 h-4 text-primary" />
-            {loading === "member" ? "Wait..." : "Member Demo"}
+            {loading === "member" ? "Wait..." : "Member"}
           </button>
         </div>
       </div>
@@ -243,6 +236,18 @@ export default function LoginFormPage() {
       </div>
 
       <GoogleLoginButton />
+
+      {/* --- NEW REGISTER REDIRECT SECTION --- */}
+      <p className="text-center text-sm text-muted-foreground pt-4">
+        Don&apos;t have an account?{" "}
+        <Link
+          href="/auth/register"
+          className="font-bold text-primary hover:underline inline-flex items-center gap-1 transition-all group"
+        >
+          Register here
+          <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      </p>
     </div>
   );
 }

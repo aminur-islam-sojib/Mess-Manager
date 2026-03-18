@@ -4,7 +4,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left Side - Form (Mobile Full Width, Desktop 50%) */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center  ">
+      <div className="w-full lg:w-1/2 flex items-center justify-center  py-6">
         <div className="w-full max-w-md">
           {/* Header Section */}
           <div className="text-center mb-8">
@@ -31,9 +31,9 @@ export default function LoginPage() {
               Sign in to continue to Mess Manager
             </p>
           </div>
-
-          <LoginFormPage />
-
+          <div>
+            <LoginFormPage />
+          </div>
           {/* Terms */}
           <p className="text-center text-xs text-muted-foreground mt-4 px-4">
             By signing in, you agree to our{" "}

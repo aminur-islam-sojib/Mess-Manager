@@ -21,7 +21,7 @@ export default async function DashboardLayout({
   const role = session.user.role;
 
   // ❌ Unknown role → show 404 (safety)
-  if (role !== "user" && role !== "manager") {
+  if (role !== "user" && role !== "manager" && role !== "admin") {
     notFound();
   }
 

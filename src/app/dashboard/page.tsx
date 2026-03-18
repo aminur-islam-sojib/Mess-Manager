@@ -5,7 +5,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 /* ----------------------------------------
    TYPES
 ---------------------------------------- */
-type UserRole = "user" | "manager";
+type UserRole = "user" | "manager" | "admin"; // Extend as needed
 
 /* ----------------------------------------
    ROLE → ROUTE MAP
@@ -14,6 +14,7 @@ type UserRole = "user" | "manager";
 const DASHBOARD_ROUTE_BY_ROLE: Record<UserRole, string> = {
   user: "/dashboard/user",
   manager: "/dashboard/manager",
+  admin: "/dashboard/admin",
 };
 
 /* ----------------------------------------
