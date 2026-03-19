@@ -36,15 +36,21 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       icon: Home,
     },
     {
-      label: "Users",
+      label: "Mess Management",
+      href: "/dashboard/admin/mess-management",
+      icon: UtensilsCrossed,
+    },
+    {
+      label: "Users Management",
       href: "/dashboard/admin/users",
       icon: UsersIcon,
     },
     {
-      label: "Expenses",
-      href: "/dashboard/admin/expenses",
-      icon: TrendingDown,
+      label: "Finances Report",
+      href: "/dashboard/admin/finances-report",
+      icon: BarChartHorizontalBig,
     },
+
     {
       label: "Notifications",
       href: "/dashboard/admin/notifications",
