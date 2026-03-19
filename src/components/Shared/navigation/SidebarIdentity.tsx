@@ -5,7 +5,6 @@ import { SessionUser } from "@/types/Model";
 import { AppRole } from "@/config/nav.config";
 import Image from "next/image";
 import Link from "next/link";
-import { Separator } from "@/components/ui/separator";
 
 interface SidebarIdentityProps {
   user: SessionUser;
@@ -93,7 +92,6 @@ export default function SidebarIdentity({
           </div>
         </div>
       </div>
-      <Separator />
     </div>
   );
 }

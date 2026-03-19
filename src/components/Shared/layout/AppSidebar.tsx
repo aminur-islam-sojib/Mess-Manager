@@ -9,6 +9,7 @@ import { SidebarProps } from "@/types/MessTypes";
 import { AppRole, ROLE_NAV_META } from "@/config/nav.config";
 import NavigationMenu from "@/components/Shared/navigation/NavigationMenu";
 import SidebarIdentity from "@/components/Shared/navigation/SidebarIdentity";
+import { Separator } from "@/components/ui/separator";
 
 type AppSidebarProps = SidebarProps & {
   role: AppRole;
@@ -181,7 +182,7 @@ function SidebarPanel({
         subtitle={subtitle}
         onClose={onClose}
       />
-
+      <Separator />
       <NavigationMenu role={role} isMessExist={isMessExist} />
 
       <LogOutButton />
