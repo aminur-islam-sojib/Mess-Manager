@@ -69,3 +69,12 @@ export const ensureNotificationIndexes = async () => {
 
   console.log("✅ Notification indexes ensured");
 };
+
+export const ensureAdminSettingsIndexes = async () => {
+  const collection = dbConnect(collections.ADMIN_SETTINGS);
+
+  await collection.createIndex({ key: 1 }, { unique: true });
+  await collection.createIndex({ updatedAt: -1 });
+
+  console.log("✅ Admin settings indexes ensured");
+};
