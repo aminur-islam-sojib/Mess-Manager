@@ -1,16 +1,15 @@
 "use client";
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion, cubicBezier } from "framer-motion";
-import MonthlyMessReport from "./MonthlyMealTracingDashboard";
+import { useMemo, useState, useTransition } from "react";
+import { cubicBezier } from "framer-motion";
 import { CalendarCog, CalendarDaysIcon, Timer } from "lucide-react";
-import DateRangeReport from "./CustomMealTracker";
 import {
+  GetMealReportBundleResponse,
+  MealReportPeriodPreset,
   GetTodayMealsResponse,
   GetMonthlyMealsResponse,
-  CurrentMonthMealCostDetails,
 } from "@/types/MealManagementTypes";
-import { getMonthlyExpensesSummary } from "@/actions/server/Expense";
-import TodaysMessReport2 from "@/components/Shared/MealTrack/TodaysMessReport";
+import { getMealReportBundle } from "@/actions/server/MealReports";
+import MealReportsOverview from "./MealReportsOverview";
 
 const views = [
   { key: "daily", label: "Daily", icon: Timer },
@@ -43,75 +42,74 @@ const contentVariants = {
 interface TabsViewClassicProps {
   todayData?: GetTodayMealsResponse | { success: false; message: string };
   monthlyData?: GetMonthlyMealsResponse | { success: false; message: string };
-  currentMonthMealCostDetails: CurrentMonthMealCostDetails;
+  initialReport: GetMealReportBundleResponse;
 }
 
 export default function TabsViewClassic({
   todayData,
   monthlyData,
-  currentMonthMealCostDetails,
+  initialReport,
 }: TabsViewClassicProps) {
   const [selectedView, setSelectedView] = useState<
     "daily" | "monthly" | "custom"
   >("daily");
-  const [costPerMeal, setCostPerMeal] = useState<number | undefined>();
+  const [selectedPeriod, setSelectedPeriod] =
+    useState<MealReportPeriodPreset>("thisMonth");
+  const [reportState, setReportState] =
+    useState<GetMealReportBundleResponse>(initialReport);
+  const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (costPerMeal !== undefined) return;
+  const costPerMeal = useMemo(() => {
+    if (!reportState.success) {
+      return 0;
+    }
+    return reportState.report.overview.costPerMeal;
+  }, [reportState]);
 
-    const fetchData = async () => {
-      const res = await getMonthlyExpensesSummary();
-      if (!res) return;
-      setCostPerMeal(res.costPerMeal);
-      console.log(res);
-    };
+  const handlePeriodChange = (period: MealReportPeriodPreset) => {
+    setSelectedPeriod(period);
 
-    fetchData();
-  }, [costPerMeal]);
+    startTransition(async () => {
+      const next = await getMealReportBundle({ period });
+      setReportState(next);
+    });
+  };
 
-  console.log(currentMonthMealCostDetails);
   return (
     <div>
-      <div className="relative flex items-center gap-1 bg-muted rounded-xl p-1">
-        {views.map(({ key, label, icon: Icon }) => {
-          const isActive = selectedView === key;
-
-          return (
+      <div className="rounded-2xl border border-border bg-card/50 p-3 mb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {(
+            [
+              { key: "today", label: "Today" },
+              { key: "thisWeek", label: "This Week" },
+              { key: "thisMonth", label: "This Month" },
+              { key: "last30Days", label: "Last 30 Days" },
+            ] as Array<{ key: MealReportPeriodPreset; label: string }>
+          ).map((item) => (
             <button
-              key={key}
-              onClick={() => setSelectedView(key)}
-              className="relative flex-1 px-4 py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 z-10"
+              key={item.key}
+              type="button"
+              onClick={() => handlePeriodChange(item.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                selectedPeriod === item.key
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground border-border hover:text-foreground"
+              }`}
             >
-              {/* Active background */}
-              {isActive && (
-                <motion.div
-                  layoutId="activeViewTab"
-                  className="absolute inset-0 rounded-lg bg-primary shadow-sm"
-                  transition={{
-                    type: "spring",
-                    stiffness: 350,
-                    damping: 30,
-                  }}
-                />
-              )}
-
-              <span
-                className={`relative flex items-center gap-2 transition-colors ${
-                  isActive
-                    ? "text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {label}
-              </span>
+              {item.label}
             </button>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
+      <MealReportsOverview
+        report={reportState.success ? reportState.report : undefined}
+        isLoading={isPending}
+      />
+
       {/* Animated Content */}
-      <div className="relative ">
+      {/* <div className="relative ">
         <AnimatePresence mode="wait">
           {selectedView === "daily" && (
             <motion.div
@@ -128,7 +126,7 @@ export default function TabsViewClassic({
             </motion.div>
           )}
 
-          {selectedView === "monthly" && costPerMeal && (
+          {selectedView === "monthly" && (
             <motion.div
               key="monthly"
               variants={contentVariants}
@@ -155,7 +153,7 @@ export default function TabsViewClassic({
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </div> */}
     </div>
   );
 }

@@ -96,3 +96,80 @@ export interface CurrentMonthMealCostDetails {
   success?: boolean;
   data?: CurrentMonthMealCost;
 }
+
+export type MealReportPeriodPreset =
+  | "today"
+  | "thisWeek"
+  | "thisMonth"
+  | "last30Days"
+  | "custom";
+
+export interface MealReportQuery {
+  period?: MealReportPeriodPreset;
+  from?: string;
+  to?: string;
+  memberIds?: string[];
+  limit?: number;
+  page?: number;
+}
+
+export interface MealReportRange {
+  period: MealReportPeriodPreset;
+  from: string;
+  to: string;
+  label: string;
+}
+
+export interface MealTrendPoint {
+  date: string;
+  breakfast: number;
+  lunch: number;
+  dinner: number;
+  totalMeals: number;
+  totalExpenses: number;
+}
+
+export interface MealMemberRankingItem extends MealMember {
+  estimatedCost: number;
+}
+
+export interface MealReportOverview {
+  totalMeals: number;
+  totalExpenses: number;
+  costPerMeal: number;
+  avgMealsPerMember: number;
+  activeMembers: number;
+}
+
+export interface MealReportPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface MealReportBundle {
+  messId: string;
+  messName: string;
+  range: MealReportRange;
+  overview: MealReportOverview;
+  trend: MealTrendPoint[];
+  heatmap: Array<{ date: string; totalMeals: number }>;
+  distribution: {
+    breakfast: number;
+    lunch: number;
+    dinner: number;
+    totalMeals: number;
+  };
+  memberRanking: MealMemberRankingItem[];
+  pagination: MealReportPagination;
+}
+
+export type GetMealReportBundleResponse =
+  | {
+      success: true;
+      report: MealReportBundle;
+    }
+  | ErrorResponse;

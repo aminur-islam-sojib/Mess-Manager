@@ -98,14 +98,14 @@ type StatCardProps = {
 function StatCard({ title, value, subtitle, icon: Icon }: StatCardProps) {
   return (
     <Card className="rounded-2xl border-border shadow-sm">
-      <CardContent className="p-4">
+      <CardContent>
         <div className="mb-3 flex items-center justify-between">
+          <Icon className="h-4 w-4 text-primary" />
           <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {title}
           </span>
-          <Icon className="h-4 w-4 text-primary" />
         </div>
-        <p className="text-2xl font-semibold text-foreground">{value}</p>
+        <p className="text-2xl font-bold text-foreground">{value}</p>
         <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
       </CardContent>
     </Card>
