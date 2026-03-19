@@ -9,6 +9,7 @@ import {
   updatePassword,
   updateUserProfile,
 } from "@/actions/server/ManagerSettings";
+import ProfileImageEditor from "@/components/Shared/settings/ProfileImageEditor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +30,7 @@ export default function AccountSettingsSection({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isImageUploading, setIsImageUploading] = useState(false);
   const [profile, setProfile] = useState({
     name: user.name,
     phone: user.phone,
@@ -41,7 +43,9 @@ export default function AccountSettingsSection({
   });
   const [notifications, setNotifications] = useState(user.notifications);
 
-  const runAction = (action: () => Promise<{ success: boolean; message: string }>) => {
+  const runAction = (
+    action: () => Promise<{ success: boolean; message: string }>,
+  ) => {
     startTransition(async () => {
       const result = await action();
       if (result.success) {
@@ -103,17 +107,18 @@ export default function AccountSettingsSection({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="manager-image">Profile Image URL</Label>
-            <Input
-              id="manager-image"
-              value={profile.image}
-              onChange={(event) =>
+            <ProfileImageEditor
+              idPrefix="manager"
+              image={profile.image}
+              fallbackInitial={profile.name.charAt(0) || "M"}
+              disabled={isPending}
+              onUploadingChange={setIsImageUploading}
+              onImageChange={(value) =>
                 setProfile((current) => ({
                   ...current,
-                  image: event.target.value,
+                  image: value,
                 }))
               }
-              placeholder="https://example.com/avatar.png"
             />
           </div>
 
@@ -134,10 +139,10 @@ export default function AccountSettingsSection({
                 }),
               )
             }
-            disabled={isPending}
+            disabled={isPending || isImageUploading}
             className="gap-2"
           >
-            {isPending ? (
+            {isPending || isImageUploading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Save className="h-4 w-4" />
@@ -285,7 +290,9 @@ export default function AccountSettingsSection({
           />
 
           <Button
-            onClick={() => runAction(() => updateNotificationSettings(notifications))}
+            onClick={() =>
+              runAction(() => updateNotificationSettings(notifications))
+            }
             disabled={isPending}
             className="gap-2"
           >

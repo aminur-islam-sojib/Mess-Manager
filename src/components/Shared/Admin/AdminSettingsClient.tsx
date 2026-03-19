@@ -9,6 +9,7 @@ import {
   Shield,
   SlidersHorizontal,
   Sparkles,
+  UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,12 +36,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import type {
   AdminSettings,
   AdminSettingsSection,
 } from "@/types/AdminSettings";
+import AdminProfileSection, {
+  type AdminOwnProfile,
+} from "./AdminProfileSection";
 
-const SECTION_META: Array<{
+type SettingsSectionId = "account" | AdminSettingsSection;
+
+const SETTINGS_SECTION_META: Array<{
   id: AdminSettingsSection;
   title: string;
   description: string;
@@ -75,6 +82,32 @@ const SECTION_META: Array<{
     title: "Feature Rollout",
     description: "Controlled release and emergency kill switch.",
     icon: Sparkles,
+  },
+];
+
+const NAV_GROUPS: Array<{
+  title: string;
+  items: Array<{
+    id: SettingsSectionId;
+    title: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }>;
+}> = [
+  {
+    title: "Account",
+    items: [
+      {
+        id: "account",
+        title: "Profile Settings",
+        description: "Manage your own profile photo and contact details.",
+        icon: UserRound,
+      },
+    ],
+  },
+  {
+    title: "Governance",
+    items: SETTINGS_SECTION_META,
   },
 ];
 
@@ -122,18 +155,22 @@ function sectionDirty(
 
 export default function AdminSettingsClient({
   initialSettings,
+  profile,
+  profileError,
 }: {
   initialSettings: AdminSettings;
+  profile: AdminOwnProfile | null;
+  profileError: string | null;
 }) {
   const [activeSection, setActiveSection] =
-    useState<AdminSettingsSection>("security");
+    useState<SettingsSectionId>("account");
   const [baseSettings, setBaseSettings] = useState(initialSettings);
   const [draftSettings, setDraftSettings] = useState(initialSettings);
   const [changeReason, setChangeReason] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const dirtyMap = useMemo(() => {
-    return SECTION_META.reduce(
+    return SETTINGS_SECTION_META.reduce(
       (acc, section) => {
         acc[section.id] = sectionDirty(baseSettings, draftSettings, section.id);
         return acc;
@@ -145,6 +182,14 @@ export default function AdminSettingsClient({
   const hasDirty = useMemo(
     () => Object.values(dirtyMap).some(Boolean),
     [dirtyMap],
+  );
+
+  const activeSectionMeta = useMemo(
+    () =>
+      NAV_GROUPS.flatMap((group) => group.items).find(
+        (item) => item.id === activeSection,
+      ),
+    [activeSection],
   );
 
   useEffect(() => {
@@ -234,44 +279,88 @@ export default function AdminSettingsClient({
               Saved state is shown per section for fast navigation.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {SECTION_META.map((section) => {
-              const Icon = section.icon;
-              const isActive = activeSection === section.id;
-              const isDirty = dirtyMap[section.id];
+          <CardContent className="space-y-4">
+            {NAV_GROUPS.map((group) => (
+              <div key={group.title} className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  {group.title}
+                </p>
+                <div className="space-y-2">
+                  {group.items.map((section) => {
+                    const Icon = section.icon;
+                    const isActive = activeSection === section.id;
+                    const isDirty =
+                      section.id === "account" ? false : dirtyMap[section.id];
 
-              return (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() => setActiveSection(section.id)}
-                  className={`w-full rounded-xl border p-3 text-left transition-all ${
-                    isActive
-                      ? "border-primary/40 bg-primary/10"
-                      : "border-border bg-background hover:border-primary/20"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-primary" />
-                      <p className="font-medium text-foreground">
-                        {section.title}
-                      </p>
-                    </div>
-                    <Badge variant={isDirty ? "secondary" : "outline"}>
-                      {isDirty ? "Unsaved" : "Saved"}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {section.description}
-                  </p>
-                </button>
-              );
-            })}
+                    return (
+                      <button
+                        key={section.id}
+                        type="button"
+                        onClick={() => setActiveSection(section.id)}
+                        className={cn(
+                          "w-full rounded-xl border p-3 text-left transition-all",
+                          isActive
+                            ? "border-primary/40 bg-primary/10"
+                            : "border-border bg-background hover:border-primary/20",
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-4 w-4 text-primary" />
+                            <p className="font-medium text-foreground">
+                              {section.title}
+                            </p>
+                          </div>
+                          <Badge
+                            variant={
+                              section.id === "account"
+                                ? "outline"
+                                : isDirty
+                                  ? "secondary"
+                                  : "outline"
+                            }
+                          >
+                            {section.id === "account"
+                              ? "Profile"
+                              : isDirty
+                                ? "Unsaved"
+                                : "Saved"}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {section.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
 
         <div className="space-y-4">
+          <div className="rounded-2xl border border-border bg-background/70 px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Active Panel
+            </p>
+            <h2 className="mt-1 text-xl font-semibold text-foreground">
+              {activeSectionMeta?.title}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {activeSectionMeta?.description}
+            </p>
+          </div>
+
+          {activeSection === "account" &&
+            (profile ? (
+              <AdminProfileSection profile={profile} />
+            ) : (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                {profileError || "Failed to load admin profile"}
+              </div>
+            ))}
+
           {activeSection === "security" && (
             <Card className="rounded-2xl border-border shadow-sm">
               <CardHeader>

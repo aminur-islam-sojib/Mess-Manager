@@ -7,6 +7,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import { sendInvitationEmail } from "@/actions/invitations";
 import { collections, dbConnect } from "@/lib/dbConnect";
+import { normalizeProfileImage } from "@/lib/profileImage";
 import type {
   DepositApprovalMode,
   ExpenseRuleAccess,
@@ -105,6 +106,22 @@ const isValidImageUrl = (value: string) => {
   try {
     const url = new URL(value);
     return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+const isTrustedImgBbUrl = (value: string) => {
+  if (!value) return true;
+
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+
+    return (
+      (url.protocol === "https:" || url.protocol === "http:") &&
+      (host === "i.ibb.co" || host.endsWith(".i.ibb.co"))
+    );
   } catch {
     return false;
   }
@@ -330,6 +347,7 @@ export async function updateUserProfile(payload: {
     const name = trimText(payload.name);
     const phone = trimText(payload.phone);
     const image = trimText(payload.image) || null;
+    const normalizedImage = normalizeProfileImage(image);
 
     if (name.length < 2) {
       return { success: false, message: "Name must be at least 2 characters" };
@@ -343,13 +361,21 @@ export async function updateUserProfile(payload: {
       return { success: false, message: "Profile image must be a valid URL" };
     }
 
+    if (image && !isTrustedImgBbUrl(image)) {
+      return {
+        success: false,
+        message: "Profile image must be uploaded from ImgBB",
+      };
+    }
+
     await dbConnect(collections.USERS).updateOne(
       { _id: userId },
       {
         $set: {
           name,
           phone,
-          image,
+          image: normalizedImage.image,
+          imageUploadedAt: normalizedImage.imageUploadedAt,
           updatedAt: new Date(),
         },
       },
@@ -499,6 +525,13 @@ export async function updateMessProfile(payload: {
       return { success: false, message: "Mess image must be a valid URL" };
     }
 
+    if (image && !isTrustedImgBbUrl(image)) {
+      return {
+        success: false,
+        message: "Mess image must be uploaded from ImgBB",
+      };
+    }
+
     await dbConnect(collections.MESS).updateOne(
       { _id: mess._id, managerId: mess.managerId },
       {
@@ -507,6 +540,7 @@ export async function updateMessProfile(payload: {
           messAddress,
           description,
           image,
+          imageUploadedAt: image ? new Date() : null,
           updatedAt: new Date(),
         },
       },

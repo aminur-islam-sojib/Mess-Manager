@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { uploadImageToImgBB } from "@/actions/server/ImageUpload";
 import { removeMessMember } from "@/actions/server/ManagerSettings";
 import { cancelInvitation, sendMessInvitation } from "@/actions/invitations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,6 +37,15 @@ import type {
   SettingsMember,
 } from "@/types/ManagerSettings";
 
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Failed to read image file"));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function MessManagementSettingsSection({
   mess,
   members,
@@ -47,6 +57,7 @@ export default function MessManagementSettingsSection({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [messProfile, setMessProfile] = useState({
     messName: mess.messName,
     messAddress: mess.messAddress,
@@ -88,6 +99,31 @@ export default function MessManagementSettingsSection({
 
       toast.error(result.message);
     });
+  };
+
+  const onUploadMessImage = async (file?: File) => {
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      const result = await uploadImageToImgBB({
+        dataUrl,
+        kind: "mess",
+      });
+
+      if (!result.success) {
+        toast.error(result.message);
+        return;
+      }
+
+      setMessProfile((current) => ({ ...current, image: result.url }));
+      toast.success("Mess image uploaded and ready to save");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   return (
@@ -153,7 +189,31 @@ export default function MessManagementSettingsSection({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="mess-image">Mess Image URL</Label>
+            <Label htmlFor="mess-image">Mess Image (ImgBB)</Label>
+            <div className="flex flex-col gap-4 rounded-2xl border border-border bg-muted/20 p-4 md:flex-row md:items-center">
+              <Avatar size="xl">
+                <AvatarImage src={messProfile.image} />
+                <AvatarFallback>
+                  {messProfile.messName.charAt(0) || "M"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="w-full space-y-2">
+                <Input
+                  id="mess-image-upload"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={isPending || isUploadingImage}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    void onUploadMessImage(file);
+                    event.currentTarget.value = "";
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Allowed: jpg/png/webp, max 3MB. Uploaded securely to ImgBB.
+                </p>
+              </div>
+            </div>
             <Input
               id="mess-image"
               value={messProfile.image}
@@ -163,7 +223,7 @@ export default function MessManagementSettingsSection({
                   image: event.target.value,
                 }))
               }
-              placeholder="https://example.com/mess-cover.png"
+              placeholder="https://i.ibb.co/..."
             />
           </div>
 
@@ -178,10 +238,10 @@ export default function MessManagementSettingsSection({
                 }),
               )
             }
-            disabled={isPending}
+            disabled={isPending || isUploadingImage}
             className="gap-2"
           >
-            {isPending ? (
+            {isPending || isUploadingImage ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Save className="h-4 w-4" />
