@@ -5,6 +5,7 @@ import { InputUser } from "@/types/Model";
 import bcrypt from "bcryptjs";
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
+import { emitNotification } from "@/lib/notifications";
 
 export type AdminUserSortBy = "createdAt" | "name" | "email" | "role";
 export type AdminUserSortOrder = "asc" | "desc";
@@ -415,25 +416,40 @@ export const updateAdminUserStatus = async (
       };
     }
 
-    const result = await usersCollection.updateOne(
-      { _id: userId },
-      {
-        $set: {
-          status: nextStatus,
-          updatedAt: new Date(),
-        },
-      },
-    );
-
-    if (result.matchedCount === 0) {
-      return { success: false, message: "User not found" };
-    }
-
     let actorObjectId: ObjectId | null = null;
     try {
       actorObjectId = session.user.id ? new ObjectId(session.user.id) : null;
     } catch {
       actorObjectId = null;
+    }
+
+    const result = await usersCollection.updateOne(
+      { _id: userId },
+      nextStatus === "suspended"
+        ? {
+            $set: {
+              status: nextStatus,
+              suspensionReason: reason,
+              suspendedAt: new Date(),
+              suspendedBy: actorObjectId,
+              updatedAt: new Date(),
+            },
+          }
+        : {
+            $set: {
+              status: nextStatus,
+              updatedAt: new Date(),
+            },
+            $unset: {
+              suspensionReason: "",
+              suspendedAt: "",
+              suspendedBy: "",
+            },
+          },
+    );
+
+    if (result.matchedCount === 0) {
+      return { success: false, message: "User not found" };
     }
 
     await auditCollection.insertOne({
@@ -454,6 +470,29 @@ export const updateAdminUserStatus = async (
         status: nextStatus,
       },
       createdAt: new Date(),
+    });
+
+    await emitNotification({
+      recipientUserIds: [userId],
+      actorUserId: actorObjectId ?? undefined,
+      eventKey:
+        action === "suspend" ? "account.suspended" : "account.activated",
+      channels: ["in_app", "realtime", "email"],
+      severity: action === "suspend" ? "warning" : "success",
+      title:
+        action === "suspend"
+          ? "Your account has been suspended"
+          : "Your account has been reactivated",
+      message:
+        action === "suspend"
+          ? `Access is temporarily limited. Reason: ${reason}`
+          : "Your account access has been restored by an administrator.",
+      actionUrl: "/auth/suspended",
+      metadata: {
+        action,
+        reason: reason || null,
+      },
+      dedupeKey: `account-status:${userId.toString()}:${nextStatus}`,
     });
 
     revalidatePath("/dashboard/admin/users");

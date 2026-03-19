@@ -41,7 +41,21 @@ export async function middleware(req: NextRequest) {
   }
 
   const role = token.role as string | undefined;
+  const status = token.status as string | undefined;
   const { pathname } = req.nextUrl;
+
+  if (status === "suspended") {
+    const allowWhileSuspended =
+      pathname.startsWith("/dashboard/profile") ||
+      pathname.endsWith("/notifications") ||
+      pathname.includes("/notifications/");
+
+    if (allowWhileSuspended) {
+      return NextResponse.next();
+    }
+
+    return NextResponse.redirect(new URL("/auth/suspended", req.url));
+  }
 
   if (!isGlobalRole(role)) {
     return NextResponse.redirect(new URL("/auth/login", req.url));

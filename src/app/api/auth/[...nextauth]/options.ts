@@ -68,6 +68,11 @@ export const authOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          status: typeof user.status === "string" ? user.status : "active",
+          suspensionReason:
+            typeof user.suspensionReason === "string"
+              ? user.suspensionReason
+              : null,
         };
       },
     }),
@@ -86,6 +91,8 @@ export const authOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
+        token.status = (user as any).status ?? "active";
+        token.suspensionReason = (user as any).suspensionReason ?? null;
         token.name = user.name;
         token.image = user.image;
         return token;
@@ -113,6 +120,12 @@ export const authOptions = {
       // Keep token in sync with DB
       token.id = dbUser._id.toString();
       token.role = dbUser.role;
+      token.status =
+        typeof dbUser.status === "string" ? dbUser.status : "active";
+      token.suspensionReason =
+        typeof dbUser.suspensionReason === "string"
+          ? dbUser.suspensionReason
+          : null;
       token.name = dbUser.name;
       token.image = dbUser.image;
 
@@ -124,6 +137,12 @@ export const authOptions = {
       if (session.user && token) {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.status =
+          typeof token.status === "string" ? token.status : "active";
+        session.user.suspensionReason =
+          typeof token.suspensionReason === "string"
+            ? token.suspensionReason
+            : null;
       }
       return session;
     },

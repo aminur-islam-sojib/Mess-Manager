@@ -27,7 +27,9 @@ export type NotificationEventKey =
   | "mess_data.reset"
   | "profile.updated"
   | "password.changed"
-  | "account.deleted";
+  | "account.deleted"
+  | "account.suspended"
+  | "account.activated";
 
 export type NotificationChannel = "in_app" | "email" | "realtime";
 
