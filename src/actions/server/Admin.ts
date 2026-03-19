@@ -1,12 +1,14 @@
 "use server";
 
 import { dbConnect, collections } from "@/lib/dbConnect";
+import { emitNotification } from "@/lib/notifications";
 import {
   AuthorizationError,
   requireAdminRole,
   requireManagerRole,
 } from "@/lib/auth.utils";
 import { ObjectId } from "mongodb";
+import { revalidatePath } from "next/cache";
 
 // Success response
 interface ManagerDashboardSuccess {
@@ -124,6 +126,63 @@ interface AdminExpenseInsightsError {
   message: string;
 }
 
+export type AdminMessSortBy =
+  | "createdAt"
+  | "messName"
+  | "memberCount"
+  | "monthlyExpense"
+  | "pendingOperations"
+  | "status";
+
+export type AdminMessSortOrder = "asc" | "desc";
+export type AdminMessStatusFilter = "all" | "active" | "suspended" | "archived";
+
+export interface AdminMessListItem {
+  id: string;
+  messName: string;
+  status: string;
+  manager: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  memberCount: number;
+  activeMemberCount: number;
+  monthlyExpense: number;
+  monthlyDeposit: number;
+  pendingExpenseCount: number;
+  pendingDepositRequestCount: number;
+  pendingInvitationCount: number;
+  pendingOperations: number;
+  createdAt: Date;
+}
+
+export type AdminMessListResponse =
+  | {
+      success: true;
+      items: AdminMessListItem[];
+      pagination: {
+        totalItems: number;
+        totalPages: number;
+        page: number;
+        pageSize: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
+      filters: {
+        q: string;
+        status: AdminMessStatusFilter;
+        minMembers: number;
+        minMonthlyExpense: number;
+        sortBy: AdminMessSortBy;
+        order: AdminMessSortOrder;
+      };
+    }
+  | {
+      success: false;
+      message: string;
+    };
+
 export type AdminExpenseInsightsResponse =
   | AdminExpenseInsightsSuccess
   | AdminExpenseInsightsError;
@@ -134,6 +193,95 @@ export type AdminDashboardResponse =
 
 const DEFAULT_GROUP_SORT_BY: AdminGroupExpenseSortBy = "totalExpenseAmount";
 const DEFAULT_GROUP_SORT_ORDER: AdminGroupExpenseSortOrder = "desc";
+const DEFAULT_MESS_SORT_BY: AdminMessSortBy = "createdAt";
+const DEFAULT_MESS_SORT_ORDER: AdminMessSortOrder = "desc";
+
+const ALLOWED_MESS_PAGE_SIZES = new Set([10, 20, 50, 100]);
+const ALLOWED_MESS_STATUS = new Set<AdminMessStatusFilter>([
+  "all",
+  "active",
+  "suspended",
+  "archived",
+]);
+const ALLOWED_MESS_SORT_BY = new Set<AdminMessSortBy>([
+  "createdAt",
+  "messName",
+  "memberCount",
+  "monthlyExpense",
+  "pendingOperations",
+  "status",
+]);
+const ALLOWED_MESS_ORDER = new Set<AdminMessSortOrder>(["asc", "desc"]);
+
+function parseObjectId(value: string | null | undefined): ObjectId | null {
+  if (!value) return null;
+  try {
+    return new ObjectId(value);
+  } catch {
+    return null;
+  }
+}
+
+function escapeRegex(query: string) {
+  return query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeMessListParams(params?: {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  status?: AdminMessStatusFilter;
+  minMembers?: number;
+  minMonthlyExpense?: number;
+  sortBy?: AdminMessSortBy;
+  order?: AdminMessSortOrder;
+}) {
+  const page = Number.isFinite(params?.page)
+    ? Math.max(1, Math.floor(Number(params?.page)))
+    : 1;
+
+  const requestedPageSize = Number.isFinite(params?.pageSize)
+    ? Math.max(1, Math.floor(Number(params?.pageSize)))
+    : 20;
+  const pageSize = ALLOWED_MESS_PAGE_SIZES.has(requestedPageSize)
+    ? requestedPageSize
+    : 20;
+
+  const q = (params?.q ?? "").trim().slice(0, 80);
+
+  const status = ALLOWED_MESS_STATUS.has(
+    params?.status as AdminMessStatusFilter,
+  )
+    ? (params?.status as AdminMessStatusFilter)
+    : "all";
+
+  const minMembers = Number.isFinite(params?.minMembers)
+    ? Math.max(0, Math.floor(Number(params?.minMembers)))
+    : 0;
+
+  const minMonthlyExpense = Number.isFinite(params?.minMonthlyExpense)
+    ? Math.max(0, Number(params?.minMonthlyExpense))
+    : 0;
+
+  const sortBy = ALLOWED_MESS_SORT_BY.has(params?.sortBy as AdminMessSortBy)
+    ? (params?.sortBy as AdminMessSortBy)
+    : DEFAULT_MESS_SORT_BY;
+
+  const order = ALLOWED_MESS_ORDER.has(params?.order as AdminMessSortOrder)
+    ? (params?.order as AdminMessSortOrder)
+    : DEFAULT_MESS_SORT_ORDER;
+
+  return {
+    page,
+    pageSize,
+    q,
+    status,
+    minMembers,
+    minMonthlyExpense,
+    sortBy,
+    order,
+  };
+}
 
 export const getManagerDashboardOverview =
   async (): Promise<ManagerDashboardResponse> => {
@@ -682,6 +830,446 @@ export const getAdminExpenseInsights = async (params?: {
     return {
       success: false,
       message: "Failed to load admin expense insights",
+    };
+  }
+};
+
+export const getAdminMessManagementList = async (params?: {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  status?: AdminMessStatusFilter;
+  minMembers?: number;
+  minMonthlyExpense?: number;
+  sortBy?: AdminMessSortBy;
+  order?: AdminMessSortOrder;
+}): Promise<AdminMessListResponse> => {
+  try {
+    await requireAdminRole();
+
+    const normalized = normalizeMessListParams(params);
+    const messCollection = dbConnect(collections.MESS);
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const baseMatch: Record<string, unknown> = {};
+    if (normalized.q) {
+      baseMatch.messName = {
+        $regex: escapeRegex(normalized.q),
+        $options: "i",
+      };
+    }
+
+    if (normalized.status !== "all") {
+      baseMatch.status = normalized.status;
+    }
+
+    const sortDirection = normalized.order === "asc" ? 1 : -1;
+    const skip = (normalized.page - 1) * normalized.pageSize;
+
+    const pipeline: object[] = [
+      { $match: baseMatch },
+      {
+        $lookup: {
+          from: collections.USERS,
+          localField: "managerId",
+          foreignField: "_id",
+          as: "managerDoc",
+        },
+      },
+      {
+        $lookup: {
+          from: collections.MESS_MEMBERS,
+          let: { messId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$messId", "$$messId"] },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                memberCount: { $sum: 1 },
+                activeMemberCount: {
+                  $sum: {
+                    $cond: [{ $eq: ["$status", "active"] }, 1, 0],
+                  },
+                },
+              },
+            },
+          ],
+          as: "memberStats",
+        },
+      },
+      {
+        $lookup: {
+          from: collections.EXPENSES,
+          let: { messId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$messId", "$$messId"] },
+                createdAt: { $gte: monthStart, $lt: monthEnd },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                monthlyExpense: { $sum: { $ifNull: ["$amount", 0] } },
+                pendingExpenseCount: {
+                  $sum: {
+                    $cond: [{ $eq: ["$status", "pending"] }, 1, 0],
+                  },
+                },
+              },
+            },
+          ],
+          as: "expenseStats",
+        },
+      },
+      {
+        $lookup: {
+          from: collections.DEPOSITS,
+          let: { messId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$messId", "$$messId"] },
+                createdAt: { $gte: monthStart, $lt: monthEnd },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                monthlyDeposit: { $sum: { $ifNull: ["$amount", 0] } },
+              },
+            },
+          ],
+          as: "depositStats",
+        },
+      },
+      {
+        $lookup: {
+          from: collections.DEPOSIT_REQUESTS,
+          let: { messId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$messId", "$$messId"] },
+                status: "pending",
+              },
+            },
+            { $count: "count" },
+          ],
+          as: "pendingDepositStats",
+        },
+      },
+      {
+        $lookup: {
+          from: collections.INVITATIONS,
+          let: { messId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$messId", "$$messId"] },
+                status: "pending",
+              },
+            },
+            { $count: "count" },
+          ],
+          as: "pendingInvitationStats",
+        },
+      },
+      {
+        $addFields: {
+          managerDoc: { $ifNull: [{ $first: "$managerDoc" }, {}] },
+          memberStats: { $ifNull: [{ $first: "$memberStats" }, {}] },
+          expenseStats: { $ifNull: [{ $first: "$expenseStats" }, {}] },
+          depositStats: { $ifNull: [{ $first: "$depositStats" }, {}] },
+          pendingDepositStats: {
+            $ifNull: [{ $first: "$pendingDepositStats" }, {}],
+          },
+          pendingInvitationStats: {
+            $ifNull: [{ $first: "$pendingInvitationStats" }, {}],
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          messName: { $ifNull: ["$messName", "Unnamed Mess"] },
+          status: { $ifNull: ["$status", "active"] },
+          createdAt: 1,
+          managerId: "$managerDoc._id",
+          managerName: { $ifNull: ["$managerDoc.name", "Unknown Manager"] },
+          managerEmail: { $ifNull: ["$managerDoc.email", "-"] },
+          memberCount: { $ifNull: ["$memberStats.memberCount", 0] },
+          activeMemberCount: { $ifNull: ["$memberStats.activeMemberCount", 0] },
+          monthlyExpense: { $ifNull: ["$expenseStats.monthlyExpense", 0] },
+          monthlyDeposit: { $ifNull: ["$depositStats.monthlyDeposit", 0] },
+          pendingExpenseCount: {
+            $ifNull: ["$expenseStats.pendingExpenseCount", 0],
+          },
+          pendingDepositRequestCount: {
+            $ifNull: ["$pendingDepositStats.count", 0],
+          },
+          pendingInvitationCount: {
+            $ifNull: ["$pendingInvitationStats.count", 0],
+          },
+        },
+      },
+      {
+        $addFields: {
+          pendingOperations: {
+            $add: [
+              { $ifNull: ["$pendingExpenseCount", 0] },
+              { $ifNull: ["$pendingDepositRequestCount", 0] },
+              { $ifNull: ["$pendingInvitationCount", 0] },
+            ],
+          },
+        },
+      },
+      {
+        $match: {
+          memberCount: { $gte: normalized.minMembers },
+          monthlyExpense: { $gte: normalized.minMonthlyExpense },
+        },
+      },
+      {
+        $sort: {
+          [normalized.sortBy]: sortDirection,
+          _id: 1,
+        },
+      },
+      {
+        $facet: {
+          rows: [{ $skip: skip }, { $limit: normalized.pageSize }],
+          total: [{ $count: "count" }],
+        },
+      },
+    ];
+
+    const [result] = await messCollection.aggregate(pipeline).toArray();
+    const rows = Array.isArray(result?.rows) ? result.rows : [];
+    const totalItems = Number(result?.total?.[0]?.count ?? 0);
+    const totalPages = Math.max(1, Math.ceil(totalItems / normalized.pageSize));
+
+    return {
+      success: true,
+      items: rows.map((mess) => ({
+        id: mess._id.toString(),
+        messName: String(mess.messName || "Unnamed Mess"),
+        status: String(mess.status || "active"),
+        manager: {
+          id:
+            mess.managerId instanceof ObjectId
+              ? mess.managerId.toString()
+              : String(mess.managerId || ""),
+          name: String(mess.managerName || "Unknown Manager"),
+          email: String(mess.managerEmail || "-"),
+        },
+        memberCount: Number(mess.memberCount || 0),
+        activeMemberCount: Number(mess.activeMemberCount || 0),
+        monthlyExpense: Number(mess.monthlyExpense || 0),
+        monthlyDeposit: Number(mess.monthlyDeposit || 0),
+        pendingExpenseCount: Number(mess.pendingExpenseCount || 0),
+        pendingDepositRequestCount: Number(
+          mess.pendingDepositRequestCount || 0,
+        ),
+        pendingInvitationCount: Number(mess.pendingInvitationCount || 0),
+        pendingOperations: Number(mess.pendingOperations || 0),
+        createdAt:
+          mess.createdAt instanceof Date
+            ? mess.createdAt
+            : new Date(mess.createdAt || Date.now()),
+      })),
+      pagination: {
+        totalItems,
+        totalPages,
+        page: normalized.page,
+        pageSize: normalized.pageSize,
+        hasNext: normalized.page < totalPages,
+        hasPrev: normalized.page > 1,
+      },
+      filters: {
+        q: normalized.q,
+        status: normalized.status,
+        minMembers: normalized.minMembers,
+        minMonthlyExpense: normalized.minMonthlyExpense,
+        sortBy: normalized.sortBy,
+        order: normalized.order,
+      },
+    };
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
+
+    console.error("❌ Admin mess management list error:", error);
+    return {
+      success: false,
+      message: "Failed to load mess management list",
+    };
+  }
+};
+
+export const updateAdminMessStatus = async (
+  formData: FormData,
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const session = await requireAdminRole();
+
+    const messId = parseObjectId(String(formData.get("messId") || ""));
+    const action = String(formData.get("action") || "").trim();
+    const reason = String(formData.get("reason") || "").trim();
+
+    if (!messId) {
+      return { success: false, message: "Invalid mess id" };
+    }
+    if (!["suspend", "activate", "archive"].includes(action)) {
+      return { success: false, message: "Invalid action requested" };
+    }
+    if ((action === "suspend" || action === "archive") && reason.length < 5)
+      return {
+        success: false,
+        message: "Please provide at least 5 characters for the reason",
+      };
+
+    const messCollection = dbConnect(collections.MESS);
+    const memberCollection = dbConnect(collections.MESS_MEMBERS);
+    const auditCollection = dbConnect(collections.AUDIT_LOGS);
+
+    const mess = await messCollection.findOne({ _id: messId });
+    if (!mess) {
+      return { success: false, message: "Mess not found" };
+    }
+
+    const previousStatus =
+      typeof mess.status === "string" && mess.status.trim()
+        ? mess.status
+        : "active";
+
+    const nextStatus =
+      action === "suspend"
+        ? "suspended"
+        : action === "activate"
+          ? "active"
+          : "archived";
+
+    if (previousStatus === nextStatus) {
+      return {
+        success: false,
+        message: `Mess is already ${nextStatus}`,
+      };
+    }
+
+    let actorObjectId: ObjectId | null = null;
+    try {
+      actorObjectId = session.user.id ? new ObjectId(session.user.id) : null;
+    } catch {
+      actorObjectId = null;
+    }
+
+    await messCollection.updateOne(
+      { _id: messId },
+      {
+        $set: {
+          status: nextStatus,
+          updatedAt: new Date(),
+          ...(nextStatus === "archived" ? { archivedAt: new Date() } : {}),
+        },
+      },
+    );
+
+    await auditCollection.insertOne({
+      action: `mess.${action}`,
+      actorUserId: actorObjectId,
+      actorName: session.user.name ?? null,
+      actorEmail: session.user.email ?? null,
+      targetMessId: messId,
+      messName: typeof mess.messName === "string" ? mess.messName : null,
+      reason: reason || null,
+      before: { status: previousStatus },
+      after: { status: nextStatus },
+      createdAt: new Date(),
+    });
+
+    const members = await memberCollection
+      .find({ messId, status: "active" }, { projection: { userId: 1 } })
+      .toArray();
+
+    const recipientIds = members
+      .map((member) => member.userId)
+      .filter((id): id is ObjectId => id instanceof ObjectId);
+
+    if (recipientIds.length > 0) {
+      await emitNotification({
+        recipientUserIds: recipientIds,
+        messId,
+        actorUserId: actorObjectId ?? undefined,
+        eventKey:
+          action === "suspend"
+            ? "mess.suspended"
+            : action === "activate"
+              ? "mess.activated"
+              : "mess.archived",
+        channels: ["in_app", "realtime"],
+        severity:
+          action === "activate"
+            ? "success"
+            : action === "archive"
+              ? "error"
+              : "warning",
+        title:
+          action === "suspend"
+            ? "Your mess has been suspended"
+            : action === "activate"
+              ? "Your mess has been activated"
+              : "Your mess has been archived",
+        message:
+          action === "activate"
+            ? "Admin has restored your mess access."
+            : `Admin changed mess status to ${nextStatus}.${
+                reason ? ` Reason: ${reason}` : ""
+              }`,
+        actionUrl: "/dashboard",
+        metadata: {
+          action,
+          reason: reason || null,
+          status: nextStatus,
+        },
+        dedupeKey: `mess-status:${messId.toString()}:${nextStatus}`,
+      });
+    }
+
+    revalidatePath("/dashboard/admin/mess-management");
+    revalidatePath("/dashboard/admin");
+
+    const actionLabel =
+      action === "activate"
+        ? "activated"
+        : action === "suspend"
+          ? "suspended"
+          : "archived";
+
+    return {
+      success: true,
+      message: `Mess ${actionLabel} successfully`,
+    };
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return { success: false, message: error.message };
+    }
+    console.error("❌ Update admin mess status failed:", error);
+    return {
+      success: false,
+      message: "Failed to update mess status",
     };
   }
 };
