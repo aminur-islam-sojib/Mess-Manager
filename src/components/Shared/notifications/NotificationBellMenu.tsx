@@ -167,7 +167,7 @@ export default function NotificationBellMenu({
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="w-[360px] rounded-xl p-0"
+        className="w-90 rounded-xl p-0"
       >
         <div className="border-b border-border p-3">
           <div className="mb-2 flex items-center justify-between">
@@ -202,7 +202,7 @@ export default function NotificationBellMenu({
           </div>
         </div>
 
-        <ScrollArea className="h-[340px]">
+        <ScrollArea className="h-85">
           <div className="p-2">
             {isLoading ? (
               <div className="flex items-center gap-2 p-3 text-xs text-muted-foreground">

@@ -2,9 +2,13 @@
 import { collections, dbConnect } from "@/lib/dbConnect";
 import { CreateMessPayload } from "@/types/MessTypes";
 import type {
+  GetMessMembersParams,
   GetMessMembersResponse,
   MessMember,
+  MessMemberFilterRole,
   MessMemberRole,
+  MessMemberSortBy,
+  MessMemberSortDir,
 } from "@/types/MessMember";
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
@@ -163,12 +167,66 @@ export const getSingleMessForUser = async (userId: string) => {
 // Backwards-compatible alias for code that imports `getSingleMess`
 export const getSingleMess = getSingleMessForUser;
 
-export const getMessMembers = async (): Promise<GetMessMembersResponse> => {
+const sanitizeSortBy = (value: string | undefined): MessMemberSortBy => {
+  const allowed: MessMemberSortBy[] = [
+    "name",
+    "email",
+    "role",
+    "joinDate",
+    "monthlyMeals",
+    "monthlyMealCost",
+    "currentBalance",
+  ];
+
+  return allowed.includes(value as MessMemberSortBy)
+    ? (value as MessMemberSortBy)
+    : "name";
+};
+
+const sanitizeSortDir = (value: string | undefined): MessMemberSortDir =>
+  value === "desc" ? "desc" : "asc";
+
+const sanitizeRoleFilter = (
+  value: string | undefined,
+): MessMemberFilterRole => {
+  if (value === "manager" || value === "member") {
+    return value;
+  }
+  return "all";
+};
+
+const SORT_FIELD_MAP: Record<MessMemberSortBy, string> = {
+  name: "userName",
+  email: "userEmail",
+  role: "role",
+  joinDate: "joinDate",
+  monthlyMeals: "userName",
+  monthlyMealCost: "userName",
+  currentBalance: "userName",
+};
+
+export const getMessMembers = async (
+  params?: GetMessMembersParams,
+): Promise<GetMessMembersResponse> => {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" };
+      return { success: false, state: "unauthorized", message: "Unauthorized" };
     }
+
+    const requestedPage =
+      typeof params?.page === "number" && params.page > 0
+        ? Math.floor(params.page)
+        : 1;
+    const requestedLimit =
+      typeof params?.limit === "number" && params.limit > 0
+        ? Math.min(Math.floor(params.limit), 100)
+        : null;
+    const q = (params?.q ?? "").trim();
+    const roleFilter = sanitizeRoleFilter(params?.role);
+    const sortBy = sanitizeSortBy(params?.sortBy);
+    const sortDir = sanitizeSortDir(params?.sortDir);
+    const shouldPaginate = requestedLimit !== null;
 
     const userId = new ObjectId(session.user.id);
 
@@ -183,6 +241,7 @@ export const getMessMembers = async (): Promise<GetMessMembersResponse> => {
     if (!membership) {
       return {
         success: false,
+        state: "no-mess",
         message: "User is not part of any active mess",
       };
     }
@@ -195,6 +254,7 @@ export const getMessMembers = async (): Promise<GetMessMembersResponse> => {
     if (!mess) {
       return {
         success: false,
+        state: "error",
         message: "Mess not found or inactive",
       };
     }
@@ -207,100 +267,154 @@ export const getMessMembers = async (): Promise<GetMessMembersResponse> => {
     const nextMonthYear = currentMonth === 12 ? currentYear + 1 : currentYear;
     const monthEndKey = `${nextMonthYear}-${String(nextMonth).padStart(2, "0")}-01`;
 
-    const [
-      messMembers,
-      monthlyExpenseAgg,
-      monthlyMealAgg,
-      memberMealsAgg,
-      memberDepositsAgg,
-    ] = await Promise.all([
-      memberCollection
-        .aggregate<{
-          userId: ObjectId;
-          role: string;
-          status: string;
-          joinDate?: Date;
-          userName?: string;
-          userEmail?: string;
-        }>([
-          {
-            $match: {
-              messId: mess._id,
-              status: "active",
+    const baseMemberPipeline: object[] = [
+      {
+        $match: {
+          messId: mess._id,
+          status: "active",
+        },
+      },
+      {
+        $lookup: {
+          from: collections.USERS,
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 0,
+          userId: 1,
+          role: 1,
+          status: 1,
+          joinDate: 1,
+          userName: "$user.name",
+          userEmail: "$user.email",
+        },
+      },
+    ];
+
+    if (q) {
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const queryRegex = new RegExp(escaped, "i");
+      baseMemberPipeline.push({
+        $match: {
+          $or: [{ userName: queryRegex }, { userEmail: queryRegex }],
+        },
+      });
+    }
+
+    if (roleFilter !== "all") {
+      baseMemberPipeline.push({ $match: { role: roleFilter } });
+    }
+
+    const memberSortField = SORT_FIELD_MAP[sortBy] ?? "userName";
+    const memberSortDir = sortDir === "asc" ? 1 : -1;
+
+    const memberListPipeline: object[] = [
+      ...baseMemberPipeline,
+      { $sort: { [memberSortField]: memberSortDir } },
+    ];
+
+    if (shouldPaginate && requestedLimit) {
+      const skip = (requestedPage - 1) * requestedLimit;
+      memberListPipeline.push({ $skip: skip }, { $limit: requestedLimit });
+    }
+
+    const [messMembers, totalMembersAgg, monthlyExpenseAgg, monthlyMealAgg] =
+      await Promise.all([
+        memberCollection
+          .aggregate<{
+            userId: ObjectId;
+            role: string;
+            status: string;
+            joinDate?: Date;
+            userName?: string;
+            userEmail?: string;
+          }>(memberListPipeline)
+          .toArray(),
+        memberCollection
+          .aggregate<{
+            total: number;
+          }>([...baseMemberPipeline, { $count: "total" }])
+          .toArray(),
+        dbConnect(collections.EXPENSES)
+          .aggregate<{ totalMessExpense: number }>([
+            {
+              $match: {
+                messId: mess._id,
+                status: "approved",
+                expenseDate: { $gte: monthStartKey, $lt: monthEndKey },
+              },
             },
-          },
-          {
-            $lookup: {
-              from: collections.USERS,
-              localField: "userId",
-              foreignField: "_id",
-              as: "user",
+            { $group: { _id: null, totalMessExpense: { $sum: "$amount" } } },
+            { $project: { _id: 0, totalMessExpense: 1 } },
+          ])
+          .toArray(),
+        dbConnect(collections.MEAL_ENTRIES)
+          .aggregate<{ totalMessMeals: number }>([
+            {
+              $match: {
+                messId: mess._id,
+                date: { $gte: monthStartKey, $lt: monthEndKey },
+              },
             },
-          },
-          { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
-          {
-            $project: {
-              _id: 0,
-              userId: 1,
-              role: 1,
-              status: 1,
-              joinDate: 1,
-              userName: "$user.name",
-              userEmail: "$user.email",
-            },
-          },
-          { $sort: { userName: 1 } },
-        ])
-        .toArray(),
-      dbConnect(collections.EXPENSES)
-        .aggregate<{ totalMessExpense: number }>([
-          {
-            $match: {
-              messId: mess._id,
-              status: "approved",
-              expenseDate: { $gte: monthStartKey, $lt: monthEndKey },
-            },
-          },
-          { $group: { _id: null, totalMessExpense: { $sum: "$amount" } } },
-          { $project: { _id: 0, totalMessExpense: 1 } },
-        ])
-        .toArray(),
-      dbConnect(collections.MEAL_ENTRIES)
-        .aggregate<{ totalMessMeals: number }>([
-          {
-            $match: {
-              messId: mess._id,
-              date: { $gte: monthStartKey, $lt: monthEndKey },
-            },
-          },
-          { $group: { _id: null, totalMessMeals: { $sum: "$meals" } } },
-          { $project: { _id: 0, totalMessMeals: 1 } },
-        ])
-        .toArray(),
-      dbConnect(collections.MEAL_ENTRIES)
-        .aggregate<{ _id: ObjectId; monthlyMeals: number }>([
-          {
-            $match: {
-              messId: mess._id,
-              date: { $gte: monthStartKey, $lt: monthEndKey },
-            },
-          },
-          { $group: { _id: "$userId", monthlyMeals: { $sum: "$meals" } } },
-          { $project: { _id: 1, monthlyMeals: 1 } },
-        ])
-        .toArray(),
-      dbConnect(collections.DEPOSITS)
-        .aggregate<{ _id: ObjectId; totalDeposit: number }>([
-          { $match: { messId: mess._id } },
-          { $group: { _id: "$userId", totalDeposit: { $sum: "$amount" } } },
-          { $project: { _id: 1, totalDeposit: 1 } },
-        ])
-        .toArray(),
-    ]);
+            { $group: { _id: null, totalMessMeals: { $sum: "$meals" } } },
+            { $project: { _id: 0, totalMessMeals: 1 } },
+          ])
+          .toArray(),
+      ]);
+
+    const totalMembers = totalMembersAgg[0]?.total ?? 0;
+    const memberObjectIds = messMembers.map((member) => member.userId);
+
+    const [memberMealsAgg, memberDepositsAgg] =
+      memberObjectIds.length === 0
+        ? [[], []]
+        : await Promise.all([
+            dbConnect(collections.MEAL_ENTRIES)
+              .aggregate<{ _id: ObjectId; monthlyMeals: number }>([
+                {
+                  $match: {
+                    messId: mess._id,
+                    userId: { $in: memberObjectIds },
+                    date: { $gte: monthStartKey, $lt: monthEndKey },
+                  },
+                },
+                {
+                  $group: {
+                    _id: "$userId",
+                    monthlyMeals: { $sum: "$meals" },
+                  },
+                },
+                { $project: { _id: 1, monthlyMeals: 1 } },
+              ])
+              .toArray(),
+            dbConnect(collections.DEPOSITS)
+              .aggregate<{ _id: ObjectId; totalDeposit: number }>([
+                {
+                  $match: {
+                    messId: mess._id,
+                    userId: { $in: memberObjectIds },
+                  },
+                },
+                {
+                  $group: {
+                    _id: "$userId",
+                    totalDeposit: { $sum: "$amount" },
+                  },
+                },
+                { $project: { _id: 1, totalDeposit: 1 } },
+              ])
+              .toArray(),
+          ]);
 
     if (messMembers.length === 0) {
       return {
         success: true,
+        state: "empty",
         messId: mess._id.toString(),
         messName: mess.messName,
         currentMonth: {
@@ -311,6 +425,23 @@ export const getMessMembers = async (): Promise<GetMessMembersResponse> => {
           costPerMeal: 0,
         },
         members: [],
+        pagination: shouldPaginate
+          ? {
+              page: requestedPage,
+              limit: requestedLimit ?? 25,
+              total: totalMembers,
+              totalPages:
+                requestedLimit && requestedLimit > 0
+                  ? Math.max(1, Math.ceil(totalMembers / requestedLimit))
+                  : 1,
+              hasNext: false,
+              hasPrev: requestedPage > 1,
+              q,
+              sortBy,
+              sortDir,
+              role: roleFilter,
+            }
+          : undefined,
       };
     }
 
@@ -353,6 +484,7 @@ export const getMessMembers = async (): Promise<GetMessMembersResponse> => {
 
     return {
       success: true,
+      state: "ok",
       messId: mess._id.toString(),
       messName: mess.messName,
       currentMonth: {
@@ -362,12 +494,44 @@ export const getMessMembers = async (): Promise<GetMessMembersResponse> => {
         totalMessMealCount: totalMessMeals,
         costPerMeal: round2(costPerMeal),
       },
-      members,
+      members:
+        sortBy === "monthlyMeals" ||
+        sortBy === "monthlyMealCost" ||
+        sortBy === "currentBalance"
+          ? [...members].sort((a, b) => {
+              const av = a[sortBy];
+              const bv = b[sortBy];
+              if (av === bv) return 0;
+              const order = av > bv ? 1 : -1;
+              return sortDir === "asc" ? order : -order;
+            })
+          : members,
+      pagination: shouldPaginate
+        ? {
+            page: requestedPage,
+            limit: requestedLimit ?? 25,
+            total: totalMembers,
+            totalPages:
+              requestedLimit && requestedLimit > 0
+                ? Math.max(1, Math.ceil(totalMembers / requestedLimit))
+                : 1,
+            hasNext:
+              requestedLimit && requestedLimit > 0
+                ? requestedPage < Math.ceil(totalMembers / requestedLimit)
+                : false,
+            hasPrev: requestedPage > 1,
+            q,
+            sortBy,
+            sortDir,
+            role: roleFilter,
+          }
+        : undefined,
     };
   } catch (error) {
     console.error("❌ Error fetching mess users:", error);
     return {
       success: false,
+      state: "error",
       message: "Failed to fetch mess users",
     };
   }
