@@ -740,19 +740,19 @@ function SummaryCard({
 }) {
   return (
     <Card className="shadow-[0_4px_20px_rgb(0,0,0,0.02)] bg-card rounded-[1.5rem] p-6 border border-border/70">
-      <div className="flex justify-between items-start mb-5">
-        <div className="p-3 rounded-2xl bg-muted">{icon}</div>
-      </div>
-      <div className="space-y-1.5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/70">
-          {title}
-        </p>
-        <h3 className="text-3xl font-black tracking-tight text-foreground tabular-nums">
-          {value}
-        </h3>
-        <p className="text-[10px] font-medium text-muted-foreground opacity-75">
-          {description}
-        </p>
+      <div className="flex flex-col gap-1">
+        <div className="flex justify-between items-center ">
+          <div className="p-3 rounded-2xl bg-muted">{icon}</div>{" "}
+          <p className=" text-xs font-semibold ">{title}</p>
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="text-3xl font-black tracking-tight text-foreground tabular-nums">
+            {value}
+          </h3>
+          <p className="text-[10px] font-medium text-muted-foreground opacity-75">
+            {description}
+          </p>
+        </div>
       </div>
     </Card>
   );
