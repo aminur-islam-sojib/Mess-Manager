@@ -191,10 +191,83 @@ export type AdminDashboardResponse =
   | AdminDashboardSuccess
   | AdminDashboardError;
 
+interface AdminTrendPoint {
+  date: string;
+  newUsers: number;
+  newMesses: number;
+  pendingInvitations: number;
+  acceptedInvitations: number;
+  expiredInvitations: number;
+  pendingOperations: number;
+}
+
+interface AdminHomeProgress {
+  label: string;
+  percentage: number;
+  current: number;
+  total: number;
+  helper: string;
+}
+
+interface AdminHomeInsightsSuccess {
+  success: true;
+  generatedAt: Date;
+  windowDays: number;
+  summary: {
+    totalUsers: number;
+    totalManagers: number;
+    totalMembers: number;
+    totalMesses: number;
+    activeMesses: number;
+    pendingInvitations: number;
+    pendingExpenses: number;
+    pendingDepositRequests: number;
+    totalPendingOperations: number;
+    newUsersInWindow: number;
+    newUsersPreviousWindow: number;
+    newMessesInWindow: number;
+    newMessesPreviousWindow: number;
+    userGrowthDeltaPct: number;
+    messGrowthDeltaPct: number;
+    managersPerActiveMess: number;
+    averageMembersPerActiveMess: number;
+    invitationsAcceptedInWindow: number;
+    invitationsExpiredInWindow: number;
+    operationsOpenedInWindow: number;
+    operationsClearedInWindow: number;
+  };
+  progress: {
+    activationRate: AdminHomeProgress;
+    managerCoverage: AdminHomeProgress;
+    operationsClearance: AdminHomeProgress;
+  };
+  trends: AdminTrendPoint[];
+  recentUsers: Array<{
+    _id: ObjectId;
+    name: string;
+    email: string;
+    role: string;
+    createdAt: Date;
+  }>;
+}
+
+interface AdminHomeInsightsError {
+  success: false;
+  message: string;
+}
+
+export type AdminHomeInsightsResponse =
+  | AdminHomeInsightsSuccess
+  | AdminHomeInsightsError;
+
 const DEFAULT_GROUP_SORT_BY: AdminGroupExpenseSortBy = "totalExpenseAmount";
 const DEFAULT_GROUP_SORT_ORDER: AdminGroupExpenseSortOrder = "desc";
 const DEFAULT_MESS_SORT_BY: AdminMessSortBy = "createdAt";
 const DEFAULT_MESS_SORT_ORDER: AdminMessSortOrder = "desc";
+const DEFAULT_ADMIN_HOME_DAYS = 30;
+const MAX_ADMIN_HOME_DAYS = 90;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const ALLOWED_MESS_PAGE_SIZES = new Set([10, 20, 50, 100]);
 const ALLOWED_MESS_STATUS = new Set<AdminMessStatusFilter>([
@@ -224,6 +297,35 @@ function parseObjectId(value: string | null | undefined): ObjectId | null {
 
 function escapeRegex(query: string) {
   return query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function toUtcDayStart(date: Date) {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
+}
+
+function toDateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function safePercent(current: number, total: number) {
+  if (total <= 0) return 0;
+  return Math.min(100, Math.max(0, (current / total) * 100));
+}
+
+function safeDeltaPct(current: number, previous: number) {
+  if (previous <= 0) {
+    return current > 0 ? 100 : 0;
+  }
+
+  return ((current - previous) / previous) * 100;
+}
+
+function clampWindowDays(days?: number) {
+  if (!Number.isFinite(days)) return DEFAULT_ADMIN_HOME_DAYS;
+
+  return Math.max(7, Math.min(MAX_ADMIN_HOME_DAYS, Math.floor(Number(days))));
 }
 
 function normalizeMessListParams(params?: {
@@ -546,6 +648,577 @@ export const getAdminDashboardOverview =
       };
     }
   };
+
+export const getAdminHomeInsights = async (params?: {
+  days?: number;
+}): Promise<AdminHomeInsightsResponse> => {
+  try {
+    await requireAdminRole();
+
+    const windowDays = clampWindowDays(params?.days);
+    const now = new Date();
+    const todayStartUtc = toUtcDayStart(now);
+    const windowStartUtc = new Date(
+      todayStartUtc.getTime() - (windowDays - 1) * DAY_MS,
+    );
+    const windowEndUtc = new Date(todayStartUtc.getTime() + DAY_MS);
+    const previousWindowStartUtc = new Date(
+      windowStartUtc.getTime() - windowDays * DAY_MS,
+    );
+
+    const usersCollection = dbConnect(collections.USERS);
+    const messCollection = dbConnect(collections.MESS);
+    const membersCollection = dbConnect(collections.MESS_MEMBERS);
+    const invitationsCollection = dbConnect(collections.INVITATIONS);
+    const expenseCollection = dbConnect(collections.EXPENSES);
+    const depositRequestCollection = dbConnect(collections.DEPOSIT_REQUESTS);
+
+    const [
+      totalUsers,
+      totalManagers,
+      totalMembers,
+      totalMesses,
+      activeMesses,
+      pendingInvitations,
+      pendingExpenses,
+      pendingDepositRequests,
+      newUsersInWindow,
+      newUsersPreviousWindow,
+      newMessesInWindow,
+      newMessesPreviousWindow,
+      invitationsAcceptedInWindow,
+      invitationsExpiredInWindow,
+      operationsClearedExpenseInWindow,
+      operationsClearedDepositInWindow,
+      operationsClearedInviteInWindow,
+      openedExpensesInWindow,
+      openedDepositRequestsInWindow,
+      openedInvitationsInWindow,
+      usersTrendRows,
+      messTrendRows,
+      invitationTrendRows,
+      expenseOpenRows,
+      expenseCloseRows,
+      depositOpenRows,
+      depositCloseRows,
+      inviteOpenRows,
+      inviteCloseRows,
+      initialPendingExpenses,
+      initialPendingDepositRequests,
+      initialPendingInvitations,
+      activeMessesWithManager,
+      recentUsers,
+    ] = await Promise.all([
+      usersCollection.countDocuments({}),
+      usersCollection.countDocuments({ role: "manager" }),
+      membersCollection.countDocuments({ status: "active" }),
+      messCollection.countDocuments({}),
+      messCollection.countDocuments({ status: "active" }),
+      invitationsCollection.countDocuments({
+        status: "pending",
+        expiresAt: { $gte: now },
+      }),
+      expenseCollection.countDocuments({ status: "pending" }),
+      depositRequestCollection.countDocuments({ status: "pending" }),
+      usersCollection.countDocuments({
+        createdAt: { $gte: windowStartUtc, $lt: windowEndUtc },
+      }),
+      usersCollection.countDocuments({
+        createdAt: { $gte: previousWindowStartUtc, $lt: windowStartUtc },
+      }),
+      messCollection.countDocuments({
+        createdAt: { $gte: windowStartUtc, $lt: windowEndUtc },
+      }),
+      messCollection.countDocuments({
+        createdAt: { $gte: previousWindowStartUtc, $lt: windowStartUtc },
+      }),
+      invitationsCollection.countDocuments({
+        status: "accepted",
+        acceptedAt: { $gte: windowStartUtc, $lt: windowEndUtc },
+      }),
+      invitationsCollection.countDocuments({
+        status: "pending",
+        expiresAt: { $gte: windowStartUtc, $lt: windowEndUtc },
+      }),
+      expenseCollection.countDocuments({
+        status: { $in: ["approved", "rejected"] },
+        updatedAt: { $gte: windowStartUtc, $lt: windowEndUtc },
+      }),
+      depositRequestCollection.countDocuments({
+        status: { $in: ["approved", "rejected"] },
+        updatedAt: { $gte: windowStartUtc, $lt: windowEndUtc },
+      }),
+      invitationsCollection.countDocuments({
+        status: "accepted",
+        acceptedAt: { $gte: windowStartUtc, $lt: windowEndUtc },
+      }),
+      expenseCollection.countDocuments({
+        createdAt: { $gte: windowStartUtc, $lt: windowEndUtc },
+      }),
+      depositRequestCollection.countDocuments({
+        createdAt: { $gte: windowStartUtc, $lt: windowEndUtc },
+      }),
+      invitationsCollection.countDocuments({
+        createdAt: { $gte: windowStartUtc, $lt: windowEndUtc },
+      }),
+      usersCollection
+        .aggregate<{ _id: string; count: number }>([
+          {
+            $match: {
+              createdAt: {
+                $gte: windowStartUtc,
+                $lt: windowEndUtc,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$createdAt",
+                  timezone: "UTC",
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray(),
+      messCollection
+        .aggregate<{ _id: string; count: number }>([
+          {
+            $match: {
+              createdAt: {
+                $gte: windowStartUtc,
+                $lt: windowEndUtc,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$createdAt",
+                  timezone: "UTC",
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray(),
+      invitationsCollection
+        .aggregate<{
+          _id: { date: string; bucket: string };
+          count: number;
+        }>([
+          {
+            $match: {
+              createdAt: {
+                $gte: windowStartUtc,
+                $lt: windowEndUtc,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                date: {
+                  $dateToString: {
+                    format: "%Y-%m-%d",
+                    date: "$createdAt",
+                    timezone: "UTC",
+                  },
+                },
+                bucket: {
+                  $switch: {
+                    branches: [
+                      {
+                        case: { $eq: ["$status", "accepted"] },
+                        then: "accepted",
+                      },
+                      {
+                        case: {
+                          $and: [
+                            { $eq: ["$status", "pending"] },
+                            { $lt: ["$expiresAt", now] },
+                          ],
+                        },
+                        then: "expired",
+                      },
+                    ],
+                    default: "pending",
+                  },
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray(),
+      expenseCollection
+        .aggregate<{ _id: string; count: number }>([
+          {
+            $match: {
+              createdAt: {
+                $gte: windowStartUtc,
+                $lt: windowEndUtc,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$createdAt",
+                  timezone: "UTC",
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray(),
+      expenseCollection
+        .aggregate<{ _id: string; count: number }>([
+          {
+            $match: {
+              status: { $in: ["approved", "rejected"] },
+              updatedAt: {
+                $gte: windowStartUtc,
+                $lt: windowEndUtc,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$updatedAt",
+                  timezone: "UTC",
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray(),
+      depositRequestCollection
+        .aggregate<{ _id: string; count: number }>([
+          {
+            $match: {
+              createdAt: {
+                $gte: windowStartUtc,
+                $lt: windowEndUtc,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$createdAt",
+                  timezone: "UTC",
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray(),
+      depositRequestCollection
+        .aggregate<{ _id: string; count: number }>([
+          {
+            $match: {
+              status: { $in: ["approved", "rejected"] },
+              updatedAt: {
+                $gte: windowStartUtc,
+                $lt: windowEndUtc,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$updatedAt",
+                  timezone: "UTC",
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray(),
+      invitationsCollection
+        .aggregate<{ _id: string; count: number }>([
+          {
+            $match: {
+              createdAt: {
+                $gte: windowStartUtc,
+                $lt: windowEndUtc,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$createdAt",
+                  timezone: "UTC",
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray(),
+      invitationsCollection
+        .aggregate<{ _id: string; count: number }>([
+          {
+            $match: {
+              status: "accepted",
+              acceptedAt: {
+                $gte: windowStartUtc,
+                $lt: windowEndUtc,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$acceptedAt",
+                  timezone: "UTC",
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray(),
+      expenseCollection.countDocuments({
+        status: "pending",
+        createdAt: { $lt: windowStartUtc },
+      }),
+      depositRequestCollection.countDocuments({
+        status: "pending",
+        createdAt: { $lt: windowStartUtc },
+      }),
+      invitationsCollection.countDocuments({
+        status: "pending",
+        createdAt: { $lt: windowStartUtc },
+        expiresAt: { $gte: windowStartUtc },
+      }),
+      messCollection.countDocuments({
+        status: "active",
+        managerId: { $exists: true, $ne: null },
+      }),
+      usersCollection.find({}).sort({ createdAt: -1 }).limit(5).toArray(),
+    ]);
+
+    const trendMap = new Map<string, AdminTrendPoint>();
+    const userMap = new Map(usersTrendRows.map((row) => [row._id, row.count]));
+    const messMap = new Map(messTrendRows.map((row) => [row._id, row.count]));
+
+    const invitationBucketMap = new Map<
+      string,
+      { pending: number; accepted: number; expired: number }
+    >();
+
+    for (const row of invitationTrendRows) {
+      const date = row._id.date;
+      const bucket = row._id.bucket;
+      const existing = invitationBucketMap.get(date) ?? {
+        pending: 0,
+        accepted: 0,
+        expired: 0,
+      };
+
+      if (bucket === "accepted") existing.accepted += row.count;
+      else if (bucket === "expired") existing.expired += row.count;
+      else existing.pending += row.count;
+
+      invitationBucketMap.set(date, existing);
+    }
+
+    const expenseOpenMap = new Map(
+      expenseOpenRows.map((row) => [row._id, row.count]),
+    );
+    const expenseCloseMap = new Map(
+      expenseCloseRows.map((row) => [row._id, row.count]),
+    );
+    const depositOpenMap = new Map(
+      depositOpenRows.map((row) => [row._id, row.count]),
+    );
+    const depositCloseMap = new Map(
+      depositCloseRows.map((row) => [row._id, row.count]),
+    );
+    const inviteOpenMap = new Map(
+      inviteOpenRows.map((row) => [row._id, row.count]),
+    );
+    const inviteCloseMap = new Map(
+      inviteCloseRows.map((row) => [row._id, row.count]),
+    );
+
+    let runningPendingOps =
+      initialPendingExpenses +
+      initialPendingDepositRequests +
+      initialPendingInvitations;
+
+    for (let index = 0; index < windowDays; index += 1) {
+      const date = new Date(windowStartUtc.getTime() + index * DAY_MS);
+      const dateKey = toDateKey(date);
+
+      const invitationBuckets = invitationBucketMap.get(dateKey) ?? {
+        pending: 0,
+        accepted: 0,
+        expired: 0,
+      };
+
+      const opened =
+        (expenseOpenMap.get(dateKey) ?? 0) +
+        (depositOpenMap.get(dateKey) ?? 0) +
+        (inviteOpenMap.get(dateKey) ?? 0);
+      const closed =
+        (expenseCloseMap.get(dateKey) ?? 0) +
+        (depositCloseMap.get(dateKey) ?? 0) +
+        (inviteCloseMap.get(dateKey) ?? 0);
+
+      runningPendingOps += opened - closed;
+
+      trendMap.set(dateKey, {
+        date: dateKey,
+        newUsers: userMap.get(dateKey) ?? 0,
+        newMesses: messMap.get(dateKey) ?? 0,
+        pendingInvitations: invitationBuckets.pending,
+        acceptedInvitations: invitationBuckets.accepted,
+        expiredInvitations: invitationBuckets.expired,
+        pendingOperations: Math.max(0, runningPendingOps),
+      });
+    }
+
+    const trends = [...trendMap.values()];
+    const totalPendingOperations =
+      pendingInvitations + pendingExpenses + pendingDepositRequests;
+    const operationsOpenedInWindow =
+      openedExpensesInWindow +
+      openedDepositRequestsInWindow +
+      openedInvitationsInWindow;
+    const operationsClearedInWindow =
+      operationsClearedExpenseInWindow +
+      operationsClearedDepositInWindow +
+      operationsClearedInviteInWindow;
+
+    const activationRate = {
+      label: "Mess activation",
+      percentage: Number(safePercent(activeMesses, totalMesses).toFixed(2)),
+      current: activeMesses,
+      total: totalMesses,
+      helper: "Active messes over total messes",
+    };
+
+    const managerCoverage = {
+      label: "Manager coverage",
+      percentage: Number(
+        safePercent(activeMessesWithManager, activeMesses || 1).toFixed(2),
+      ),
+      current: activeMessesWithManager,
+      total: activeMesses,
+      helper: "Active messes that currently have a manager",
+    };
+
+    const operationsClearanceTotal =
+      operationsClearedInWindow + totalPendingOperations;
+
+    const operationsClearance = {
+      label: "Ops clearance",
+      percentage: Number(
+        safePercent(
+          operationsClearedInWindow,
+          operationsClearanceTotal,
+        ).toFixed(2),
+      ),
+      current: operationsClearedInWindow,
+      total: operationsClearanceTotal,
+      helper: "Reviewed operations versus reviewed + currently pending",
+    };
+
+    return {
+      success: true,
+      generatedAt: now,
+      windowDays,
+      summary: {
+        totalUsers,
+        totalManagers,
+        totalMembers,
+        totalMesses,
+        activeMesses,
+        pendingInvitations,
+        pendingExpenses,
+        pendingDepositRequests,
+        totalPendingOperations,
+        newUsersInWindow,
+        newUsersPreviousWindow,
+        newMessesInWindow,
+        newMessesPreviousWindow,
+        userGrowthDeltaPct: Number(
+          safeDeltaPct(newUsersInWindow, newUsersPreviousWindow).toFixed(2),
+        ),
+        messGrowthDeltaPct: Number(
+          safeDeltaPct(newMessesInWindow, newMessesPreviousWindow).toFixed(2),
+        ),
+        managersPerActiveMess: Number(
+          ((totalManagers || 0) / Math.max(activeMesses, 1)).toFixed(2),
+        ),
+        averageMembersPerActiveMess: Number(
+          ((totalMembers || 0) / Math.max(activeMesses, 1)).toFixed(2),
+        ),
+        invitationsAcceptedInWindow,
+        invitationsExpiredInWindow,
+        operationsOpenedInWindow,
+        operationsClearedInWindow,
+      },
+      progress: {
+        activationRate,
+        managerCoverage,
+        operationsClearance,
+      },
+      trends,
+      recentUsers: recentUsers.map((user) => ({
+        _id: user._id,
+        name: String(user.name || "Unknown"),
+        email: String(user.email || "-"),
+        role: String(user.role || "user"),
+        createdAt:
+          user.createdAt instanceof Date
+            ? user.createdAt
+            : new Date(user.createdAt || Date.now()),
+      })),
+    };
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
+
+    console.error("❌ Admin Home Insights Error:", error);
+    return {
+      success: false,
+      message: "Failed to load admin home insights",
+    };
+  }
+};
 
 export const getAdminExpenseInsights = async (params?: {
   search?: string;
