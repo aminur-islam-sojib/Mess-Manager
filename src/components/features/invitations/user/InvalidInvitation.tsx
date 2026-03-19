@@ -106,14 +106,9 @@ export default function InvalidInvitation({
   const config = getErrorConfig();
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-destructive/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-destructive/5 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
-      </div>
-
+    <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
       <div className="relative z-10 w-full">
-        <div className="bg-card border border-border rounded-3xl shadow-2xl overflow-hidden">
+        <div className=" overflow-hidden">
           <div className="pt-12 pb-6 text-center">
             <div
               className={`inline-flex items-center justify-center w-24 h-24 rounded-full ${config.iconBg} mb-6 animate-pulse`}

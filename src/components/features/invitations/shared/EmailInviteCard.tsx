@@ -21,7 +21,7 @@ export const EmailInviteCard = ({
   invitedEmails,
   onRemoveEmail,
 }: EmailInviteCardProps) => (
-  <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+  <div className="  ">
     <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
       <Mail className="w-5 h-5 text-primary" />
       Send Email Invitation

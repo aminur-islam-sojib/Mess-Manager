@@ -36,7 +36,7 @@ export default function SidebarIdentity({
                 {messName}
               </h2>
               <span className="text-[10px] font-bold text-[#1F6F68] uppercase tracking-widest">
-                Manager System
+                {user.role?.toUpperCase()} System
               </span>
             </div>
           </div>

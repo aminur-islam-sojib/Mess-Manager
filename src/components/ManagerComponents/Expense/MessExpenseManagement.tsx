@@ -169,7 +169,7 @@ export default function MessExpenseManagement({
   );
 
   return (
-    <div className="min-h-screen bg-muted/20 p-4 md:p-8">
+    <div className="min-h-screen bg-muted/20 ">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* HEADER SECTION (Modernized) */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

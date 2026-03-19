@@ -50,7 +50,7 @@ export default function InvitePage({ session, messData }: any) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div>
       <InviteHeader showSuccess={showSuccess} />
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -80,7 +80,7 @@ export default function InvitePage({ session, messData }: any) {
             copied={copiedLink}
           />
 
-          <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6">
+          <div className="bg-primary/5 border border-primary/10 rounded-2xl ">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
               ℹ️ How it works
             </h3>

@@ -5,7 +5,7 @@ import { getSingleMessForUser } from "@/actions/server/Mess";
 import AppSidebar from "@/components/Shared/layout/AppSidebar";
 import AppBottomNav from "@/components/Shared/layout/AppBottomNav";
 import DashboardPageTransition from "@/components/Shared/DashboardPageTransition";
-import DashboardHeader from "@/components/Shared/layout/DashboardHeader";
+import DashboardNotificationTopBar from "@/components/Shared/layout/DashboardNotificationTopBar";
 import {
   getRecentNotificationsForUserId,
   getUnreadNotificationCountForUserId,
@@ -59,21 +59,26 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background lg:flex">
-      <div className="flex-1">
-        <AppSidebar
-          user={session.user}
-          isMessExist={isMessExist}
-          role={role}
-          alertCount={unreadNotificationCount}
-        />
+    <div className="min-h-screen bg-background">
+      <AppSidebar
+        user={session.user}
+        isMessExist={isMessExist}
+        role={role}
+        alertCount={unreadNotificationCount}
+      />
 
-        <div className="p-4 pb-20 md:p-6 lg:ml-72 lg:pb-0">
-          <DashboardHeader
-            role={role}
-            unreadCount={unreadNotificationCount}
-            initialItems={initialNotifications}
-          />
+      <div className="flex-1 lg:ml-72">
+        <div className="sticky top-0 z-40 hidden border-b border-sidebar-border bg-background lg:block">
+          <div className="px-6 py-4">
+            <DashboardNotificationTopBar
+              role={role}
+              unreadCount={unreadNotificationCount}
+              initialItems={initialNotifications}
+            />
+          </div>
+        </div>
+
+        <div className="p-4 pb-20 md:p-6 lg:pb-0 lg:pt-4">
           <DashboardPageTransition>{children}</DashboardPageTransition>
         </div>
 

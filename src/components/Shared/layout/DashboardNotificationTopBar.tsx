@@ -3,9 +3,13 @@
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import type { AppRole } from "@/types/auth";
+import type { NotificationSerialized } from "@/types/Notification";
+import NotificationBellMenu from "@/components/Shared/notifications/NotificationBellMenu";
 
-type DashboardHeaderProps = {
+type DashboardNotificationTopBarProps = {
   role: AppRole;
+  unreadCount: number;
+  initialItems: NotificationSerialized[];
 };
 
 const ROLE_LABEL: Record<AppRole, string> = {
@@ -21,7 +25,11 @@ const segmentToLabel = (segment: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
-export default function DashboardHeader({ role }: DashboardHeaderProps) {
+export default function DashboardNotificationTopBar({
+  role,
+  unreadCount,
+  initialItems,
+}: DashboardNotificationTopBarProps) {
   const pathname = usePathname();
 
   const pageTitle = useMemo(() => {
@@ -36,15 +44,21 @@ export default function DashboardHeader({ role }: DashboardHeaderProps) {
   }, [pathname, role]);
 
   return (
-    <header className="mb-4 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm sm:mb-6 sm:px-5">
-      <div>
+    <header className="flex items-center justify-between gap-3 rounded-2xl ">
+      <div className="min-w-0">
         <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
           Dashboard
         </p>
-        <h1 className="text-lg font-semibold text-foreground sm:text-xl">
+        <h1 className="truncate text-lg font-semibold text-foreground sm:text-xl">
           {pageTitle}
         </h1>
       </div>
+
+      <NotificationBellMenu
+        role={role}
+        initialUnreadCount={unreadCount}
+        initialItems={initialItems}
+      />
     </header>
   );
 }

@@ -21,8 +21,8 @@ export default function AppBottomNav({ role, isMessExist }: AppBottomNavProps) {
   const navItems = getVisibleNavItems(role, isMessExist?.success).slice(0, 4);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 px-3 pb-3 pt-2 lg:hidden">
-      <div className="mx-auto grid max-w-md grid-cols-4 gap-1 rounded-[1.75rem] border border-border/70 bg-card/92 p-2 shadow-[0_14px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 px-4 pb-4 pt-2 lg:hidden">
+      <div className="mx-auto grid max-w-md grid-cols-4 gap-1 rounded-[2rem] border border-border/50 bg-card/80 p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isNavItemActive(pathname, item.href);
@@ -31,61 +31,39 @@ export default function AppBottomNav({ role, isMessExist }: AppBottomNavProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={`group relative flex flex-col items-center gap-1.5 overflow-hidden rounded-2xl px-2 py-2.5 text-center ${
+              className={`group relative flex flex-col items-center justify-center rounded-2xl py-2 transition-all duration-200 ${
                 active
                   ? "text-primary"
-                  : "text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
+              {/* Active Background Surface */}
               {active && (
                 <motion.span
                   layoutId="bottom-nav-active-surface"
-                  className="absolute inset-0 rounded-2xl bg-primary/9"
-                  transition={{
-                    type: "spring",
-                    stiffness: 420,
-                    damping: 34,
-                    mass: 0.7,
-                  }}
+                  className="absolute inset-0 z-0 rounded-2xl bg-primary/8"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
-              <motion.span
+
+              <motion.div
                 animate={
-                  reduceMotion
-                    ? undefined
-                    : active
-                      ? { y: -1, scale: 1.02 }
-                      : { y: 0, scale: 1 }
+                  reduceMotion ? undefined : active ? { y: -2 } : { y: 0 }
                 }
-                transition={{
-                  type: "spring",
-                  stiffness: 420,
-                  damping: 28,
-                  mass: 0.55,
-                }}
-                className={`relative z-10 flex h-11 w-11 items-center justify-center rounded-2xl border ${
-                  active
-                    ? "border-primary/15 bg-primary/10"
-                    : "border-transparent bg-transparent group-hover:border-border/80 group-hover:bg-accent/75"
+                className="relative z-10 flex h-9 w-9 items-center justify-center"
+              >
+                <Icon
+                  className={`h-5.5 w-5.5 transition-transform ${active ? "scale-110" : "scale-100"}`}
+                />
+              </motion.div>
+
+              <span
+                className={`relative z-10 text-[10px] font-bold uppercase tracking-wider ${
+                  active ? "opacity-100" : "opacity-80"
                 }`}
               >
-                <Icon className="h-5 w-5" />
-              </motion.span>
-              <span className="relative z-10 text-[11px] font-semibold tracking-[0.01em]">
                 {item.label}
               </span>
-              {active && (
-                <motion.span
-                  layoutId="bottom-nav-active-dot"
-                  className="absolute bottom-1.5 h-1 w-1 rounded-full bg-primary"
-                  transition={{
-                    type: "spring",
-                    stiffness: 500,
-                    damping: 38,
-                    mass: 0.55,
-                  }}
-                />
-              )}
             </Link>
           );
         })}
