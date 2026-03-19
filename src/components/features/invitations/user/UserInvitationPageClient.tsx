@@ -1,6 +1,6 @@
 "use client";
 
-import { acceptInvitation } from "@/server/invitations";
+import { acceptInvitation } from "@/actions/invitations";
 import { InvitationType } from "@/types/Invitations";
 import { SessionUser } from "@/types/Model";
 import {

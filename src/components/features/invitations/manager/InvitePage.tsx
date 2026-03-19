@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { sendInvitationAction } from "@/server/invitations";
+import { sendInvitationAction } from "@/actions/invitations";
 import { useState } from "react";
 import { EmailInviteCard } from "../shared/EmailInviteCard";
 import { InviteHeader } from "../shared/InviteHeader";

@@ -1,4 +1,4 @@
-import { getInvitationByToken } from "@/server/invitations";
+import { getInvitationByToken } from "@/actions/invitations";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import {
   InvalidInvitation,

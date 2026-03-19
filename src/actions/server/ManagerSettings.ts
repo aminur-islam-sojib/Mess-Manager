@@ -5,7 +5,7 @@ import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
-import { sendInvitationEmail } from "@/server/invitations";
+import { sendInvitationEmail } from "@/actions/invitations";
 import { collections, dbConnect } from "@/lib/dbConnect";
 import type {
   DepositApprovalMode,

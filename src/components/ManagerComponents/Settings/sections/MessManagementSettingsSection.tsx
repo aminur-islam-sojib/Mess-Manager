@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { removeMessMember } from "@/actions/server/ManagerSettings";
-import { cancelInvitation, sendMessInvitation } from "@/server/invitations";
+import { cancelInvitation, sendMessInvitation } from "@/actions/invitations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
