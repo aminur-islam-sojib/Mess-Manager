@@ -12,6 +12,7 @@ export const collections = {
   DEPOSITS: "deposits",
   DEPOSIT_REQUESTS: "deposit_requests",
   NOTIFICATIONS: "notifications",
+  AUDIT_LOGS: "audit_logs",
 };
 
 const uri = process.env.MONGO_URI;

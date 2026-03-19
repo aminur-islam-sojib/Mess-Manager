@@ -179,7 +179,7 @@ const Modal: React.FC<ModalProps> = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-auto"
+          className="fixed inset-0 z-9999 flex items-center justify-center pointer-events-auto"
           initial="hidden"
           animate="visible"
           exit="exit"
@@ -190,7 +190,7 @@ const Modal: React.FC<ModalProps> = ({
           <motion.div
             className={cn(
               "absolute inset-0 backdrop-blur-sm",
-              "bg-black/50 dark:bg-black/70"
+              "bg-black/50 dark:bg-black/70",
             )}
             onClick={onClose}
             initial={{ opacity: 0 }}
@@ -204,7 +204,7 @@ const Modal: React.FC<ModalProps> = ({
               "relative rounded-lg shadow-xl w-full mx-4 max-h-[90vh] overflow-auto",
               "bg-white dark:bg-gray-900",
               "border-0 dark:border dark:border-gray-700",
-              sizeClasses[size]
+              sizeClasses[size],
             )}
             variants={modalVariants}
             initial="hidden"
@@ -215,13 +215,13 @@ const Modal: React.FC<ModalProps> = ({
               <div
                 className={cn(
                   "flex items-center justify-between p-4 border-b",
-                  "border-gray-200 dark:border-gray-700"
+                  "border-gray-200 dark:border-gray-700",
                 )}
               >
                 <h3
                   className={cn(
                     "text-lg font-semibold",
-                    "text-gray-900 dark:text-white"
+                    "text-gray-900 dark:text-white",
                   )}
                 >
                   {title}
@@ -232,7 +232,7 @@ const Modal: React.FC<ModalProps> = ({
                     "p-1 rounded-md transition-colors",
                     "text-gray-400 hover:text-gray-600",
                     "dark:text-gray-400 dark:hover:text-gray-200",
-                    "hover:bg-gray-100 dark:hover:bg-gray-800"
+                    "hover:bg-gray-100 dark:hover:bg-gray-800",
                   )}
                 >
                   <svg
@@ -257,7 +257,7 @@ const Modal: React.FC<ModalProps> = ({
         </motion.div>
       )}
     </AnimatePresence>,
-    document.body
+    document.body,
   );
 };
 

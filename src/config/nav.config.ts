@@ -36,8 +36,8 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       icon: Home,
     },
     {
-      label: "Members",
-      href: "/dashboard/admin/members",
+      label: "Users",
+      href: "/dashboard/admin/users",
       icon: UsersIcon,
     },
     {
