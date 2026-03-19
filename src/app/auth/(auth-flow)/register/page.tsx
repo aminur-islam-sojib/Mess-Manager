@@ -4,7 +4,7 @@ import LandingPageButton from "@/components/Buttons/LandingPageButton";
 import Link from "next/link";
 
 type RegisterPageProps = {
-  searchParams: Promise<{ role?: string }>;
+  searchParams: Promise<{ role?: string; callbackUrl?: string }>;
 };
 
 export default async function RegisterPage({
@@ -12,7 +12,15 @@ export default async function RegisterPage({
 }: RegisterPageProps) {
   const params = await searchParams;
   const selectedRole = params?.role;
+  const callbackUrl =
+    params?.callbackUrl && params.callbackUrl.startsWith("/")
+      ? params.callbackUrl
+      : undefined;
   const hasValidRole = selectedRole === "user" || selectedRole === "manager";
+
+  const changeRoleHref = callbackUrl
+    ? `/auth/register?callbackUrl=${encodeURIComponent(callbackUrl)}`
+    : "/auth/register";
 
   if (!hasValidRole) {
     return (
@@ -44,7 +52,7 @@ export default async function RegisterPage({
               </p>
             </div>
 
-            <LandingPageButton />
+            <LandingPageButton callbackUrl={callbackUrl} />
 
             <p className="text-center text-xs text-muted-foreground mt-6">
               Next, we will show your registration form.
@@ -96,7 +104,7 @@ export default async function RegisterPage({
         <div className="w-full max-w-md">
           <div className="mb-4">
             <Link
-              href="/auth/register"
+              href={changeRoleHref}
               className="text-xs font-medium text-primary hover:underline"
             >
               Change role

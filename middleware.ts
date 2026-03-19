@@ -10,6 +10,13 @@ import {
 } from "@/types/auth";
 
 export async function middleware(req: NextRequest) {
+  const { pathname, search } = req.nextUrl;
+
+  // Keep legacy invitation links working by routing them to the public invite entrypoint.
+  if (pathname === "/dashboard/user/invite") {
+    return NextResponse.redirect(new URL(`/invite${search}`, req.url));
+  }
+
   const authSecret =
     process.env.NEXTAUTH_SECRET ?? process.env.NEXT_AUTH_SECRET;
   const authUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_AUTH_URL;
@@ -42,7 +49,6 @@ export async function middleware(req: NextRequest) {
 
   const role = token.role as string | undefined;
   const status = token.status as string | undefined;
-  const { pathname } = req.nextUrl;
 
   if (status === "suspended") {
     const allowWhileSuspended =

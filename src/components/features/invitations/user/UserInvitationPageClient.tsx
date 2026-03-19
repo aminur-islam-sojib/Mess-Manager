@@ -51,9 +51,24 @@ export default function UserInvitationPageClient({
           router.push("/dashboard");
         }, 2000);
       } else {
-        setError(
-          res?.message || "Failed to accept invitation. Please try again.",
-        );
+        const errorByCode: Record<string, string> = {
+          AUTH_REQUIRED: "Please log in and try again.",
+          INVITE_NOT_FOUND: "This invitation link is invalid.",
+          INVITE_ALREADY_USED: "This invitation has already been used.",
+          INVITE_EXPIRED_OR_INVALID:
+            "This invitation has expired or is no longer valid.",
+          ALREADY_MEMBER: "You are already a member of this mess.",
+          SERVER_ERROR: "Server error while accepting invitation.",
+        };
+
+        const mappedMessage =
+          (res && "errorCode" in res && typeof res.errorCode === "string"
+            ? errorByCode[res.errorCode]
+            : undefined) ??
+          res?.message ??
+          "Failed to accept invitation. Please try again.";
+
+        setError(mappedMessage);
       }
     } catch {
       setError("An unexpected error occurred. Please try again.");

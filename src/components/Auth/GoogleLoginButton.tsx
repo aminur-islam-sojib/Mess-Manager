@@ -3,10 +3,18 @@
 import { Chrome } from "lucide-react";
 import { signIn } from "next-auth/react";
 
-export default function GoogleLoginButton() {
+export default function GoogleLoginButton({
+  callbackUrl,
+}: {
+  callbackUrl?: string;
+}) {
+  const safeCallbackUrl = callbackUrl?.startsWith("/")
+    ? callbackUrl
+    : "/dashboard";
+
   async function handleGoogle() {
     const result = await signIn("google", {
-      callbackUrl: `/dashboard`,
+      callbackUrl: safeCallbackUrl,
     });
     console.log("res", result);
   }

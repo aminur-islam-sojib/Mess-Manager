@@ -16,8 +16,25 @@ import GoogleLoginButton from "./GoogleLoginButton";
 import { toast } from "sonner";
 import { signIn } from "next-auth/react";
 import Link from "next/link"; // Import Link for internal routing
+import { useSearchParams } from "next/navigation";
 
 export default function LoginFormPage() {
+  const searchParams = useSearchParams();
+  const rawCallbackUrl = searchParams.get("callbackUrl");
+  const inviteToken = searchParams.get("token");
+
+  const callbackUrl = rawCallbackUrl?.startsWith("/")
+    ? rawCallbackUrl
+    : inviteToken
+      ? `/invite?token=${encodeURIComponent(inviteToken)}`
+      : "/dashboard";
+
+  const registerParams = new URLSearchParams({ role: "user" });
+  if (callbackUrl !== "/dashboard") {
+    registerParams.set("callbackUrl", callbackUrl);
+  }
+  const registerHref = `/auth/register?${registerParams.toString()}`;
+
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
 
@@ -70,12 +87,12 @@ export default function LoginFormPage() {
         email: formData.email,
         password: formData.password,
         redirect: false,
-        callbackUrl: "/dashboard",
+        callbackUrl,
       });
 
       if (result?.ok) {
         toast.success("Login Successful!");
-        window.location.assign("/dashboard");
+        window.location.assign(result.url ?? callbackUrl);
       } else {
         toast.error(result?.error || "Invalid credentials");
       }
@@ -115,12 +132,12 @@ export default function LoginFormPage() {
         const result = await signIn("credentials", {
           ...selected,
           redirect: false,
-          callbackUrl: "/dashboard",
+          callbackUrl,
         });
 
         if (result?.ok) {
           toast.success(`Welcome to the ${role} demo!`);
-          window.location.assign("/dashboard");
+          window.location.assign(result.url ?? callbackUrl);
         } else {
           toast.error("Demo account not found");
         }
@@ -250,13 +267,13 @@ export default function LoginFormPage() {
         <div className="flex-1 h-px bg-border"></div>
       </div>
 
-      <GoogleLoginButton />
+      <GoogleLoginButton callbackUrl={callbackUrl} />
 
       {/* --- NEW REGISTER REDIRECT SECTION --- */}
       <p className="text-center text-sm text-muted-foreground pt-4">
         Don&apos;t have an account?{" "}
         <Link
-          href="/auth/register"
+          href={registerHref}
           className="font-bold text-primary hover:underline inline-flex items-center gap-1 transition-all group"
         >
           Register here

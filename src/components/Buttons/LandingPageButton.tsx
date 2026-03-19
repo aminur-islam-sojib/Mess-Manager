@@ -4,15 +4,26 @@ import { UserCog, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export default function LandingPageButton() {
+export default function LandingPageButton({
+  callbackUrl,
+}: {
+  callbackUrl?: string;
+}) {
   const [selectedRole, setSelectedRole] = useState<"user" | "manager" | null>(
     null,
   );
   const router = useRouter();
+  const safeCallbackUrl = callbackUrl?.startsWith("/")
+    ? callbackUrl
+    : undefined;
 
   const handleContinue = () => {
     if (selectedRole) {
-      router.push(`/auth/register?role=${selectedRole}`);
+      const params = new URLSearchParams({ role: selectedRole });
+      if (safeCallbackUrl) {
+        params.set("callbackUrl", safeCallbackUrl);
+      }
+      router.push(`/auth/register?${params.toString()}`);
     }
   };
 

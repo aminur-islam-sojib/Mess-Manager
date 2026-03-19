@@ -81,7 +81,7 @@ const serializeInvitation = (
   status: invitation.status,
   createdAt: invitation.createdAt.toISOString(),
   inviteLink: invitation.token
-    ? `${APP_URL}/dashboard/user/invite?token=${invitation.token}`
+    ? `${APP_URL}/invite?token=${invitation.token}`
     : "",
 });
 
@@ -119,12 +119,47 @@ async function getManagerContext(): Promise<ManagerContext> {
 
 export async function acceptInvitation(token: string, userId: string) {
   if (!token || !userId) {
-    return { success: false, message: "Token and userId required" };
+    return {
+      success: false,
+      message: "Token and userId required",
+      errorCode: "AUTH_REQUIRED",
+    };
   }
 
   try {
     const invitationCol = dbConnect(collections.INVITATIONS);
     const messMemberCol = dbConnect(collections.MESS_MEMBERS);
+
+    const anyInvitation = await invitationCol.findOne({ token });
+
+    if (!anyInvitation) {
+      return {
+        success: false,
+        message: "Invalid or expired invitation",
+        errorCode: "INVITE_NOT_FOUND",
+      };
+    }
+
+    if (anyInvitation.status === "accepted") {
+      const acceptedById =
+        typeof anyInvitation.acceptedBy?.toString === "function"
+          ? anyInvitation.acceptedBy.toString()
+          : String(anyInvitation.acceptedBy ?? "");
+
+      if (acceptedById === userId) {
+        return {
+          success: true,
+          message: "Invitation already accepted",
+          messId: anyInvitation.messId?.toString?.() ?? "",
+        };
+      }
+
+      return {
+        success: false,
+        message: "Invitation already used",
+        errorCode: "INVITE_ALREADY_USED",
+      };
+    }
 
     const invitation = await invitationCol.findOne({
       token,
@@ -136,6 +171,7 @@ export async function acceptInvitation(token: string, userId: string) {
       return {
         success: false,
         message: "Invalid or expired invitation",
+        errorCode: "INVITE_EXPIRED_OR_INVALID",
       };
     }
 
@@ -152,6 +188,7 @@ export async function acceptInvitation(token: string, userId: string) {
       return {
         success: false,
         message: "User already a member of this mess",
+        errorCode: "ALREADY_MEMBER",
       };
     }
 
@@ -189,6 +226,7 @@ export async function acceptInvitation(token: string, userId: string) {
     return {
       success: false,
       message: "Failed to accept invitation",
+      errorCode: "SERVER_ERROR",
     };
   }
 }
@@ -351,7 +389,7 @@ export async function sendMessInvitation(payload: {
       updatedAt: new Date(),
     });
 
-    const inviteLink = `${APP_URL}/dashboard/user/invite?token=${token}`;
+    const inviteLink = `${APP_URL}/invite?token=${token}`;
 
     await sendInvitationEmail(
       email,

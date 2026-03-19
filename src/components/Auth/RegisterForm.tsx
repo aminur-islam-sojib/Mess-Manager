@@ -1,7 +1,7 @@
 "use client";
 import { createUser } from "@/actions/server/Users";
 import { ArrowRight, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import GoogleLoginButton from "./GoogleLoginButton";
 import { useSearchParams } from "next/navigation";
@@ -11,7 +11,20 @@ import Link from "next/link";
 
 export default function RegisterForm() {
   const sp = useSearchParams();
-  const role = sp.get("role");
+  const roleParam = sp.get("role");
+  const rawCallbackUrl = sp.get("callbackUrl");
+  const callbackUrl = rawCallbackUrl?.startsWith("/")
+    ? rawCallbackUrl
+    : undefined;
+
+  const loginParams = new URLSearchParams();
+  if (callbackUrl) {
+    loginParams.set("callbackUrl", callbackUrl);
+  }
+  const loginHref = loginParams.toString()
+    ? `/auth/login?${loginParams.toString()}`
+    : "/auth/login";
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState<FormDataType>({
@@ -20,7 +33,7 @@ export default function RegisterForm() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: role as "user" | "manager",
+    role: roleParam === "manager" ? "manager" : "user",
   });
 
   const [errors, setErrors] = useState({
@@ -30,6 +43,14 @@ export default function RegisterForm() {
     confirmPassword: "",
   });
   const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      role: roleParam === "manager" ? "manager" : "user",
+    }));
+  }, [roleParam]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -109,19 +130,20 @@ export default function RegisterForm() {
         email: formData.email,
         password: formData.password,
         redirect: false, // important
+        callbackUrl: callbackUrl ?? "/dashboard",
       });
 
       if (!loginResult?.ok) {
         toast.error(
           "Account created, but login failed. Please login manually.",
         );
-        window.location.assign("/auth/login");
+        window.location.assign(loginHref);
         return;
       }
 
       // 3️⃣ Success
       toast.success("Account created & logged in 🎉");
-      window.location.assign("/dashboard"); // server decides role
+      window.location.assign(loginResult.url ?? callbackUrl ?? "/dashboard");
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Something went wrong";
@@ -302,12 +324,12 @@ export default function RegisterForm() {
       </div>
 
       {/* Google Login Button */}
-      {<GoogleLoginButton />}
+      {<GoogleLoginButton callbackUrl={callbackUrl} />}
       {/* --- NEW REGISTER REDIRECT SECTION --- */}
       <p className="text-center text-sm text-muted-foreground pt-4">
         Allready have an account?{" "}
         <Link
-          href="/auth/login"
+          href={loginHref}
           className="font-bold text-primary hover:underline inline-flex items-center gap-1 transition-all group"
         >
           Log In

@@ -121,7 +121,7 @@ const serializeInvitation = (
   status: invitation.status,
   createdAt: invitation.createdAt.toISOString(),
   inviteLink: invitation.token
-    ? `${APP_URL}/dashboard/user/invite?token=${invitation.token}`
+    ? `${APP_URL}/invite?token=${invitation.token}`
     : "",
 });
 
@@ -622,7 +622,7 @@ export async function sendMessInvitation(payload: {
       updatedAt: new Date(),
     });
 
-    const inviteLink = `${APP_URL}/dashboard/user/invite?token=${token}`;
+    const inviteLink = `${APP_URL}/invite?token=${token}`;
 
     await sendInvitationEmail(
       email,
