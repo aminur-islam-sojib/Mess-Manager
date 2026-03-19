@@ -22,7 +22,7 @@ export default function MealManagementClient({
   const [activeTab, setActiveTab] = useState("all");
 
   return (
-    <div className=" py-4 max-w-4xl mx-auto">
+    <div className=" max-w-4xl mx-auto">
       {/* High-End Framer Motion Tabs */}
       <div className="flex justify-center mb-5">
         <div className="flex p-1.5 bg-muted/40 backdrop-blur-md border border-border/50 rounded-2xl relative w-full">

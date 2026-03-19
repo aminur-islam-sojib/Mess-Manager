@@ -41,7 +41,7 @@ export default async function ManagerDashboard() {
   return (
     <div className="min-h-screen bg-background lg:flex">
       <div className="flex-1 ">
-        <main className="lg:pb-6">
+        <main>
           <div className="max-w-7xl mx-auto  space-y-6">
             {messData && <ManagerHeader messData={messData} />}
 
