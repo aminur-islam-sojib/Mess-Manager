@@ -17,5 +17,5 @@ export default async function ManagerLayout({
     redirect("/unauthorized");
   }
 
-  return <>{children}</>;
+  return <div className="pb-6">{children}</div>;
 }

@@ -186,7 +186,7 @@ export default function UserHomeInsights({
   return (
     <div className="min-h-screen bg-background lg:flex">
       <div className="flex-1">
-        <main className="pb-20 lg:pb-6">
+        <main className="pb-20 lg:pb-0">
           <div className="mx-auto max-w-7xl space-y-6">
             <div className="rounded-2xl border border-border bg-linear-to-r from-primary/10 via-primary/5 to-transparent p-5 shadow-sm">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -504,7 +504,7 @@ export default function UserHomeInsights({
 
             <div className="grid gap-4 lg:grid-cols-12">
               <Card className="rounded-2xl border-border shadow-sm lg:col-span-6">
-                <CardHeader className="pb-2">
+                <CardHeader>
                   <CardTitle className="text-base">
                     Recent Transactions
                   </CardTitle>
@@ -566,7 +566,7 @@ export default function UserHomeInsights({
               </Card>
 
               <Card className="rounded-2xl border-border shadow-sm lg:col-span-6">
-                <CardHeader className="pb-2">
+                <CardHeader>
                   <CardTitle className="text-base">Recent Meals</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
