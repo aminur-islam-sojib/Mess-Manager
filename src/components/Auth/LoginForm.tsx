@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   PlayCircle,
   ArrowRight,
+  Shield,
 } from "lucide-react";
 import React, { useState } from "react";
 import GoogleLoginButton from "./GoogleLoginButton";
@@ -85,15 +86,19 @@ export default function LoginFormPage() {
     }
   };
 
-  const handleDemoLogin = async (role: "manager" | "member") => {
+  const handleDemoLogin = async (role: "manager" | "member" | "admin") => {
     const demoCredentials = {
       manager: {
         email: "demo.manager@mail.com",
         password: "DemoManager.12",
       },
       member: {
-        email: "sojibah360@gmail.com",
-        password: "Sojib.12",
+        email: "demo.member@mail.com",
+        password: "DemoMember.12",
+      },
+      admin: {
+        email: "demo.admin@mail.com",
+        password: "DemoAdmin.12",
       },
     };
 
@@ -207,16 +212,7 @@ export default function LoginFormPage() {
           <div className="flex-1 h-px bg-border"></div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            disabled={loading !== null}
-            onClick={() => handleDemoLogin("manager")}
-            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border border-input bg-secondary/50 hover:bg-secondary text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <ShieldCheck className="w-4 h-4 text-primary" />
-            {loading === "manager" ? "Wait..." : "Manager"}
-          </button>
+        <div className="grid grid-cols-3 gap-3">
           <button
             type="button"
             disabled={loading !== null}
@@ -225,6 +221,25 @@ export default function LoginFormPage() {
           >
             <User className="w-4 h-4 text-primary" />
             {loading === "member" ? "Wait..." : "Member"}
+          </button>
+          <button
+            type="button"
+            disabled={loading !== null}
+            onClick={() => handleDemoLogin("manager")}
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border border-input bg-secondary/50 hover:bg-secondary text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <Shield className="w-4 h-4 text-primary" />
+            {loading === "manager" ? "Wait..." : "Manager"}
+          </button>
+
+          <button
+            type="button"
+            disabled={loading !== null}
+            onClick={() => handleDemoLogin("admin")}
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border border-input bg-secondary/50 hover:bg-secondary text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <ShieldCheck className="w-4 h-4 text-primary" />
+            {loading === "admin" ? "Wait..." : "Admin"}
           </button>
         </div>
       </div>
