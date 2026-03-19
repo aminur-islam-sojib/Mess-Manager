@@ -6,7 +6,7 @@ export const ensureMealEntryIndexes = async () => {
 
   await collection.createIndex(
     { messId: 1, userId: 1, date: 1 },
-    { unique: true }
+    { unique: true },
   );
 
   console.log("✅ Meal entry index ensured");
@@ -49,4 +49,23 @@ export const ensureDepositIndexes = async () => {
   });
 
   console.log("✅ Deposit indexes ensured");
+};
+
+export const ensureNotificationIndexes = async () => {
+  const collection = dbConnect(collections.NOTIFICATIONS);
+
+  await collection.createIndex({ recipientUserId: 1, createdAt: -1 });
+  await collection.createIndex({
+    recipientUserId: 1,
+    isRead: 1,
+    createdAt: -1,
+  });
+  await collection.createIndex({ messId: 1, createdAt: -1 });
+  await collection.createIndex({
+    recipientUserId: 1,
+    dedupeKey: 1,
+    createdAt: -1,
+  });
+
+  console.log("✅ Notification indexes ensured");
 };

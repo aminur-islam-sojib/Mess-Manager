@@ -3,6 +3,7 @@ import {
   Receipt,
   Settings,
   UserPlus,
+  Bell,
   type LucideIcon,
   UtensilsCrossed,
   BarChartHorizontalBig,
@@ -43,6 +44,11 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       label: "Expenses",
       href: "/dashboard/admin/expenses",
       icon: TrendingDown,
+    },
+    {
+      label: "Notifications",
+      href: "/dashboard/admin/notifications",
+      icon: Bell,
     },
     {
       label: "Settings",
@@ -94,6 +100,12 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       icon: Receipt,
       requiresMess: true,
     },
+    {
+      label: "Notifications",
+      href: "/dashboard/manager/notifications",
+      icon: Bell,
+      requiresMess: true,
+    },
 
     {
       label: "Settings",
@@ -136,6 +148,12 @@ export const NAV_CONFIG: Record<Role, NavItem[]> = {
       label: "Expenses",
       href: "/dashboard/user/expenses",
       icon: TrendingDown,
+      requiresMess: true,
+    },
+    {
+      label: "Notifications",
+      href: "/dashboard/user/notifications",
+      icon: Bell,
       requiresMess: true,
     },
     {

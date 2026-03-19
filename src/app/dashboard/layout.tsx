@@ -5,6 +5,12 @@ import { getSingleMessForUser } from "@/actions/server/Mess";
 import AppSidebar from "@/components/Shared/layout/AppSidebar";
 import AppBottomNav from "@/components/Shared/layout/AppBottomNav";
 import DashboardPageTransition from "@/components/Shared/DashboardPageTransition";
+import DashboardHeader from "@/components/Shared/layout/DashboardHeader";
+import {
+  getRecentNotificationsForUserId,
+  getUnreadNotificationCountForUserId,
+} from "@/lib/notifications";
+import type { NotificationSerialized } from "@/types/Notification";
 
 export default async function DashboardLayout({
   children,
@@ -39,6 +45,19 @@ export default async function DashboardLayout({
       ? { success: false, message: "No mess found" }
       : messData;
 
+  let unreadNotificationCount = 0;
+  let initialNotifications: NotificationSerialized[] = [];
+  try {
+    const [count, notifications] = await Promise.all([
+      getUnreadNotificationCountForUserId(session.user.id),
+      getRecentNotificationsForUserId(session.user.id, 8),
+    ]);
+    unreadNotificationCount = count;
+    initialNotifications = notifications;
+  } catch (error) {
+    console.error("❌ Error fetching unread notifications:", error);
+  }
+
   return (
     <div className="min-h-screen bg-background lg:flex">
       <div className="flex-1">
@@ -46,10 +65,15 @@ export default async function DashboardLayout({
           user={session.user}
           isMessExist={isMessExist}
           role={role}
-          alertCount={1}
+          alertCount={unreadNotificationCount}
         />
 
         <div className="p-4 pb-20 md:p-6 lg:ml-72 lg:pb-0">
+          <DashboardHeader
+            role={role}
+            unreadCount={unreadNotificationCount}
+            initialItems={initialNotifications}
+          />
           <DashboardPageTransition>{children}</DashboardPageTransition>
         </div>
 

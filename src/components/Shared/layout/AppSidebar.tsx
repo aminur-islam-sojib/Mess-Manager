@@ -1,8 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, Menu } from "lucide-react";
+import { useRouter } from "next/navigation";
 import LogOutButton from "../../Buttons/LogOutButton";
 import { SidebarProps } from "@/types/MessTypes";
 import { AppRole, ROLE_NAV_META } from "@/config/nav.config";
@@ -21,9 +22,54 @@ export default function AppSidebar({
   alertCount = 0,
 }: AppSidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [liveAlertCount, setLiveAlertCount] = useState(alertCount);
+  const router = useRouter();
   const reduceMotion = useReducedMotion();
   const roleMeta = ROLE_NAV_META[role];
   const messName = getMessName(isMessExist);
+  const notificationsHref = `/dashboard/${role}/notifications`;
+
+  useEffect(() => {
+    setLiveAlertCount(alertCount);
+  }, [alertCount]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const refreshUnreadCount = async () => {
+      try {
+        const response = await fetch("/api/notifications/unread", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as {
+          success?: boolean;
+          unreadCount?: number;
+        };
+
+        if (isMounted && data.success && typeof data.unreadCount === "number") {
+          setLiveAlertCount(data.unreadCount);
+        }
+      } catch {
+        // silent fail to avoid noisy UI errors
+      }
+    };
+
+    const eventSource = new EventSource("/api/notifications/stream");
+    eventSource.addEventListener("message", refreshUnreadCount);
+    refreshUnreadCount();
+
+    return () => {
+      isMounted = false;
+      eventSource.removeEventListener("message", refreshUnreadCount);
+      eventSource.close();
+    };
+  }, []);
 
   return (
     <>
@@ -54,13 +100,15 @@ export default function AppSidebar({
           </h1>
 
           <motion.button
+            onClick={() => router.push(notificationsHref)}
             whileTap={reduceMotion ? undefined : { scale: 0.96 }}
             className="relative rounded-xl p-2 -mr-2 transition-colors hover:bg-accent"
+            aria-label="Open notifications"
           >
             <Bell className="h-6 w-6 text-foreground" />
-            {alertCount > 0 && (
+            {liveAlertCount > 0 && (
               <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-primary-foreground">
-                {alertCount}
+                {liveAlertCount}
               </span>
             )}
           </motion.button>

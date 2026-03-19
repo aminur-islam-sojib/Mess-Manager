@@ -4,6 +4,10 @@ import { getServerSession } from "next-auth";
 import { InsertOneResult, ObjectId } from "mongodb";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import { collections, dbConnect } from "@/lib/dbConnect";
+import {
+  emitNotification,
+  getActiveManagerIdsForMess,
+} from "@/lib/notifications";
 
 import type {
   AddExpensePayload,
@@ -270,7 +274,9 @@ export async function addExpense(
     const membership = await resolveActiveMess(userId);
 
     if (membership.role !== "manager") {
-      const expenseAccessRule = await getMessExpenseAccessRule(membership.messId);
+      const expenseAccessRule = await getMessExpenseAccessRule(
+        membership.messId,
+      );
       if (expenseAccessRule === "managerOnly") {
         return {
           success: false,
@@ -343,6 +349,68 @@ export async function addExpense(
     const serializedExpenses = expenseDocs.map((doc, index) =>
       serializeExpense({ ...doc, _id: insertedIds[index] }),
     );
+
+    try {
+      const actorName = session.user.name?.trim() || "A member";
+
+      if (status === "pending") {
+        const managerIds = await getActiveManagerIdsForMess(membership.messId);
+        const recipients = managerIds.filter(
+          (managerId) => managerId.toString() !== userId.toString(),
+        );
+
+        if (recipients.length > 0) {
+          await emitNotification({
+            recipientUserIds: recipients,
+            messId: membership.messId,
+            actorUserId: userId,
+            eventKey: "expense.added",
+            channels: ["in_app", "email", "realtime"],
+            severity: "warning",
+            title: "New Expense Needs Review",
+            message: `${actorName} submitted ${expenseDocs.length} expense request(s) totaling BDT ${payload.amount.toFixed(2)}.`,
+            actionUrl: "/dashboard/manager/expenses",
+            metadata: {
+              createdCount: expenseDocs.length,
+              amount: payload.amount,
+              paymentSource,
+              status,
+            },
+            dedupeKey: `expense.added:${insertedIds[0].toString()}`,
+          });
+        }
+      } else {
+        const recipients = targetResult.userIds.filter(
+          (targetUserId) => targetUserId.toString() !== userId.toString(),
+        );
+
+        if (recipients.length > 0) {
+          await emitNotification({
+            recipientUserIds: recipients,
+            messId: membership.messId,
+            actorUserId: userId,
+            eventKey: "expense.approved",
+            channels: ["in_app", "email", "realtime"],
+            severity: "success",
+            title: "Expense Added for You",
+            message: `${actorName} added ${expenseDocs.length} approved expense record(s) totaling BDT ${payload.amount.toFixed(2)}.`,
+            actionUrl: "/dashboard/user/expenses",
+            metadata: {
+              createdCount: expenseDocs.length,
+              amount: payload.amount,
+              paymentSource,
+              status,
+            },
+            dedupeKey: `expense.approved:${insertedIds[0].toString()}`,
+          });
+        }
+      }
+    } catch (notificationError) {
+      console.error(
+        "Failed to emit expense.added notification:",
+        notificationError,
+      );
+    }
 
     return {
       success: true,
@@ -680,6 +748,45 @@ export const verifyExpense = async (
 
     if (!updatedExpense) {
       return { success: false, message: "Expense update failed" };
+    }
+
+    try {
+      const recipients = [
+        updatedExpense.addedBy.toString(),
+        updatedExpense.paidBy.toString(),
+      ]
+        .filter((recipientId) => recipientId !== managerUserId.toString())
+        .map((recipientId) => new ObjectId(recipientId));
+
+      if (recipients.length > 0) {
+        await emitNotification({
+          recipientUserIds: recipients,
+          messId: membership.messId,
+          actorUserId: managerUserId,
+          eventKey:
+            decision === "approved" ? "expense.approved" : "expense.rejected",
+          channels: ["in_app", "email", "realtime"],
+          severity: decision === "approved" ? "success" : "error",
+          title:
+            decision === "approved" ? "Expense Approved" : "Expense Rejected",
+          message:
+            decision === "approved"
+              ? `Your expense \"${updatedExpense.title}\" was approved.`
+              : `Your expense \"${updatedExpense.title}\" was rejected.`,
+          actionUrl: "/dashboard/user/expenses",
+          metadata: {
+            expenseId: updatedExpense._id.toString(),
+            amount: updatedExpense.amount,
+            decision,
+          },
+          dedupeKey: `expense.verify:${updatedExpense._id.toString()}:${decision}`,
+        });
+      }
+    } catch (notificationError) {
+      console.error(
+        "Failed to emit expense verification notification:",
+        notificationError,
+      );
     }
 
     return {

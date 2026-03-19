@@ -1,5 +1,6 @@
 import { MongoClient, ServerApiVersion } from "mongodb";
 import dns from "node:dns";
+import dnsPromises from "node:dns/promises";
 
 export const collections = {
   USERS: "users",
@@ -10,20 +11,33 @@ export const collections = {
   EXPENSES: "expenses",
   DEPOSITS: "deposits",
   DEPOSIT_REQUESTS: "deposit_requests",
+  NOTIFICATIONS: "notifications",
 };
 
 const uri = process.env.MONGO_URI;
 const dname = process.env.DB_NAME;
 
-if (process.env.NODE_ENV === "development") {
-  const dnsServers = process.env.MONGO_DNS_SERVERS?.split(",")
-    .map((server) => server.trim())
-    .filter(Boolean);
+const currentServers = dns.getServers();
+const localhostResolvers = ["127.0.0.1", "::1"];
+const looksLikeLocalStubOnly =
+  currentServers.length > 0 &&
+  currentServers.every((server) => localhostResolvers.includes(server));
 
+const dnsServers = process.env.MONGO_DNS_SERVERS?.split(",")
+  .map((server) => server.trim())
+  .filter(Boolean);
+
+if (looksLikeLocalStubOnly && (!dnsServers || dnsServers.length === 0)) {
+  console.warn(
+    "Node DNS is using localhost resolver only. If MongoDB SRV lookup fails with ECONNREFUSED, set MONGO_DNS_SERVERS in .env (example: MONGO_DNS_SERVERS=192.168.0.1).",
+  );
+}
+
+// Apply explicit DNS override whenever configured.
+if (dnsServers && dnsServers.length > 0) {
   try {
-    dns.setServers(
-      dnsServers && dnsServers.length > 0 ? dnsServers : ["8.8.8.8", "1.1.1.1"],
-    );
+    dns.setServers(dnsServers);
+    dnsPromises.setServers(dnsServers);
   } catch (error) {
     console.warn("Failed to set custom DNS servers for MongoDB:", error);
   }

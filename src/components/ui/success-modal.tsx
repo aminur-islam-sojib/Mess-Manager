@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Modal from "./modal";
-import Button from "../button/button";
+import { Button } from "./button";
 
 const SuccessModalView: React.FC = () => {
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
@@ -146,7 +146,7 @@ const SuccessModalView: React.FC = () => {
       >
         <div className="text-center space-y-6">
           <div className="relative">
-            <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 animate-pulse">
+            <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-linear-to-r from-purple-400 to-pink-400 animate-pulse">
               <svg
                 className="h-12 w-12 text-white"
                 fill="none"
@@ -169,7 +169,7 @@ const SuccessModalView: React.FC = () => {
           </div>
 
           <div>
-            <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400">
+            <h3 className="text-xl font-bold text-transparent bg-clip-text bg-linear-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400">
               Achievement Unlocked!
             </h3>
             <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mt-1">
@@ -181,7 +181,7 @@ const SuccessModalView: React.FC = () => {
             </p>
           </div>
 
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+          <div className="bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div className="text-left">
                 <h5 className="text-sm font-medium text-purple-800 dark:text-purple-200">
@@ -214,7 +214,7 @@ const SuccessModalView: React.FC = () => {
             <Button
               onClick={() => setIsAchievementOpen(false)}
               variant="default"
-              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 transform hover:scale-105"
+              className="bg-linear-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 transform hover:scale-105"
               size="lg"
             >
               Awesome!

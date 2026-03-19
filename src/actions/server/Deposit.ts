@@ -5,6 +5,10 @@ import { ObjectId } from "mongodb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import { collections, dbConnect } from "@/lib/dbConnect";
+import {
+  emitNotification,
+  getActiveManagerIdsForMess,
+} from "@/lib/notifications";
 import type {
   AddDepositPayload,
   DepositDocument,
@@ -34,7 +38,12 @@ type ActionResponse =
 
 type DepositRequestMongo = DepositRequestDocument & { _id: ObjectId };
 
-const DEPOSIT_METHODS = new Set<DepositMethod>(["cash", "bkash", "nagad", "bank"]);
+const DEPOSIT_METHODS = new Set<DepositMethod>([
+  "cash",
+  "bkash",
+  "nagad",
+  "bank",
+]);
 const DUPLICATE_WINDOW_MS = 60 * 1000;
 
 const toDateKey = (date: Date) => {
@@ -153,7 +162,10 @@ async function validatePayload(
 }
 
 async function ensureNoDuplicateDeposit(
-  doc: Pick<DepositDocument, "messId" | "userId" | "amount" | "method" | "date" | "addedBy" | "note">,
+  doc: Pick<
+    DepositDocument,
+    "messId" | "userId" | "amount" | "method" | "date" | "addedBy" | "note"
+  >,
 ) {
   const deposits = dbConnect(collections.DEPOSITS);
   const recentDuplicate = await deposits.findOne({
@@ -258,6 +270,34 @@ export async function addUserDeposit(
 
     const deposits = dbConnect(collections.DEPOSITS);
     const result = await deposits.insertOne(depositDoc);
+
+    try {
+      const actorName = session.user.name?.trim() || "Manager";
+      await emitNotification({
+        recipientUserIds: [validated.targetUserId],
+        messId: validated.messId,
+        actorUserId: actorId,
+        eventKey: "deposit.added",
+        channels: ["in_app", "email", "realtime"],
+        severity: "success",
+        title: "Deposit Added",
+        message: `${actorName} added a deposit of BDT ${validated.amount.toFixed(2)} for you.`,
+        actionUrl: "/dashboard/user/deposits",
+        metadata: {
+          amount: validated.amount,
+          method: validated.method,
+          date: validated.date,
+          depositId: result.insertedId.toString(),
+        },
+        dedupeKey: `deposit.added:${result.insertedId.toString()}`,
+      });
+    } catch (notificationError) {
+      console.error(
+        "Failed to emit deposit.added notification:",
+        notificationError,
+      );
+    }
+
     revalidateDepositPaths();
 
     return {
@@ -316,6 +356,41 @@ export async function requestDeposit(
 
     const requests = dbConnect(collections.DEPOSIT_REQUESTS);
     const result = await requests.insertOne(requestDoc);
+
+    try {
+      const managerIds = await getActiveManagerIdsForMess(validated.messId);
+      const recipients = managerIds.filter(
+        (managerId) => managerId.toString() !== actorId.toString(),
+      );
+
+      if (recipients.length > 0) {
+        const actorName = session.user.name?.trim() || "A member";
+        await emitNotification({
+          recipientUserIds: recipients,
+          messId: validated.messId,
+          actorUserId: actorId,
+          eventKey: "deposit.requested",
+          channels: ["in_app", "email", "realtime"],
+          severity: "warning",
+          title: "New Deposit Request",
+          message: `${actorName} requested a deposit approval of BDT ${validated.amount.toFixed(2)}.`,
+          actionUrl: "/dashboard/manager/deposits",
+          metadata: {
+            amount: validated.amount,
+            method: validated.method,
+            date: validated.date,
+            requestId: result.insertedId.toString(),
+          },
+          dedupeKey: `deposit.requested:${result.insertedId.toString()}`,
+        });
+      }
+    } catch (notificationError) {
+      console.error(
+        "Failed to emit deposit.requested notification:",
+        notificationError,
+      );
+    }
+
     revalidateDepositPaths();
 
     return {
@@ -333,7 +408,8 @@ export async function requestDeposit(
 }
 
 export async function getDepositRequests(): Promise<
-  { success: true; requests: DepositRequestSerialized[] } | { success: false; message: string }
+  | { success: true; requests: DepositRequestSerialized[] }
+  | { success: false; message: string }
 > {
   try {
     const session = await getServerSession(authOptions);
@@ -368,13 +444,15 @@ export async function getDepositRequests(): Promise<
 
     return {
       success: true,
-      requests: (items as (DepositRequestMongo & { user?: { name?: string; email?: string } })[]).map(
-        (item) => ({
-          ...serializeDepositRequest(item),
-          userName: item.user?.name ?? "Unknown",
-          userEmail: item.user?.email ?? "Unknown",
-        }),
-      ),
+      requests: (
+        items as (DepositRequestMongo & {
+          user?: { name?: string; email?: string };
+        })[]
+      ).map((item) => ({
+        ...serializeDepositRequest(item),
+        userName: item.user?.name ?? "Unknown",
+        userEmail: item.user?.email ?? "Unknown",
+      })),
     };
   } catch (error) {
     return {
@@ -388,7 +466,8 @@ export async function getDepositRequests(): Promise<
 }
 
 export async function getDepositRequestsForManager(): Promise<
-  { success: true; requests: DepositRequestSerialized[] } | { success: false; message: string }
+  | { success: true; requests: DepositRequestSerialized[] }
+  | { success: false; message: string }
 > {
   try {
     const session = await getServerSession(authOptions);
@@ -425,13 +504,15 @@ export async function getDepositRequestsForManager(): Promise<
 
     return {
       success: true,
-      requests: (items as (DepositRequestMongo & { user?: { name?: string; email?: string } })[]).map(
-        (item) => ({
-          ...serializeDepositRequest(item),
-          userName: item.user?.name ?? "Unknown",
-          userEmail: item.user?.email ?? "Unknown",
-        }),
-      ),
+      requests: (
+        items as (DepositRequestMongo & {
+          user?: { name?: string; email?: string };
+        })[]
+      ).map((item) => ({
+        ...serializeDepositRequest(item),
+        userName: item.user?.name ?? "Unknown",
+        userEmail: item.user?.email ?? "Unknown",
+      })),
     };
   } catch (error) {
     return {
@@ -517,6 +598,42 @@ async function reviewDepositRequest(
       },
     );
 
+    try {
+      await emitNotification({
+        recipientUserIds: [existing.requestedBy],
+        messId: membership.messId,
+        actorUserId: actorId,
+        eventKey:
+          decision === "approved"
+            ? "deposit_request.approved"
+            : "deposit_request.rejected",
+        channels: ["in_app", "email", "realtime"],
+        severity: decision === "approved" ? "success" : "error",
+        title:
+          decision === "approved"
+            ? "Deposit Request Approved"
+            : "Deposit Request Rejected",
+        message:
+          decision === "approved"
+            ? `Your deposit request of BDT ${existing.amount.toFixed(2)} has been approved.`
+            : `Your deposit request of BDT ${existing.amount.toFixed(2)} has been rejected.`,
+        actionUrl: "/dashboard/user/deposits",
+        metadata: {
+          amount: existing.amount,
+          method: existing.method,
+          date: existing.date,
+          requestId,
+          decision,
+        },
+        dedupeKey: `deposit.request.review:${requestId}:${decision}`,
+      });
+    } catch (notificationError) {
+      console.error(
+        "Failed to emit deposit request review notification:",
+        notificationError,
+      );
+    }
+
     revalidateDepositPaths();
 
     return {
@@ -546,9 +663,7 @@ export async function rejectDepositRequest(requestId: string, note?: string) {
   return reviewDepositRequest(requestId, "rejected", note);
 }
 
-export async function getUsersCostSummary(
-  range?: DateRange,
-): Promise<
+export async function getUsersCostSummary(range?: DateRange): Promise<
   | {
       success: true;
       data: UserLedger[];
@@ -692,10 +807,16 @@ export async function getUsersCostSummary(
             $ifNull: [{ $arrayElemAt: ["$deposit.totalDeposit", 0] }, 0],
           },
           pendingRequestCount: {
-            $ifNull: [{ $arrayElemAt: ["$pendingRequests.pendingRequestCount", 0] }, 0],
+            $ifNull: [
+              { $arrayElemAt: ["$pendingRequests.pendingRequestCount", 0] },
+              0,
+            ],
           },
           pendingRequestAmount: {
-            $ifNull: [{ $arrayElemAt: ["$pendingRequests.pendingRequestAmount", 0] }, 0],
+            $ifNull: [
+              { $arrayElemAt: ["$pendingRequests.pendingRequestAmount", 0] },
+              0,
+            ],
           },
         },
       },
@@ -718,7 +839,9 @@ export async function getUsersCostSummary(
       { $sort: { name: 1 } },
     ];
 
-    const result = (await memberCollection.aggregate(pipeline).toArray()) as UserLedger[];
+    const result = (await memberCollection
+      .aggregate(pipeline)
+      .toArray()) as UserLedger[];
 
     return {
       success: true,

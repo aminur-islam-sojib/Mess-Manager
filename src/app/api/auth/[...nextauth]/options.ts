@@ -6,8 +6,7 @@ import { createOAuthUser, findUserByEmail } from "@/lib/user.service";
 import { JWT } from "next-auth/jwt";
 import { Account, Session, User } from "next-auth";
 
-const authSecret =
-  process.env.NEXTAUTH_SECRET ?? process.env.NEXT_AUTH_SECRET;
+const authSecret = process.env.NEXTAUTH_SECRET ?? process.env.NEXT_AUTH_SECRET;
 const authUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_AUTH_URL;
 
 if (!process.env.NEXTAUTH_URL && authUrl) {
@@ -95,7 +94,16 @@ export const authOptions = {
       // On subsequent calls, verify user still exists
       if (!token.email) return null;
 
-      const dbUser = await findUserByEmail(token.email);
+      let dbUser;
+      try {
+        dbUser = await findUserByEmail(token.email);
+      } catch (error) {
+        console.error(
+          "JWT sync skipped due to DB connectivity issue. Keeping existing token.",
+          error,
+        );
+        return token;
+      }
 
       // User deleted from DB - force logout
       if (!dbUser) {
